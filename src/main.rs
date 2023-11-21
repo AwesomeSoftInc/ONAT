@@ -28,16 +28,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut laptop_offset_y = 0.0;
 
     let camera_clickables = vec![
-        Rectangle::new(304.0, 247.0, 210.0, 160.0),
-        Rectangle::new(160.0, 180.0, 140.0, 100.0),
-        Rectangle::new(140.0, 480.0, 120.0, 85.0),
-        Rectangle::new(334.0, 466.0, 120.0, 85.0),
-        Rectangle::new(543.0, 450.0, 120.0, 85.0),
-        Rectangle::new(139.0, 616.0, 160.0, 130.0),
-        Rectangle::new(520.0, 630.0, 160.0, 130.0),
-        Rectangle::new(12.0, 636.0, 116.0, 121.0),
-        Rectangle::new(721.0, 631.0, 89.0, 116.0),
-        Rectangle::new(23.0, 184.0, 137.0, 72.0),
+        Rectangle::new(380.0, 121.0, 240.0, 128.0),
+        Rectangle::new(362.0, 293.0, 336.0, 208.0),
+        Rectangle::new(114.0, 724.0, 190.0, 150.0),
+        Rectangle::new(441.0, 539.0, 161.0, 123.0),
+        Rectangle::new(722.0, 674.0, 190.0, 150.0),
+        Rectangle::new(35.0, 101.0, 150.0, 128.0),
+    ];
+
+    let door_buttons = vec![
+        Rectangle::new(430.0, 330.0, 128.0, 128.0),
+        Rectangle::new(1360.0, 330.0, 128.0, 128.0),
     ];
 
     let mut sel_camera = Room::None;
@@ -47,6 +48,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut gang = Gang::new();
 
     let mut tainted = 0.0;
+
+    let mut left_door_shut = false;
+    let mut right_door_shut = false;
 
     while !rl.window_should_close() {
         if timer.elapsed()?.as_millis() <= 1 / 30 {
@@ -66,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let my = d.get_mouse_y();
 
         let cur_time = ingame_time.duration_since(UNIX_EPOCH)?;
-        gang.step(cur_time);
+        gang.step(cur_time, left_door_shut, right_door_shut);
         let num = {
             let ct = cur_time.as_secs() / 3600;
             if ct == 0 {
@@ -99,6 +103,40 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Color::WHITE,
                 );
 
+                // 379 330 32 32
+                let mut i = 0;
+                for button in &door_buttons {
+                    d.draw_rectangle_lines(
+                        (button.x - bg_offset_x) as i32,
+                        button.y as i32,
+                        button.width as i32,
+                        button.height as i32,
+                        Color::RED,
+                    );
+                    if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
+                        && (mx as f32 >= (button.x - bg_offset_x)
+                            && mx as f32 <= (button.x - bg_offset_x) + button.width
+                            && my as f32 >= button.y
+                            && my as f32 <= button.y + button.height)
+                    {
+                        if i == 0 {
+                            left_door_shut = !left_door_shut;
+                        } else {
+                            right_door_shut = !right_door_shut;
+                        }
+                    }
+                    i += 1;
+                }
+                // LEFT DOOR
+                if left_door_shut {
+                    d.draw_rectangle(92 - bg_offset_x as i32, 42, 340, 940, Color::RED);
+                }
+
+                // RIGHT DOOR
+                if right_door_shut {
+                    d.draw_rectangle(1522 - bg_offset_x as i32, 42, 340, 940, Color::RED);
+                }
+
                 if mx <= (WIDTH / 4) {
                     if bg_offset_x > 0.0 {
                         bg_offset_x -= 1.1;
@@ -125,14 +163,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                     Room::Room1 => d.clear_background(Color::RED),
                     Room::Room2 => d.clear_background(Color::ORANGE),
-                    Room::Room3A => d.clear_background(Color::YELLOW),
-                    Room::Room3B => d.clear_background(Color::GREEN),
-                    Room::Room3C => d.clear_background(Color::BLUE),
-                    Room::Room4A => d.clear_background(Color::DARKBLUE),
-                    Room::Room4B => d.clear_background(Color::VIOLET),
-                    Room::Room5A => d.clear_background(Color::BROWN),
-                    Room::Room5B => d.clear_background(Color::DARKBROWN),
-                    Room::Room6 => d.clear_background(Color::DARKGREEN),
+                    Room::Room3 => d.clear_background(Color::YELLOW),
+                    Room::Room4 => d.clear_background(Color::GREEN),
+                    Room::Room5 => d.clear_background(Color::BLUE),
+                    Room::Room6 => d.clear_background(Color::DARKBLUE),
                     Room::Office => panic!("tried to draw office"),
                 };
 
@@ -174,6 +208,22 @@ fn main() -> Result<(), Box<dyn Error>> {
                         clickable.height as i32,
                         Color::RED,
                     );
+
+                    let cam = Room::from_u64(i as u64).unwrap();
+
+                    let inroom = gang.in_room(&cam);
+                    let mut y = 0;
+                    for mons in inroom {
+                        d.draw_text(
+                            format!("{} - {}", &mons.name(), &mons.ai_level()).as_str(),
+                            5 + clickable.x as i32,
+                            5 + clickable.y as i32 + y,
+                            16,
+                            Color::BLACK,
+                        );
+                        y += 16;
+                    }
+
                     if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
                         && (mx as f32 >= clickable.x
                             && mx as f32 <= clickable.x + clickable.width
@@ -191,34 +241,30 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         d.draw_text(
-            format!("{}:00PM", num).as_str(),
+            format!("{}:00AM", num).as_str(),
             WIDTH - 128,
             0,
             32,
             Color::BLACK,
         );
 
-        let inroom = gang.in_room(&sel_camera);
-        let mut y = 5;
-        for mons in inroom {
-            d.draw_text(&mons.name(), 5, y, 32, Color::BLACK);
-            y += 48;
-        }
-
-        let inoffice = gang.in_room(&Room::Office);
-        for mons in inoffice {
-            d.draw_text(&mons.name(), 5, y, 32, Color::BLACK);
-            y += 48;
-            match mons {
-                _ => {
-                    tainted += 0.02;
+        if !left_door_shut && !right_door_shut {
+            let inoffice = gang.in_room(&Room::Office);
+            let mut y = 0;
+            for mons in inoffice {
+                d.draw_text(&mons.name(), 5, y, 32, Color::BLACK);
+                y += 48;
+                match mons {
+                    _ => {
+                        tainted += 0.02;
+                    }
                 }
+            }
+            if tainted >= 100.0 {
+                screen = Screen::GameOver;
             }
         }
 
-        if tainted >= 100.0 {
-            screen = Screen::GameOver;
-        }
         d.draw_text(
             format!("Tainted: {:.0}", tainted).as_str(),
             5,

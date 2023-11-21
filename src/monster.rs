@@ -1,6 +1,7 @@
+use num_traits::{FromPrimitive, ToPrimitive};
 use std::time::{Duration, SystemTime};
 
-use rand::rngs;
+use rand::{rngs, thread_rng, Rng};
 
 use crate::enums::Room;
 
@@ -20,23 +21,28 @@ pub enum MonsterName {
 pub struct Monster {
     name: MonsterName,
     room: Room,
+    ai_level: u32,
 }
 
 impl Monster {
     fn new(name: MonsterName, room: Room) -> Self {
-        Self { name, room }
+        Self {
+            name,
+            room,
+            ai_level: thread_rng().gen_range(0..20),
+        }
     }
     fn penny() -> Self {
         Self::new(MonsterName::Penny, Room::Room2)
     }
     fn beastie() -> Self {
-        Self::new(MonsterName::Beastie, Room::random())
+        Self::new(MonsterName::Beastie, Room::Room2)
     }
     fn wilber() -> Self {
         Self::new(MonsterName::Wilber, Room::Room6)
     }
     fn gogopher() -> Self {
-        Self::new(MonsterName::GoGopher, Room::random_three())
+        Self::new(MonsterName::GoGopher, Room::Room4)
     }
     fn tux() -> Self {
         Self::new(MonsterName::Tux, Room::Room1)
@@ -55,8 +61,60 @@ impl Monster {
         return format!("{:?}", self.name);
     }
 
+    pub fn ai_level(&self) -> u32 {
+        self.ai_level
+    }
+
+    pub fn move_by(&mut self, move_by: i64) {
+        let mut room = self.room.to_u64().unwrap() as i64;
+        room += move_by;
+        self.room = Room::from_u64(room as u64).unwrap();
+    }
+
     fn set_room(&mut self, room: Room) {
         self.room = room;
+    }
+
+    pub fn try_move(&mut self, left_door_shut: bool, right_door_shut: bool) {
+        let chance = thread_rng().gen_range(0..20);
+        if chance >= self.ai_level {
+            // if any of them are in the hallways, have them move in.
+            if self.room == Room::Room3 || self.room == Room::Room6 {
+                self.set_room(Room::Office);
+            } else {
+                let b = thread_rng().gen_range(0..1);
+                if b == 0 {
+                    self.prev(left_door_shut, right_door_shut);
+                } else {
+                    self.next(left_door_shut, right_door_shut);
+                }
+            }
+        }
+    }
+
+    fn next(&mut self, left_door_shut: bool, right_door_shut: bool) {
+        println!("next");
+        match self.room.next(left_door_shut, right_door_shut) {
+            crate::enums::RoomOption::Room(a) => self.set_room(a),
+            crate::enums::RoomOption::Multiple(a) => {
+                let rnd = thread_rng().gen_range(0..a.len());
+                self.set_room(a.get(rnd).unwrap().clone());
+            }
+            crate::enums::RoomOption::None => {}
+        }
+    }
+    fn prev(&mut self, left_door_shut: bool, right_door_shut: bool) {
+        println!("prev");
+        match self.room.prev(left_door_shut, right_door_shut) {
+            crate::enums::RoomOption::Room(a) => self.set_room(a),
+            crate::enums::RoomOption::Multiple(a) => {
+                let rnd = thread_rng().gen_range(0..a.len());
+                self.set_room(a.get(rnd).unwrap().clone());
+            }
+            crate::enums::RoomOption::None => {
+                self.next(left_door_shut, right_door_shut);
+            }
+        }
     }
 }
 
@@ -68,6 +126,8 @@ pub struct Gang {
     tux: Monster,
     nolok: Monster,
     golden_tux: Monster,
+
+    moved: bool,
 }
 
 fn round(num: u64, mul: u64) -> u64 {
@@ -89,17 +149,28 @@ impl Gang {
             tux: Monster::null(),
             nolok: Monster::null(),
             golden_tux: Monster::null(),
+            moved: true,
         }
     }
-    pub fn step(&mut self, time: Duration) {
+
+    // every few seconds, generate a random number between 1 and 20, for each enemy. if the animatronic's current ai level is greater/equal to the number, the animatronic moves.
+
+    pub fn step(&mut self, time: Duration, left_door_shut: bool, right_door_shut: bool) {
         let hours = time.as_secs() / 3600;
         let minutes = time.as_secs() / 60;
         let seconds = round(time.as_secs(), 60);
 
-        if minutes == 1 {
-            self.penny.set_room(Room::Office);
+        if minutes & 1 == 1 {
+            if self.moved {
+                println!("NOW: {:#02}h {:#02}m {:#02}s", hours, minutes, seconds);
+                self.moved = false;
+
+                self.penny.try_move(left_door_shut, right_door_shut);
+                self.beastie.try_move(left_door_shut, right_door_shut);
+            }
+        } else {
+            self.moved = true;
         }
-        println!("{:#02}h {:#02}m {:#02}s", hours, minutes, seconds);
     }
     fn push_if_in_room(&self, mon: &Monster, room: &Room, vec: &mut Vec<Monster>) {
         if mon.room == room.clone() {
