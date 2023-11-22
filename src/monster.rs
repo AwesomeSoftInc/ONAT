@@ -1,8 +1,8 @@
 use num_traits::{FromPrimitive, ToPrimitive};
 use proc::{monster_derive, monster_function_macro};
-use std::time::{Duration, SystemTime};
+use std::time::Duration;
 
-use rand::{rngs, thread_rng, Rng};
+use rand::{thread_rng, Rng};
 
 use crate::enums::Room;
 
@@ -15,7 +15,6 @@ pub enum MonsterName {
     Tux,
     Nolok,
     GoldenTux,
-    Null,
 }
 
 pub trait Monster {
@@ -24,6 +23,7 @@ pub trait Monster {
     fn ai_level(&self) -> u8;
     fn set_room(&mut self, room: Room);
     fn active(&self) -> bool;
+    fn activate(&mut self);
 
     fn taint_percent(&self) -> f32 {
         0.02
@@ -35,27 +35,32 @@ pub trait Monster {
         self.set_room(Room::from_u64(room as u64).unwrap());
     }
 
-    fn try_move(&mut self, left_door_shut: bool, right_door_shut: bool) {
+    fn try_move(&mut self) {
         let chance = thread_rng().gen_range(0..20);
         if chance >= self.ai_level() {
             // if any of them are in the hallways, have them move in.
-            if self.room() == &Room::Room3 || self.room() == &Room::Room6 {
+            if self.room() == &Room::Room3 {
+                self.set_entered_from_left(true);
+                self.set_room(Room::Office);
+            } else if self.room() == &Room::Room5 {
+                self.set_entered_from_right(true);
                 self.set_room(Room::Office);
             } else {
                 let b = thread_rng().gen_range(0..1);
                 if b == 0 {
-                    self.prev(left_door_shut, right_door_shut);
+                    self.prev();
                 } else {
-                    self.next(left_door_shut, right_door_shut);
+                    self.next();
                 }
             }
         }
     }
 
-    fn next(&mut self, left_door_shut: bool, right_door_shut: bool) {
-        println!("next");
-        match self.room().next(left_door_shut, right_door_shut) {
-            crate::enums::RoomOption::Room(a) => self.set_room(a),
+    fn next(&mut self) {
+        match self.room().next() {
+            crate::enums::RoomOption::Room(a) => {
+                self.set_room(a);
+            }
             crate::enums::RoomOption::Multiple(a) => {
                 let rnd = thread_rng().gen_range(0..a.len());
                 self.set_room(a.get(rnd).unwrap().clone());
@@ -63,19 +68,25 @@ pub trait Monster {
             crate::enums::RoomOption::None => {}
         }
     }
-    fn prev(&mut self, left_door_shut: bool, right_door_shut: bool) {
-        println!("prev");
-        match self.room().prev(left_door_shut, right_door_shut) {
-            crate::enums::RoomOption::Room(a) => self.set_room(a),
+    fn prev(&mut self) {
+        match self.room().prev() {
+            crate::enums::RoomOption::Room(a) => {
+                self.set_room(a);
+            }
             crate::enums::RoomOption::Multiple(a) => {
                 let rnd = thread_rng().gen_range(0..a.len());
                 self.set_room(a.get(rnd).unwrap().clone());
             }
             crate::enums::RoomOption::None => {
-                self.next(left_door_shut, right_door_shut);
+                self.next();
             }
         }
     }
+
+    fn entered_from_left(&self) -> bool;
+    fn entered_from_right(&self) -> bool;
+    fn set_entered_from_left(&mut self, res: bool);
+    fn set_entered_from_right(&mut self, res: bool);
 }
 
 #[monster_derive]
@@ -87,7 +98,9 @@ impl Penny {
             name: MonsterName::Penny,
             room: Room::Room2,
             ai_level: thread_rng().gen_range(0..20),
-            active: false,
+            active: true,
+            entered_from_left: false,
+            entered_from_right: false,
         }
     }
 }
@@ -105,7 +118,9 @@ impl Beastie {
             name: MonsterName::Beastie,
             room: Room::Room2,
             ai_level: thread_rng().gen_range(0..20),
-            active: false,
+            active: true,
+            entered_from_left: false,
+            entered_from_right: false,
         }
     }
 }
@@ -124,6 +139,8 @@ impl Wilber {
             room: Room::Room6,
             ai_level: thread_rng().gen_range(0..20),
             active: false,
+            entered_from_left: false,
+            entered_from_right: false,
         }
     }
 }
@@ -142,6 +159,8 @@ impl GoGopher {
             room: Room::Room4,
             ai_level: thread_rng().gen_range(0..20),
             active: false,
+            entered_from_left: false,
+            entered_from_right: false,
         }
     }
 }
@@ -160,6 +179,8 @@ impl Tux {
             room: Room::Room1,
             ai_level: thread_rng().gen_range(0..20),
             active: false,
+            entered_from_left: false,
+            entered_from_right: false,
         }
     }
 }
@@ -178,6 +199,8 @@ impl Nolok {
             room: Room::None,
             ai_level: thread_rng().gen_range(0..20),
             active: false,
+            entered_from_left: false,
+            entered_from_right: false,
         }
     }
 }
@@ -196,6 +219,8 @@ impl GoldenTux {
             room: Room::Office,
             ai_level: thread_rng().gen_range(0..20),
             active: false,
+            entered_from_left: false,
+            entered_from_right: false,
         }
     }
 }
@@ -205,20 +230,6 @@ impl Monster for GoldenTux {
 
     fn taint_percent(&self) -> f32 {
         0.0
-    }
-}
-
-#[monster_derive]
-pub struct NullMonster {}
-
-impl NullMonster {
-    pub fn new() -> Self {
-        Self {
-            name: MonsterName::Null,
-            room: Room::None,
-            ai_level: 0,
-            active: false,
-        }
     }
 }
 
@@ -257,42 +268,48 @@ impl Gang {
         }
     }
 
-    // every few seconds, generate a random number between 1 and 20, for each enemy. if the animatronic's current ai level is greater/equal to the number, the animatronic moves.
-
-    pub fn step(&mut self, time: Duration, left_door_shut: bool, right_door_shut: bool) {
+    pub fn step(&mut self, time: Duration) {
         let hours = time.as_secs() / 3600;
         let minutes = time.as_secs() / 60;
         let seconds = round(time.as_secs(), 60);
 
+        // every few seconds (one in game minute), generate a random number between 1 and 20, for each enemy. if the animatronic's current ai level is greater/equal to the number, the animatronic moves.
         if minutes & 1 == 1 {
             if self.moved {
                 println!("NOW: {:#02}h {:#02}m {:#02}s", hours, minutes, seconds);
                 self.moved = false;
 
-                self.penny.try_move(left_door_shut, right_door_shut);
-                self.beastie.try_move(left_door_shut, right_door_shut);
+                self.penny.try_move();
+                self.beastie.try_move();
             }
         } else {
             self.moved = true;
         }
     }
-    fn push_if_in_room<'a, A>(&self, mon: &'a A, room: &Room, vec: &mut Vec<&'a dyn Monster>)
-    where
-        A: Monster,
-    {
-        if mon.room() == &room.clone() {
-            vec.push(mon);
+    pub fn in_room(&mut self, room: &Room) -> Vec<&mut dyn Monster> {
+        let mut res: Vec<&mut dyn Monster> = vec![];
+
+        if self.penny.room() == room {
+            res.push(&mut self.penny);
         }
-    }
-    pub fn in_room(&mut self, room: &Room) -> Vec<&dyn Monster> {
-        let mut res = vec![];
-        self.push_if_in_room(&self.penny, &room, &mut res);
-        self.push_if_in_room(&self.beastie, &room, &mut res);
-        self.push_if_in_room(&self.wilber, &room, &mut res);
-        self.push_if_in_room(&self.gogopher, &room, &mut res);
-        self.push_if_in_room(&self.tux, &room, &mut res);
-        self.push_if_in_room(&self.nolok, &room, &mut res);
-        self.push_if_in_room(&self.golden_tux, &room, &mut res);
+        if self.beastie.room() == room {
+            res.push(&mut self.beastie);
+        }
+        if self.wilber.room() == room {
+            res.push(&mut self.wilber);
+        }
+        if self.gogopher.room() == room {
+            res.push(&mut self.gogopher);
+        }
+        if self.tux.room() == room {
+            res.push(&mut self.tux);
+        }
+        if self.nolok.room() == room {
+            res.push(&mut self.nolok);
+        }
+        if self.golden_tux.room() == room {
+            res.push(&mut self.golden_tux);
+        }
 
         res
     }

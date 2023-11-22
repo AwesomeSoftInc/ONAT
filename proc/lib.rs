@@ -3,8 +3,6 @@
 
 extern crate proc_macro;
 
-use std::error::Error;
-
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse::Parser;
@@ -29,11 +27,11 @@ macro_rules! field_parse {
 #[proc_macro_attribute]
 pub fn monster_derive(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut item_struct = parse_macro_input!(item as ItemStruct);
-    let name = item_struct.ident.clone();
 
     if let Err(err) = || -> Result<(), anyhow::Error> {
         if let syn::Fields::Named(ref mut fields) = item_struct.fields {
-            for f in field_parse!(name: MonsterName, room: Room, ai_level: u8, active: bool) {
+            for f in field_parse!(name: MonsterName, room: Room, ai_level: u8, active: bool, entered_from_left: bool, entered_from_right:bool)
+            {
                 fields.named.push(f);
             }
         }
@@ -54,7 +52,7 @@ pub fn monster_derive(_attr: TokenStream, item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn monster_function_macro(item: TokenStream) -> TokenStream {
+pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
     return quote! {
         fn name(&self) -> String {
             return format!("{:?}", self.name);
@@ -70,6 +68,21 @@ pub fn monster_function_macro(item: TokenStream) -> TokenStream {
         }
         fn active(&self) -> bool {
             self.active
+        }
+        fn activate(&mut self) {
+            self.active = true;
+        }
+        fn entered_from_left(&self) -> bool {
+            self.entered_from_left
+        }
+        fn entered_from_right(&self) -> bool {
+            self.entered_from_right
+        }
+        fn set_entered_from_left(&mut self, res: bool)  {
+            self.entered_from_left = res;
+        }
+        fn set_entered_from_right(&mut self, res: bool)  {
+            self.entered_from_right = res;
         }
     }
     .into();

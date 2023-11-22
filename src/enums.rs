@@ -1,7 +1,7 @@
 use num_derive::{FromPrimitive, ToPrimitive};
 use num_traits::FromPrimitive;
 
-use rand::{thread_rng, Rng, RngCore};
+use rand::{thread_rng, Rng};
 
 pub enum Screen {
     Office,
@@ -38,7 +38,7 @@ impl Room {
         }
     }
 
-    pub fn prev(&self, left_door_shut: bool, right_door_shut: bool) -> RoomOption {
+    pub fn prev(&self) -> RoomOption {
         match self {
             Room::Room1 => RoomOption::None,
             Room::Room2 => RoomOption::Room(Room::Room1),
@@ -47,17 +47,11 @@ impl Room {
             Room::Room4 => RoomOption::None,
             Room::Room6 => RoomOption::None,
             Room::None => RoomOption::None,
-            Room::Office => {
-                if left_door_shut || right_door_shut {
-                    RoomOption::Room(Room::random())
-                } else {
-                    RoomOption::None
-                }
-            }
+            Room::Office => RoomOption::Room(Room::Office),
         }
     }
 
-    pub fn next(&self, left_door_shut: bool, right_door_shut: bool) -> RoomOption {
+    pub fn next(&self) -> RoomOption {
         match self {
             Room::Room1 => RoomOption::Multiple(vec![Room::Room3, Room::Room5]),
             Room::Room2 => RoomOption::Multiple(vec![Room::Room3, Room::Room5]),
@@ -66,13 +60,7 @@ impl Room {
             Room::Room4 => RoomOption::None,
             Room::Room6 => RoomOption::None,
             Room::None => RoomOption::None,
-            Room::Office => {
-                if left_door_shut || right_door_shut {
-                    RoomOption::Room(Room::random())
-                } else {
-                    RoomOption::None
-                }
-            }
+            Room::Office => RoomOption::Room(Room::Office),
         }
     }
 }

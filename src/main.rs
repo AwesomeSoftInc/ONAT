@@ -28,12 +28,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut laptop_offset_y = 0.0;
 
     let camera_clickables = vec![
-        Rectangle::new(380.0, 121.0, 240.0, 128.0),
-        Rectangle::new(362.0, 293.0, 336.0, 208.0),
-        Rectangle::new(114.0, 724.0, 190.0, 150.0),
-        Rectangle::new(441.0, 539.0, 161.0, 123.0),
-        Rectangle::new(722.0, 674.0, 190.0, 150.0),
-        Rectangle::new(35.0, 101.0, 150.0, 128.0),
+        Rectangle::new(380.0, 121.0, 240.0, 128.0), // Room1
+        Rectangle::new(362.0, 293.0, 336.0, 208.0), // Room2
+        Rectangle::new(114.0, 724.0, 190.0, 150.0), // Room3
+        Rectangle::new(722.0, 674.0, 190.0, 150.0), // Room5
+        Rectangle::new(441.0, 539.0, 161.0, 123.0), // Room4
+        Rectangle::new(35.0, 101.0, 150.0, 128.0),  // Room6
     ];
 
     let door_buttons = vec![
@@ -70,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let my = d.get_mouse_y();
 
         let cur_time = ingame_time.duration_since(UNIX_EPOCH)?;
-        gang.step(cur_time, left_door_shut, right_door_shut);
+        gang.step(cur_time);
         let num = {
             let ct = cur_time.as_secs() / 3600;
             if ct == 0 {
@@ -214,14 +214,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let inroom = gang.in_room(&cam);
                     let mut y = 0;
                     for mons in inroom {
-                        d.draw_text(
-                            format!("{} - {}", &mons.name(), &mons.ai_level()).as_str(),
-                            5 + clickable.x as i32,
-                            5 + clickable.y as i32 + y,
-                            16,
-                            Color::BLACK,
-                        );
-                        y += 16;
+                        if mons.active() {
+                            d.draw_text(
+                                format!("{} - {}", &mons.name(), &mons.ai_level()).as_str(),
+                                5 + clickable.x as i32,
+                                5 + clickable.y as i32 + y,
+                                16,
+                                Color::BLACK,
+                            );
+                            y += 16;
+                        }
                     }
 
                     if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
@@ -248,21 +250,39 @@ fn main() -> Result<(), Box<dyn Error>> {
             Color::BLACK,
         );
 
-        if !left_door_shut && !right_door_shut {
-            let inoffice = gang.in_room(&Room::Office);
-            let mut y = 0;
-            for mons in inoffice {
-                d.draw_text(&mons.name(), 5, y, 32, Color::BLACK);
+        let inoffice = gang.in_room(&Room::Office);
+        let mut y = 48;
+        for mons in inoffice {
+            if mons.active() {
+                let x = {
+                    if mons.entered_from_right() {
+                        WIDTH - 128 - 5
+                    } else {
+                        5
+                    }
+                };
+                d.draw_text(&mons.name(), x, y, 32, Color::BLACK);
                 y += 48;
-                match mons {
-                    _ => {
+                if mons.entered_from_left() {
+                    if !left_door_shut {
                         tainted += mons.taint_percent();
+                    } else {
+                        mons.set_entered_from_left(false);
+                        mons.set_room(Room::random());
+                    }
+                }
+                if mons.entered_from_right() {
+                    if !right_door_shut {
+                        tainted += mons.taint_percent();
+                    } else {
+                        mons.set_entered_from_right(false);
+                        mons.set_room(Room::random());
                     }
                 }
             }
-            if tainted >= 100.0 {
-                screen = Screen::GameOver;
-            }
+        }
+        if tainted >= 100.0 {
+            screen = Screen::GameOver;
         }
 
         d.draw_text(
