@@ -56,6 +56,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut right_door_shut = false;
 
     let mut duct_heat_timer = 0;
+    let mut power = 100.0;
 
     while !rl.window_should_close() {
         if timer.elapsed()?.as_millis() <= 1 / 30 {
@@ -364,7 +365,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         gang.gogopher.duct_heat_timer = duct_heat_timer;
 
-        if tainted >= 100.0 || (gang.wilber.stage == 4 && gang.wilber.rage() >= 0.2) {
+        if left_door_shut {
+            power -= 0.0005;
+        }
+        if right_door_shut {
+            power -= 0.0005;
+        }
+
+        if tainted >= 100.0 || (gang.wilber.stage == 4 && gang.wilber.rage() >= 0.2) || power <= 0.0
+        {
             screen = Screen::GameOver;
         }
 
@@ -373,8 +382,15 @@ fn main() -> Result<(), Box<dyn Error>> {
             5,
             HEIGHT - 32,
             32,
-            Color::BLACK,
-        )
+            Color::WHITE,
+        );
+        d.draw_text(
+            format!("Power: {:.0}", power).as_str(),
+            5,
+            HEIGHT - 64,
+            32,
+            Color::WHITE,
+        );
     }
 
     Ok(())

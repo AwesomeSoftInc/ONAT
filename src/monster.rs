@@ -5,15 +5,15 @@ use rand::{thread_rng, Rng};
 
 use crate::enums::Room;
 
-pub const PENNY_START: bool = false;
-pub const BEASTIE_START: bool = false;
+pub const PENNY_START: bool = true;
+pub const BEASTIE_START: bool = true;
 pub const WILBER_START: bool = false;
 pub const GO_GOPHER_START: bool = false;
 pub const TUX_START: bool = false;
-pub const NOLOK_START: bool = true;
+pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
 
-pub const DEFAULT_AI_LEVEL: u8 = 20;
+pub const DEFAULT_AI_LEVEL: u8 = 3;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MonsterName {
@@ -431,6 +431,10 @@ pub struct Gang {
     pub golden_tux: GoldenTux,
 
     moved: bool,
+    one_am_checked: bool,
+    two_am_checked: bool,
+    three_am_checked: bool,
+    four_am_checked: bool,
 }
 
 fn round(num: u64, mul: u64) -> u64 {
@@ -453,6 +457,10 @@ impl Gang {
             nolok: Nolok::new(),
             golden_tux: GoldenTux::new(),
             moved: true,
+            one_am_checked: false,
+            two_am_checked: false,
+            three_am_checked: false,
+            four_am_checked: false,
         }
     }
 
@@ -474,10 +482,10 @@ impl Gang {
                 self.nolok.left_door_shut = left_door_shut;
                 self.nolok.right_door_shut = right_door_shut;
 
-                if PENNY_START {
+                if self.penny.active {
                     self.penny.try_move();
                 }
-                if BEASTIE_START {
+                if self.tux.active {
                     self.beastie.try_move();
                 }
 
@@ -493,6 +501,31 @@ impl Gang {
             }
         } else {
             self.moved = true;
+        }
+
+        // 1 AM
+        if hours == 1 && !self.one_am_checked {
+            self.wilber.activate();
+            self.one_am_checked = true;
+            self.ai_level_increase();
+        }
+        // 2 AM
+        if hours == 2 && !self.two_am_checked {
+            self.gogopher.activate();
+            self.two_am_checked = true;
+            self.ai_level_increase();
+        }
+        // 3 AM
+        if hours == 3 && !self.three_am_checked {
+            self.tux.activate();
+            self.three_am_checked = true;
+            self.ai_level_increase();
+        }
+        // 4 AM
+        if hours == 4 && !self.four_am_checked {
+            self.nolok.activate();
+            self.four_am_checked = true;
+            self.ai_level_increase();
         }
 
         // gogopher gets special permission to try and move every tick
@@ -526,6 +559,15 @@ impl Gang {
         }
 
         res
+    }
+    fn ai_level_increase(&mut self) {
+        self.penny.ai_level += 5;
+        self.beastie.ai_level += 5;
+        self.wilber.ai_level += 5;
+        self.gogopher.ai_level += 5;
+        self.tux.ai_level += 5;
+        self.nolok.ai_level += 5;
+        self.golden_tux.ai_level += 5;
     }
 }
 
