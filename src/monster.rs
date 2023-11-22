@@ -9,8 +9,8 @@ pub const PENNY_START: bool = false;
 pub const BEASTIE_START: bool = false;
 pub const WILBER_START: bool = false;
 pub const GO_GOPHER_START: bool = false;
-pub const TUX_START: bool = true;
-pub const NOLOK_START: bool = false;
+pub const TUX_START: bool = false;
+pub const NOLOK_START: bool = true;
 pub const GOLDEN_TUX_START: bool = false;
 
 pub const DEFAULT_AI_LEVEL: u8 = 20;
@@ -327,10 +327,17 @@ impl Monster for Tux {
     fn room_after_office(&self) -> Room {
         Room::Room1
     }
+    // Tux instakills.
+    fn taint_percent(&self) -> f32 {
+        9999.0
+    }
 }
 
 #[monster_derive]
-pub struct Nolok {}
+pub struct Nolok {
+    left_door_shut: bool,
+    right_door_shut: bool,
+}
 
 impl Nolok {
     pub fn new() -> Self {
@@ -341,12 +348,53 @@ impl Nolok {
             active: NOLOK_START,
             entered_from_left: false,
             entered_from_right: false,
+            left_door_shut: true,
+            right_door_shut: true,
         }
     }
 }
 
 impl Monster for Nolok {
     monster_function_macro!();
+
+    fn try_move(&mut self) {
+        match self.room() {
+            Room::None => {
+                let coin_flip = thread_rng().gen_range(0..1);
+                if coin_flip <= 1 {
+                    let coin_flip_2 = thread_rng().gen_range(0..2);
+                    if coin_flip_2 == 0 {
+                        if !self.left_door_shut {
+                            self.set_room(Room::Room3);
+                        } else {
+                            self.set_room(Room::Room5)
+                        }
+                    } else {
+                        if !self.right_door_shut {
+                            self.set_room(Room::Room5);
+                        } else {
+                            self.set_room(Room::Room3);
+                        }
+                    }
+                }
+            }
+            Room::Room3 => {
+                self.set_entered_from_left(true);
+                self.set_room(Room::Office);
+            }
+            Room::Room5 => {
+                self.set_entered_from_right(true);
+                self.set_room(Room::Office);
+            }
+            _ => {}
+        }
+    }
+    fn room_after_office(&self) -> Room {
+        Room::None
+    }
+    fn taint_percent(&self) -> f32 {
+        0.1
+    }
 }
 
 #[monster_derive]
@@ -421,6 +469,10 @@ impl Gang {
 
                 self.penny.door_shut = left_door_shut;
                 self.beastie.door_shut = right_door_shut;
+                self.tux.left_door_shut = left_door_shut;
+                self.tux.right_door_shut = right_door_shut;
+                self.nolok.left_door_shut = left_door_shut;
+                self.nolok.right_door_shut = right_door_shut;
 
                 if PENNY_START {
                     self.penny.try_move();
@@ -433,6 +485,10 @@ impl Gang {
 
                 if self.tux.active {
                     self.tux.try_move();
+                }
+
+                if self.nolok.active {
+                    self.nolok.try_move();
                 }
             }
         } else {

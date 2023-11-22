@@ -364,9 +364,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         gang.gogopher.duct_heat_timer = duct_heat_timer;
 
-        gang.tux.left_door_shut = left_door_shut;
-        gang.tux.right_door_shut = right_door_shut;
-
         if tainted >= 100.0 || (gang.wilber.stage == 4 && gang.wilber.rage() >= 0.2) {
             screen = Screen::GameOver;
         }
