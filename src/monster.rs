@@ -15,7 +15,7 @@ pub const GOLDEN_TUX_START: bool = false;
 
 pub const DEFAULT_AI_LEVEL: u8 = 20;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MonsterName {
     Penny,
     Beastie,
@@ -27,7 +27,7 @@ pub enum MonsterName {
 }
 
 pub trait Monster {
-    fn name(&self) -> String;
+    fn id(&self) -> MonsterName;
     fn room(&self) -> &Room;
     fn ai_level(&self) -> u8;
     fn set_room(&mut self, room: Room);
@@ -38,6 +38,9 @@ pub trait Monster {
     fn set_entered_from_left(&mut self, res: bool);
     fn set_entered_from_right(&mut self, res: bool);
 
+    fn name(&self) -> String {
+        return format!("{:?}", self.id());
+    }
     fn taint_percent(&self) -> f32 {
         0.02
     }
@@ -254,13 +257,21 @@ impl Monster for GoGopher {
 
     fn try_move(&mut self) {
         if self.duct_heat_timer == 0 {
-            if self.room == Room::None {
-                let coin_flip = thread_rng().gen_range(0..10000);
-                if coin_flip <= 1 {
-                    self.set_room(Room::Room4)
+            match self.room {
+                Room::None => {
+                    let coin_flip = thread_rng().gen_range(0..10000);
+                    if coin_flip <= 1 {
+                        self.set_room(Room::Room4)
+                    }
                 }
-            } else {
-                self.duct_timer += 1;
+                Room::Room4 => {
+                    self.duct_timer += 1;
+                    if self.duct_timer >= 2500 {
+                        self.set_room(Room::Office);
+                    }
+                }
+                Room::Office => {}
+                _ => {}
             }
         } else {
             if self.duct_timer > 0 {

@@ -1,4 +1,4 @@
-use monster::{Gang, Monster, Wilber};
+use monster::{Gang, Monster, MonsterName, Wilber};
 use raylib::prelude::*;
 
 use num_traits::FromPrimitive;
@@ -50,6 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut gang = Gang::new();
 
     let mut tainted = 0.0;
+    let mut tainted_cache = 0.0;
 
     let mut left_door_shut = false;
     let mut right_door_shut = false;
@@ -340,6 +341,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                         mons.set_room(mons.room_after_office());
                     }
                 }
+                if mons.id() == MonsterName::GoGopher {
+                    if (tainted_cache == 0.0) {
+                        tainted_cache = tainted;
+                    }
+                    if tainted <= tainted_cache + 50.0 {
+                        tainted += mons.taint_percent();
+                    } else {
+                        mons.set_room(Room::None);
+                    }
+                }
             }
         }
         if duct_heat_timer > 0 {
@@ -347,10 +358,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         gang.gogopher.duct_heat_timer = duct_heat_timer;
 
-        if tainted >= 100.0
-            || (gang.wilber.stage == 4 && gang.wilber.rage() >= 0.2)
-            || gang.gogopher.duct_timer >= 2500
-        {
+        if tainted >= 100.0 || (gang.wilber.stage == 4 && gang.wilber.rage() >= 0.2) {
             screen = Screen::GameOver;
         }
 

@@ -30,8 +30,14 @@ pub fn monster_derive(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
     if let Err(err) = || -> Result<(), anyhow::Error> {
         if let syn::Fields::Named(ref mut fields) = item_struct.fields {
-            for f in field_parse!(name: MonsterName, room: Room, ai_level: u8, active: bool, entered_from_left: bool, entered_from_right:bool)
-            {
+            for f in field_parse!(
+                name: MonsterName,
+                room: Room,
+                ai_level: u8,
+                active: bool,
+                entered_from_left: bool,
+                entered_from_right: bool
+            ) {
                 fields.named.push(f);
             }
         }
@@ -54,8 +60,8 @@ pub fn monster_derive(_attr: TokenStream, item: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
     return quote! {
-        fn name(&self) -> String {
-            return format!("{:?}", self.name);
+        fn id(&self) -> MonsterName {
+            self.name.clone()
         }
         fn room(&self) -> &Room {
             &self.room
