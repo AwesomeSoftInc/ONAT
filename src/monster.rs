@@ -8,7 +8,7 @@ use crate::enums::Room;
 pub const PENNY_START: bool = false;
 pub const BEASTIE_START: bool = false;
 pub const WILBER_START: bool = false;
-pub const GO_GOPHER_START: bool = false;
+pub const GO_GOPHER_START: bool = true;
 pub const TUX_START: bool = false;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
@@ -229,23 +229,50 @@ impl Monster for Wilber {
 }
 
 #[monster_derive]
-pub struct GoGopher {}
+pub struct GoGopher {
+    pub duct_timer: u16,
+    pub duct_heat_timer: u16,
+}
 
 impl GoGopher {
     pub fn new() -> Self {
         Self {
             name: MonsterName::GoGopher,
-            room: Room::Room4,
+            room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
             active: GO_GOPHER_START,
             entered_from_left: false,
             entered_from_right: false,
+            duct_timer: 0,
+            duct_heat_timer: 0,
         }
     }
 }
 
 impl Monster for GoGopher {
     monster_function_macro!();
+
+    fn try_move(&mut self) {
+        if self.duct_heat_timer == 0 {
+            if self.room == Room::None {
+                let coin_flip = thread_rng().gen_range(0..10000);
+                if coin_flip <= 1 {
+                    self.set_room(Room::Room4)
+                }
+            } else {
+                self.duct_timer += 1;
+            }
+        } else {
+            if self.duct_timer > 0 {
+                self.duct_timer -= 1;
+            }
+            self.set_room(Room::None);
+        }
+    }
+
+    fn special_debug_info(&self) -> String {
+        format!("- {} - {}", self.duct_timer, self.duct_heat_timer)
+    }
 }
 
 #[monster_derive]
@@ -370,6 +397,11 @@ impl Gang {
             }
         } else {
             self.moved = true;
+        }
+
+        // gogopher gets special permission to try and move every tick
+        if self.gogopher.active {
+            self.gogopher.try_move();
         }
     }
     pub fn in_room(&mut self, room: &Room) -> Vec<&mut dyn Monster> {

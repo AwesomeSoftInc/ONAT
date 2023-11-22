@@ -41,6 +41,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         Rectangle::new(1360.0, 330.0, 128.0, 128.0),
     ];
 
+    let duct_button = Rectangle::new(960.0, 32.0, 64.0, 64.0);
+
     let mut sel_camera = Room::None;
     let mut timer = SystemTime::now();
 
@@ -52,6 +54,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut left_door_shut = false;
     let mut right_door_shut = false;
 
+    let mut duct_heat_timer = 0;
+
     while !rl.window_should_close() {
         if timer.elapsed()?.as_millis() <= 1 / 30 {
             continue;
@@ -62,7 +66,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let mut d = rl.begin_drawing(&thread);
 
-        d.clear_background(Color::WHITE);
+        d.clear_background(Color::BLACK);
 
         let laptop_height = HEIGHT as f32 - (textures.laptop.height as f32 * 0.1) - laptop_offset_y;
 
@@ -144,6 +148,23 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                     i += 1;
                 }
+
+                d.draw_rectangle(
+                    duct_button.x as i32 - bg_offset_x as i32,
+                    duct_button.y as i32,
+                    duct_button.width as i32,
+                    duct_button.height as i32,
+                    Color::BLUE,
+                );
+                if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
+                    && (mx as f32 >= (duct_button.x - bg_offset_x)
+                        && mx as f32 <= (duct_button.x - bg_offset_x) + duct_button.width
+                        && my as f32 >= duct_button.y
+                        && my as f32 <= duct_button.y + duct_button.height)
+                {
+                    duct_heat_timer = 2500;
+                }
+
                 // LEFT DOOR
                 if left_door_shut {
                     d.draw_rectangle(92 - bg_offset_x as i32, 42, 340, 940, Color::RED);
@@ -174,6 +195,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
 
                 gang.wilber.rage_increment();
+                sel_camera = Room::None;
             }
             Screen::Camera => {
                 match sel_camera {
@@ -320,7 +342,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         }
-        if tainted >= 100.0 || (gang.wilber.stage == 4 && gang.wilber.rage() >= 0.2) {
+        if duct_heat_timer > 0 {
+            duct_heat_timer -= 1;
+        }
+        gang.gogopher.duct_heat_timer = duct_heat_timer;
+
+        if tainted >= 100.0
+            || (gang.wilber.stage == 4 && gang.wilber.rage() >= 0.2)
+            || gang.gogopher.duct_timer >= 2500
+        {
             screen = Screen::GameOver;
         }
 
