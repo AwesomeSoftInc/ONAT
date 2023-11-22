@@ -8,8 +8,8 @@ use crate::enums::Room;
 pub const PENNY_START: bool = false;
 pub const BEASTIE_START: bool = false;
 pub const WILBER_START: bool = false;
-pub const GO_GOPHER_START: bool = true;
-pub const TUX_START: bool = false;
+pub const GO_GOPHER_START: bool = false;
+pub const TUX_START: bool = true;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
 
@@ -56,13 +56,17 @@ pub trait Monster {
             self.set_room(Room::Office);
         } else {
             if chance <= self.ai_level() {
-                let b = thread_rng().gen_range(0..2);
-                if b == 0 {
-                    self.prev();
-                } else {
-                    self.next();
-                }
+                self.go_prev_or_next(chance);
             }
+        }
+    }
+
+    fn go_prev_or_next(&mut self, chance: u8) {
+        let b = thread_rng().gen_range(0..2);
+        if b == 0 {
+            self.prev();
+        } else {
+            self.next();
         }
     }
 
@@ -287,7 +291,10 @@ impl Monster for GoGopher {
 }
 
 #[monster_derive]
-pub struct Tux {}
+pub struct Tux {
+    pub left_door_shut: bool,
+    pub right_door_shut: bool,
+}
 
 impl Tux {
     pub fn new() -> Self {
@@ -298,12 +305,28 @@ impl Tux {
             active: TUX_START,
             entered_from_left: false,
             entered_from_right: false,
+            left_door_shut: false,
+            right_door_shut: false,
         }
     }
 }
 
 impl Monster for Tux {
     monster_function_macro!();
+
+    fn go_prev_or_next(&mut self, _chance: u8) {
+        self.next();
+        if self.left_door_shut && self.room == Room::Room3 && !self.right_door_shut {
+            self.set_room(Room::Room5);
+        } else if self.right_door_shut && self.room == Room::Room5 && !self.left_door_shut {
+            self.set_room(Room::Room3);
+        } else if self.left_door_shut && self.right_door_shut {
+            self.set_room(Room::Room1);
+        }
+    }
+    fn room_after_office(&self) -> Room {
+        Room::Room1
+    }
 }
 
 #[monster_derive]
@@ -404,6 +427,12 @@ impl Gang {
                 }
                 if BEASTIE_START {
                     self.beastie.try_move();
+                }
+
+                // wilber doesn't move
+
+                if self.tux.active {
+                    self.tux.try_move();
                 }
             }
         } else {

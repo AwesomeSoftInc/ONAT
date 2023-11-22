@@ -53,7 +53,7 @@ impl Room {
 
     pub fn next(&self) -> RoomOption {
         match self {
-            Room::Room1 => RoomOption::Multiple(vec![Room::Room3, Room::Room5]),
+            Room::Room1 => RoomOption::Room(Room::Room2),
             Room::Room2 => RoomOption::Multiple(vec![Room::Room3, Room::Room5]),
             Room::Room3 => RoomOption::Room(Room::Office),
             Room::Room5 => RoomOption::Room(Room::Office),

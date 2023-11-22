@@ -341,15 +341,21 @@ fn main() -> Result<(), Box<dyn Error>> {
                         mons.set_room(mons.room_after_office());
                     }
                 }
-                if mons.id() == MonsterName::GoGopher {
-                    if (tainted_cache == 0.0) {
-                        tainted_cache = tainted;
+                // special cases
+                match mons.id() {
+                    // GoGopher fills the tainted meter by 50% and then leaves. Once he is in the office,
+                    // he won't leave until he's finished.
+                    MonsterName::GoGopher => {
+                        if tainted_cache == 0.0 {
+                            tainted_cache = tainted;
+                        }
+                        if tainted <= tainted_cache + 50.0 {
+                            tainted += mons.taint_percent();
+                        } else {
+                            mons.set_room(Room::None);
+                        }
                     }
-                    if tainted <= tainted_cache + 50.0 {
-                        tainted += mons.taint_percent();
-                    } else {
-                        mons.set_room(Room::None);
-                    }
+                    _ => {}
                 }
             }
         }
@@ -357,6 +363,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             duct_heat_timer -= 1;
         }
         gang.gogopher.duct_heat_timer = duct_heat_timer;
+
+        gang.tux.left_door_shut = left_door_shut;
+        gang.tux.right_door_shut = right_door_shut;
 
         if tainted >= 100.0 || (gang.wilber.stage == 4 && gang.wilber.rage() >= 0.2) {
             screen = Screen::GameOver;
