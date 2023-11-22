@@ -1,0 +1,16 @@
+[package]
+name = "proc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.75"
+quote = "1.0.7"
+syn = { version = "1.0.52", features = ["full", "extra-traits"] }
+
+[lib]
+name = "proc"
+path = "lib.rs"
+proc-macro = true

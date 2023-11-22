@@ -256,7 +256,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 y += 48;
                 match mons {
                     _ => {
-                        tainted += 0.02;
+                        tainted += mons.taint_percent();
                     }
                 }
             }

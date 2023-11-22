@@ -11,3 +11,4 @@ num-derive = "0.4.1"
 num-traits = "0.2.17"
 rand = "0.8.5"
 raylib = "3.7.0"
+proc = { path = "./proc" }

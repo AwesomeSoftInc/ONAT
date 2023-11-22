@@ -1,4 +1,5 @@
 use num_traits::{FromPrimitive, ToPrimitive};
+use proc::{monster_derive, monster_function_macro};
 use std::time::{Duration, SystemTime};
 
 use rand::{rngs, thread_rng, Rng};
@@ -17,69 +18,28 @@ pub enum MonsterName {
     Null,
 }
 
-#[derive(Clone)]
-pub struct Monster {
-    name: MonsterName,
-    room: Room,
-    ai_level: u32,
-}
+pub trait Monster {
+    fn name(&self) -> String;
+    fn room(&self) -> &Room;
+    fn ai_level(&self) -> u8;
+    fn set_room(&mut self, room: Room);
+    fn active(&self) -> bool;
 
-impl Monster {
-    fn new(name: MonsterName, room: Room) -> Self {
-        Self {
-            name,
-            room,
-            ai_level: thread_rng().gen_range(0..20),
-        }
-    }
-    fn penny() -> Self {
-        Self::new(MonsterName::Penny, Room::Room2)
-    }
-    fn beastie() -> Self {
-        Self::new(MonsterName::Beastie, Room::Room2)
-    }
-    fn wilber() -> Self {
-        Self::new(MonsterName::Wilber, Room::Room6)
-    }
-    fn gogopher() -> Self {
-        Self::new(MonsterName::GoGopher, Room::Room4)
-    }
-    fn tux() -> Self {
-        Self::new(MonsterName::Tux, Room::Room1)
-    }
-    fn nolok() -> Self {
-        Self::new(MonsterName::Nolok, Room::None)
-    }
-    fn golden_tux() -> Self {
-        Self::new(MonsterName::GoldenTux, Room::Office) // there is no room
-    }
-    fn null() -> Self {
-        Self::new(MonsterName::Null, Room::None)
+    fn taint_percent(&self) -> f32 {
+        0.02
     }
 
-    pub fn name(&self) -> String {
-        return format!("{:?}", self.name);
-    }
-
-    pub fn ai_level(&self) -> u32 {
-        self.ai_level
-    }
-
-    pub fn move_by(&mut self, move_by: i64) {
-        let mut room = self.room.to_u64().unwrap() as i64;
+    fn move_by(&mut self, move_by: i64) {
+        let mut room = self.room().to_u64().unwrap() as i64;
         room += move_by;
-        self.room = Room::from_u64(room as u64).unwrap();
+        self.set_room(Room::from_u64(room as u64).unwrap());
     }
 
-    fn set_room(&mut self, room: Room) {
-        self.room = room;
-    }
-
-    pub fn try_move(&mut self, left_door_shut: bool, right_door_shut: bool) {
+    fn try_move(&mut self, left_door_shut: bool, right_door_shut: bool) {
         let chance = thread_rng().gen_range(0..20);
-        if chance >= self.ai_level {
+        if chance >= self.ai_level() {
             // if any of them are in the hallways, have them move in.
-            if self.room == Room::Room3 || self.room == Room::Room6 {
+            if self.room() == &Room::Room3 || self.room() == &Room::Room6 {
                 self.set_room(Room::Office);
             } else {
                 let b = thread_rng().gen_range(0..1);
@@ -94,7 +54,7 @@ impl Monster {
 
     fn next(&mut self, left_door_shut: bool, right_door_shut: bool) {
         println!("next");
-        match self.room.next(left_door_shut, right_door_shut) {
+        match self.room().next(left_door_shut, right_door_shut) {
             crate::enums::RoomOption::Room(a) => self.set_room(a),
             crate::enums::RoomOption::Multiple(a) => {
                 let rnd = thread_rng().gen_range(0..a.len());
@@ -105,7 +65,7 @@ impl Monster {
     }
     fn prev(&mut self, left_door_shut: bool, right_door_shut: bool) {
         println!("prev");
-        match self.room.prev(left_door_shut, right_door_shut) {
+        match self.room().prev(left_door_shut, right_door_shut) {
             crate::enums::RoomOption::Room(a) => self.set_room(a),
             crate::enums::RoomOption::Multiple(a) => {
                 let rnd = thread_rng().gen_range(0..a.len());
@@ -118,14 +78,158 @@ impl Monster {
     }
 }
 
+#[monster_derive]
+pub struct Penny {}
+
+impl Penny {
+    pub fn new() -> Self {
+        Self {
+            name: MonsterName::Penny,
+            room: Room::Room2,
+            ai_level: thread_rng().gen_range(0..20),
+            active: false,
+        }
+    }
+}
+
+impl Monster for Penny {
+    monster_function_macro!();
+}
+
+#[monster_derive]
+pub struct Beastie {}
+
+impl Beastie {
+    pub fn new() -> Self {
+        Self {
+            name: MonsterName::Beastie,
+            room: Room::Room2,
+            ai_level: thread_rng().gen_range(0..20),
+            active: false,
+        }
+    }
+}
+
+impl Monster for Beastie {
+    monster_function_macro!();
+}
+
+#[monster_derive]
+pub struct Wilber {}
+
+impl Wilber {
+    pub fn new() -> Self {
+        Self {
+            name: MonsterName::Wilber,
+            room: Room::Room6,
+            ai_level: thread_rng().gen_range(0..20),
+            active: false,
+        }
+    }
+}
+
+impl Monster for Wilber {
+    monster_function_macro!();
+}
+
+#[monster_derive]
+pub struct GoGopher {}
+
+impl GoGopher {
+    pub fn new() -> Self {
+        Self {
+            name: MonsterName::GoGopher,
+            room: Room::Room4,
+            ai_level: thread_rng().gen_range(0..20),
+            active: false,
+        }
+    }
+}
+
+impl Monster for GoGopher {
+    monster_function_macro!();
+}
+
+#[monster_derive]
+pub struct Tux {}
+
+impl Tux {
+    pub fn new() -> Self {
+        Self {
+            name: MonsterName::Tux,
+            room: Room::Room1,
+            ai_level: thread_rng().gen_range(0..20),
+            active: false,
+        }
+    }
+}
+
+impl Monster for Tux {
+    monster_function_macro!();
+}
+
+#[monster_derive]
+pub struct Nolok {}
+
+impl Nolok {
+    pub fn new() -> Self {
+        Self {
+            name: MonsterName::Nolok,
+            room: Room::None,
+            ai_level: thread_rng().gen_range(0..20),
+            active: false,
+        }
+    }
+}
+
+impl Monster for Nolok {
+    monster_function_macro!();
+}
+
+#[monster_derive]
+pub struct GoldenTux {}
+
+impl GoldenTux {
+    pub fn new() -> Self {
+        Self {
+            name: MonsterName::GoldenTux,
+            room: Room::Office,
+            ai_level: thread_rng().gen_range(0..20),
+            active: false,
+        }
+    }
+}
+
+impl Monster for GoldenTux {
+    monster_function_macro!();
+
+    fn taint_percent(&self) -> f32 {
+        0.0
+    }
+}
+
+#[monster_derive]
+pub struct NullMonster {}
+
+impl NullMonster {
+    pub fn new() -> Self {
+        Self {
+            name: MonsterName::Null,
+            room: Room::None,
+            ai_level: 0,
+            active: false,
+        }
+    }
+}
+
 pub struct Gang {
-    penny: Monster,
-    beastie: Monster,
-    wilber: Monster,
-    gogopher: Monster,
-    tux: Monster,
-    nolok: Monster,
-    golden_tux: Monster,
+    penny: Penny,
+    beastie: Beastie,
+    wilber: Wilber,
+    gogopher: GoGopher,
+    tux: Tux,
+    nolok: Nolok,
+    golden_tux: GoldenTux,
 
     moved: bool,
 }
@@ -142,13 +246,13 @@ fn round(num: u64, mul: u64) -> u64 {
 impl Gang {
     pub fn new() -> Self {
         Self {
-            penny: Monster::penny(),
-            beastie: Monster::beastie(),
-            wilber: Monster::null(),
-            gogopher: Monster::null(),
-            tux: Monster::null(),
-            nolok: Monster::null(),
-            golden_tux: Monster::null(),
+            penny: Penny::new(),
+            beastie: Beastie::new(),
+            wilber: Wilber::new(),
+            gogopher: GoGopher::new(),
+            tux: Tux::new(),
+            nolok: Nolok::new(),
+            golden_tux: GoldenTux::new(),
             moved: true,
         }
     }
@@ -172,12 +276,15 @@ impl Gang {
             self.moved = true;
         }
     }
-    fn push_if_in_room(&self, mon: &Monster, room: &Room, vec: &mut Vec<Monster>) {
-        if mon.room == room.clone() {
-            vec.push(mon.clone());
+    fn push_if_in_room<'a, A>(&self, mon: &'a A, room: &Room, vec: &mut Vec<&'a dyn Monster>)
+    where
+        A: Monster,
+    {
+        if mon.room() == &room.clone() {
+            vec.push(mon);
         }
     }
-    pub fn in_room(&mut self, room: &Room) -> Vec<Monster> {
+    pub fn in_room(&mut self, room: &Room) -> Vec<&dyn Monster> {
         let mut res = vec![];
         self.push_if_in_room(&self.penny, &room, &mut res);
         self.push_if_in_room(&self.beastie, &room, &mut res);
