@@ -1,4 +1,3 @@
-use num_traits::{FromPrimitive, ToPrimitive};
 use proc::{monster_derive, monster_function_macro};
 use std::time::Duration;
 
@@ -6,13 +5,15 @@ use rand::{thread_rng, Rng};
 
 use crate::enums::Room;
 
-pub const PENNY_START: bool = true;
-pub const BEASTIE_START: bool = true;
+pub const PENNY_START: bool = false;
+pub const BEASTIE_START: bool = false;
 pub const WILBER_START: bool = false;
 pub const GO_GOPHER_START: bool = false;
 pub const TUX_START: bool = false;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
+
+pub const DEFAULT_AI_LEVEL: u8 = 20;
 
 #[derive(Clone, Debug)]
 pub enum MonsterName {
@@ -32,15 +33,13 @@ pub trait Monster {
     fn set_room(&mut self, room: Room);
     fn active(&self) -> bool;
     fn activate(&mut self);
+    fn entered_from_left(&self) -> bool;
+    fn entered_from_right(&self) -> bool;
+    fn set_entered_from_left(&mut self, res: bool);
+    fn set_entered_from_right(&mut self, res: bool);
 
     fn taint_percent(&self) -> f32 {
         0.02
-    }
-
-    fn move_by(&mut self, move_by: i64) {
-        let mut room = self.room().to_u64().unwrap() as i64;
-        room += move_by;
-        self.set_room(Room::from_u64(room as u64).unwrap());
     }
 
     fn try_move(&mut self) {
@@ -53,13 +52,28 @@ pub trait Monster {
             self.set_entered_from_right(true);
             self.set_room(Room::Office);
         } else {
-            if chance >= self.ai_level() {
-                let b = thread_rng().gen_range(0..1);
+            if chance <= self.ai_level() {
+                let b = thread_rng().gen_range(0..2);
                 if b == 0 {
                     self.prev();
                 } else {
                     self.next();
                 }
+            }
+        }
+    }
+
+    fn prev(&mut self) {
+        match self.room().prev() {
+            crate::enums::RoomOption::Room(a) => {
+                self.set_room(a);
+            }
+            crate::enums::RoomOption::Multiple(a) => {
+                let rnd = thread_rng().gen_range(0..a.len());
+                self.set_room(a.get(rnd).unwrap().clone());
+            }
+            crate::enums::RoomOption::None => {
+                self.next();
             }
         }
     }
@@ -76,39 +90,31 @@ pub trait Monster {
             crate::enums::RoomOption::None => {}
         }
     }
-    fn prev(&mut self) {
-        match self.room().prev() {
-            crate::enums::RoomOption::Room(a) => {
-                self.set_room(a);
-            }
-            crate::enums::RoomOption::Multiple(a) => {
-                let rnd = thread_rng().gen_range(0..a.len());
-                self.set_room(a.get(rnd).unwrap().clone());
-            }
-            crate::enums::RoomOption::None => {
-                self.next();
-            }
-        }
+
+    fn room_after_office(&self) -> Room {
+        Room::random()
     }
 
-    fn entered_from_left(&self) -> bool;
-    fn entered_from_right(&self) -> bool;
-    fn set_entered_from_left(&mut self, res: bool);
-    fn set_entered_from_right(&mut self, res: bool);
+    fn special_debug_info(&self) -> String {
+        String::new()
+    }
 }
 
 #[monster_derive]
-pub struct Penny {}
+pub struct Penny {
+    door_shut: bool,
+}
 
 impl Penny {
     pub fn new() -> Self {
         Self {
             name: MonsterName::Penny,
             room: Room::Room2,
-            ai_level: thread_rng().gen_range(0..20),
+            ai_level: DEFAULT_AI_LEVEL,
             active: PENNY_START,
             entered_from_left: false,
             entered_from_right: false,
+            door_shut: false,
         }
     }
 }
@@ -116,27 +122,41 @@ impl Penny {
 impl Monster for Penny {
     monster_function_macro!();
     fn next(&mut self) {
-        match self.room() {
-            Room::Room1 => self.set_room(Room::Room2),
-            Room::Room2 => self.set_room(Room::Room3),
-            Room::Room3 => self.set_room(Room::Office),
-            _ => {}
-        }
+        self.set_room(match self.room() {
+            Room::Room1 => Room::Room2,
+            Room::Room2 => {
+                if !self.door_shut {
+                    Room::Room3
+                } else {
+                    Room::Room1
+                }
+            }
+            Room::Room3 => Room::Office,
+            _ => {
+                panic!()
+            }
+        });
+    }
+    fn room_after_office(&self) -> Room {
+        Room::Room2
     }
 }
 
 #[monster_derive]
-pub struct Beastie {}
+pub struct Beastie {
+    door_shut: bool,
+}
 
 impl Beastie {
     pub fn new() -> Self {
         Self {
             name: MonsterName::Beastie,
             room: Room::Room2,
-            ai_level: thread_rng().gen_range(0..20),
+            ai_level: DEFAULT_AI_LEVEL,
             active: BEASTIE_START,
             entered_from_left: false,
             entered_from_right: false,
+            door_shut: false,
         }
     }
 }
@@ -144,33 +164,68 @@ impl Beastie {
 impl Monster for Beastie {
     monster_function_macro!();
     fn next(&mut self) {
-        match self.room() {
-            Room::Room1 => self.set_room(Room::Room2),
-            Room::Room2 => self.set_room(Room::Room5),
-            Room::Room3 => self.set_room(Room::Office),
-            _ => {}
-        }
+        self.set_room(match self.room() {
+            Room::Room1 => Room::Room2,
+            Room::Room2 => {
+                if !self.door_shut {
+                    Room::Room5
+                } else {
+                    Room::Room1
+                }
+            }
+            Room::Room3 => Room::Office,
+            _ => {
+                panic!()
+            }
+        });
+    }
+    fn room_after_office(&self) -> Room {
+        Room::Room1
     }
 }
 
 #[monster_derive]
-pub struct Wilber {}
+pub struct Wilber {
+    rage: f32,
+    pub stage: u8,
+}
 
 impl Wilber {
     pub fn new() -> Self {
         Self {
             name: MonsterName::Wilber,
             room: Room::Room6,
-            ai_level: thread_rng().gen_range(0..20),
+            ai_level: DEFAULT_AI_LEVEL,
             active: WILBER_START,
             entered_from_left: false,
             entered_from_right: false,
+            rage: 0.0,
+            stage: 0,
+        }
+    }
+    pub fn rage(&self) -> f32 {
+        self.rage
+    }
+    pub fn rage_increment(&mut self) {
+        if self.rage < 100.0 {
+            self.rage += 0.001;
+        } else {
+            self.stage += 1;
+            self.rage = 0.0;
+        }
+    }
+    pub fn rage_decrement(&mut self) {
+        if self.rage > 0.0 {
+            self.rage -= 0.002;
         }
     }
 }
 
 impl Monster for Wilber {
     monster_function_macro!();
+    fn special_debug_info(&self) -> String {
+        format!(" - {} - {}", self.rage, self.stage)
+    }
 }
 
 #[monster_derive]
@@ -181,7 +236,7 @@ impl GoGopher {
         Self {
             name: MonsterName::GoGopher,
             room: Room::Room4,
-            ai_level: thread_rng().gen_range(0..20),
+            ai_level: DEFAULT_AI_LEVEL,
             active: GO_GOPHER_START,
             entered_from_left: false,
             entered_from_right: false,
@@ -201,7 +256,7 @@ impl Tux {
         Self {
             name: MonsterName::Tux,
             room: Room::Room1,
-            ai_level: thread_rng().gen_range(0..20),
+            ai_level: DEFAULT_AI_LEVEL,
             active: TUX_START,
             entered_from_left: false,
             entered_from_right: false,
@@ -221,7 +276,7 @@ impl Nolok {
         Self {
             name: MonsterName::Nolok,
             room: Room::None,
-            ai_level: thread_rng().gen_range(0..20),
+            ai_level: DEFAULT_AI_LEVEL,
             active: NOLOK_START,
             entered_from_left: false,
             entered_from_right: false,
@@ -241,7 +296,7 @@ impl GoldenTux {
         Self {
             name: MonsterName::GoldenTux,
             room: Room::Office,
-            ai_level: thread_rng().gen_range(0..20),
+            ai_level: DEFAULT_AI_LEVEL,
             active: GOLDEN_TUX_START,
             entered_from_left: false,
             entered_from_right: false,
@@ -258,13 +313,13 @@ impl Monster for GoldenTux {
 }
 
 pub struct Gang {
-    penny: Penny,
-    beastie: Beastie,
-    wilber: Wilber,
-    gogopher: GoGopher,
-    tux: Tux,
-    nolok: Nolok,
-    golden_tux: GoldenTux,
+    pub penny: Penny,
+    pub beastie: Beastie,
+    pub wilber: Wilber,
+    pub gogopher: GoGopher,
+    pub tux: Tux,
+    pub nolok: Nolok,
+    pub golden_tux: GoldenTux,
 
     moved: bool,
 }
@@ -292,7 +347,7 @@ impl Gang {
         }
     }
 
-    pub fn step(&mut self, time: Duration) {
+    pub fn step(&mut self, time: Duration, left_door_shut: bool, right_door_shut: bool) {
         let hours = time.as_secs() / 3600;
         let minutes = time.as_secs() / 60;
         let seconds = round(time.as_secs(), 60);
@@ -303,8 +358,15 @@ impl Gang {
                 println!("NOW: {:#02}h {:#02}m {:#02}s", hours, minutes, seconds);
                 self.moved = false;
 
-                self.penny.try_move();
-                self.beastie.try_move();
+                self.penny.door_shut = left_door_shut;
+                self.beastie.door_shut = right_door_shut;
+
+                if PENNY_START {
+                    self.penny.try_move();
+                }
+                if BEASTIE_START {
+                    self.beastie.try_move();
+                }
             }
         } else {
             self.moved = true;

@@ -1,4 +1,4 @@
-use monster::Gang;
+use monster::{Gang, Monster, Wilber};
 use raylib::prelude::*;
 
 use num_traits::FromPrimitive;
@@ -70,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let my = d.get_mouse_y();
 
         let cur_time = ingame_time.duration_since(UNIX_EPOCH)?;
-        gang.step(cur_time);
+        gang.step(cur_time, left_door_shut, right_door_shut);
         let num = {
             let ct = cur_time.as_secs() / 3600;
             if ct == 0 {
@@ -90,6 +90,24 @@ fn main() -> Result<(), Box<dyn Error>> {
                     0.0,
                     Color::WHITE,
                 );
+                if gang.wilber.active() {
+                    let texture = match gang.wilber.stage {
+                        0 => &textures.gimp1,
+                        1 => &textures.gimp2,
+                        2 => &textures.gimp3,
+                        3 => &textures.gimp4,
+                        _ => &textures.gimp5,
+                    };
+                    d.draw_texture_pro(
+                        &texture,
+                        texture_rect!(texture),
+                        Rectangle::new(600.0 - bg_offset_x, 450.0, 172.0, 168.0),
+                        Vector2::new(0.0, 0.0),
+                        0.0,
+                        Color::WHITE,
+                    );
+                }
+
                 d.draw_texture_pro(
                     &textures.laptop,
                     texture_rect!(textures.laptop),
@@ -103,7 +121,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Color::WHITE,
                 );
 
-                // 379 330 32 32
                 let mut i = 0;
                 for button in &door_buttons {
                     d.draw_rectangle_lines(
@@ -155,6 +172,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 {
                     screen = Screen::Camera;
                 }
+
+                gang.wilber.rage_increment();
             }
             Screen::Camera => {
                 match sel_camera {
@@ -166,9 +185,24 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Room::Room3 => d.clear_background(Color::YELLOW),
                     Room::Room4 => d.clear_background(Color::GREEN),
                     Room::Room5 => d.clear_background(Color::BLUE),
-                    Room::Room6 => d.clear_background(Color::DARKBLUE),
+                    Room::Room6 => {
+                        d.clear_background(Color::DARKBLUE);
+                        d.draw_text(
+                            format!("RAGE: {}", gang.wilber.rage()).as_str(),
+                            5,
+                            5,
+                            32,
+                            Color::BLACK,
+                        )
+                    }
                     Room::Office => panic!("tried to draw office"),
                 };
+
+                if sel_camera == Room::Room6 {
+                    gang.wilber.rage_decrement();
+                } else {
+                    gang.wilber.rage_increment();
+                }
 
                 d.draw_texture_pro(
                     &textures.camera,
@@ -216,7 +250,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                     for mons in inroom {
                         if mons.active() {
                             d.draw_text(
-                                format!("{} - {}", &mons.name(), &mons.ai_level()).as_str(),
+                                format!(
+                                    "{} - {}{}",
+                                    &mons.name(),
+                                    &mons.ai_level(),
+                                    &mons.special_debug_info()
+                                )
+                                .as_str(),
                                 5 + clickable.x as i32,
                                 5 + clickable.y as i32 + y,
                                 16,
@@ -233,7 +273,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                             && my as f32 <= clickable.y + clickable.height)
                     {
                         sel_camera = Room::from_u64(i as u64).unwrap();
-                        // :3
                     }
                 }
             }
@@ -268,7 +307,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         tainted += mons.taint_percent();
                     } else {
                         mons.set_entered_from_left(false);
-                        mons.set_room(Room::random());
+                        mons.set_room(mons.room_after_office());
                     }
                 }
                 if mons.entered_from_right() {
@@ -276,12 +315,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                         tainted += mons.taint_percent();
                     } else {
                         mons.set_entered_from_right(false);
-                        mons.set_room(Room::random());
+                        mons.set_room(mons.room_after_office());
                     }
                 }
             }
         }
-        if tainted >= 100.0 {
+        if tainted >= 100.0 || (gang.wilber.stage == 4 && gang.wilber.rage() >= 0.2) {
             screen = Screen::GameOver;
         }
 
