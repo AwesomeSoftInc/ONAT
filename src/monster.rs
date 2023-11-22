@@ -6,6 +6,14 @@ use rand::{thread_rng, Rng};
 
 use crate::enums::Room;
 
+pub const PENNY_START: bool = true;
+pub const BEASTIE_START: bool = true;
+pub const WILBER_START: bool = false;
+pub const GO_GOPHER_START: bool = false;
+pub const TUX_START: bool = false;
+pub const NOLOK_START: bool = false;
+pub const GOLDEN_TUX_START: bool = false;
+
 #[derive(Clone, Debug)]
 pub enum MonsterName {
     Penny,
@@ -37,15 +45,15 @@ pub trait Monster {
 
     fn try_move(&mut self) {
         let chance = thread_rng().gen_range(0..20);
-        if chance >= self.ai_level() {
-            // if any of them are in the hallways, have them move in.
-            if self.room() == &Room::Room3 {
-                self.set_entered_from_left(true);
-                self.set_room(Room::Office);
-            } else if self.room() == &Room::Room5 {
-                self.set_entered_from_right(true);
-                self.set_room(Room::Office);
-            } else {
+        // if any of them are in the hallways, have them move in.
+        if self.room() == &Room::Room3 {
+            self.set_entered_from_left(true);
+            self.set_room(Room::Office);
+        } else if self.room() == &Room::Room5 {
+            self.set_entered_from_right(true);
+            self.set_room(Room::Office);
+        } else {
+            if chance >= self.ai_level() {
                 let b = thread_rng().gen_range(0..1);
                 if b == 0 {
                     self.prev();
@@ -98,7 +106,7 @@ impl Penny {
             name: MonsterName::Penny,
             room: Room::Room2,
             ai_level: thread_rng().gen_range(0..20),
-            active: true,
+            active: PENNY_START,
             entered_from_left: false,
             entered_from_right: false,
         }
@@ -107,6 +115,14 @@ impl Penny {
 
 impl Monster for Penny {
     monster_function_macro!();
+    fn next(&mut self) {
+        match self.room() {
+            Room::Room1 => self.set_room(Room::Room2),
+            Room::Room2 => self.set_room(Room::Room3),
+            Room::Room3 => self.set_room(Room::Office),
+            _ => {}
+        }
+    }
 }
 
 #[monster_derive]
@@ -118,7 +134,7 @@ impl Beastie {
             name: MonsterName::Beastie,
             room: Room::Room2,
             ai_level: thread_rng().gen_range(0..20),
-            active: true,
+            active: BEASTIE_START,
             entered_from_left: false,
             entered_from_right: false,
         }
@@ -127,6 +143,14 @@ impl Beastie {
 
 impl Monster for Beastie {
     monster_function_macro!();
+    fn next(&mut self) {
+        match self.room() {
+            Room::Room1 => self.set_room(Room::Room2),
+            Room::Room2 => self.set_room(Room::Room5),
+            Room::Room3 => self.set_room(Room::Office),
+            _ => {}
+        }
+    }
 }
 
 #[monster_derive]
@@ -138,7 +162,7 @@ impl Wilber {
             name: MonsterName::Wilber,
             room: Room::Room6,
             ai_level: thread_rng().gen_range(0..20),
-            active: false,
+            active: WILBER_START,
             entered_from_left: false,
             entered_from_right: false,
         }
@@ -158,7 +182,7 @@ impl GoGopher {
             name: MonsterName::GoGopher,
             room: Room::Room4,
             ai_level: thread_rng().gen_range(0..20),
-            active: false,
+            active: GO_GOPHER_START,
             entered_from_left: false,
             entered_from_right: false,
         }
@@ -178,7 +202,7 @@ impl Tux {
             name: MonsterName::Tux,
             room: Room::Room1,
             ai_level: thread_rng().gen_range(0..20),
-            active: false,
+            active: TUX_START,
             entered_from_left: false,
             entered_from_right: false,
         }
@@ -198,7 +222,7 @@ impl Nolok {
             name: MonsterName::Nolok,
             room: Room::None,
             ai_level: thread_rng().gen_range(0..20),
-            active: false,
+            active: NOLOK_START,
             entered_from_left: false,
             entered_from_right: false,
         }
@@ -218,7 +242,7 @@ impl GoldenTux {
             name: MonsterName::GoldenTux,
             room: Room::Office,
             ai_level: thread_rng().gen_range(0..20),
-            active: false,
+            active: GOLDEN_TUX_START,
             entered_from_left: false,
             entered_from_right: false,
         }
