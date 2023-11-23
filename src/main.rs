@@ -282,13 +282,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Room::None => {
                         d.clear_background(Color::WHITE);
                     }
-                    Room::Room1 => d.clear_background(Color::RED),
-                    Room::Room2 => d.clear_background(Color::ORANGE),
-                    Room::Room3 => d.clear_background(Color::YELLOW),
-                    Room::Room4 => d.clear_background(Color::GREEN),
-                    Room::Room5 => d.clear_background(Color::BLUE),
+                    Room::Room1 => d.clear_background(Color::WHITE),
+                    Room::Room2 => d.clear_background(Color::WHITE),
+                    Room::Room3 => d.clear_background(Color::WHITE),
+                    Room::Room4 => d.clear_background(Color::WHITE),
+                    Room::Room5 => d.clear_background(Color::WHITE),
                     Room::Room6 => {
-                        d.clear_background(Color::DARKBLUE);
+                        d.clear_background(Color::WHITE);
                         d.draw_text(
                             format!("RAGE: {}", gang.wilber.rage()).as_str(),
                             5,
@@ -348,24 +348,26 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                     let cam = Room::from_u64(i as u64).unwrap();
 
-                    let inroom = gang.in_room(&cam);
-                    let mut y = 0;
-                    for mons in inroom {
-                        if mons.active() {
-                            d.draw_text(
-                                format!(
-                                    "{} - {}{}",
-                                    &mons.name(),
-                                    &mons.ai_level(),
-                                    &mons.special_debug_info()
-                                )
-                                .as_str(),
-                                5 + clickable.x as i32,
-                                5 + clickable.y as i32 + y,
-                                16,
-                                Color::BLACK,
-                            );
-                            y += 16;
+                    if cam == sel_camera {
+                        let inroom = gang.in_room(&cam);
+                        let mut y = 0;
+                        for mons in inroom {
+                            if mons.active() {
+                                d.draw_text(
+                                    format!(
+                                        "{} - {}{}",
+                                        &mons.name(),
+                                        &mons.ai_level(),
+                                        &mons.special_debug_info()
+                                    )
+                                    .as_str(),
+                                    5 + clickable.x as i32,
+                                    5 + clickable.y as i32 + y,
+                                    16,
+                                    Color::BLACK,
+                                );
+                                y += 16;
+                            }
                         }
                     }
 

@@ -214,6 +214,9 @@ impl Wilber {
         self.rage
     }
     pub fn rage_increment(&mut self) {
+        if !self.active {
+            return;
+        }
         if self.rage < 100.0 {
             self.rage += 0.001;
         } else {
@@ -222,6 +225,9 @@ impl Wilber {
         }
     }
     pub fn rage_decrement(&mut self) {
+        if !self.active {
+            return;
+        }
         if self.rage > 0.0 {
             self.rage -= 0.002;
         }
@@ -529,13 +535,13 @@ impl Gang {
         res
     }
     fn ai_level_increase(&mut self) {
-        self.penny.ai_level += 5;
-        self.beastie.ai_level += 5;
-        self.wilber.ai_level += 5;
-        self.gogopher.ai_level += 5;
-        self.tux.ai_level += 5;
-        self.nolok.ai_level += 5;
-        self.golden_tux.ai_level += 5;
+        self.penny.ai_level *= 2;
+        self.beastie.ai_level *= 2;
+        self.wilber.ai_level *= 2;
+        self.gogopher.ai_level *= 2;
+        self.tux.ai_level *= 2;
+        self.nolok.ai_level *= 2;
+        self.golden_tux.ai_level *= 2;
     }
 }
 
