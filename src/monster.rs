@@ -13,7 +13,7 @@ pub const TUX_START: bool = false;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
 
-pub const DEFAULT_AI_LEVEL: u8 = 3;
+pub const DEFAULT_AI_LEVEL: u8 = 5;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MonsterName {
@@ -291,10 +291,7 @@ impl Monster for GoGopher {
 }
 
 #[monster_derive]
-pub struct Tux {
-    pub left_door_shut: bool,
-    pub right_door_shut: bool,
-}
+pub struct Tux {}
 
 impl Tux {
     pub fn new() -> Self {
@@ -305,8 +302,6 @@ impl Tux {
             active: TUX_START,
             entered_from_left: false,
             entered_from_right: false,
-            left_door_shut: false,
-            right_door_shut: false,
         }
     }
 }
@@ -316,13 +311,6 @@ impl Monster for Tux {
 
     fn go_prev_or_next(&mut self, _chance: u8) {
         self.next();
-        if self.left_door_shut && self.room == Room::Room3 && !self.right_door_shut {
-            self.set_room(Room::Room5);
-        } else if self.right_door_shut && self.room == Room::Room5 && !self.left_door_shut {
-            self.set_room(Room::Room3);
-        } else if self.left_door_shut && self.right_door_shut {
-            self.set_room(Room::Room1);
-        }
     }
     fn room_after_office(&self) -> Room {
         Room::Room1
@@ -334,10 +322,7 @@ impl Monster for Tux {
 }
 
 #[monster_derive]
-pub struct Nolok {
-    left_door_shut: bool,
-    right_door_shut: bool,
-}
+pub struct Nolok {}
 
 impl Nolok {
     pub fn new() -> Self {
@@ -348,8 +333,6 @@ impl Nolok {
             active: NOLOK_START,
             entered_from_left: false,
             entered_from_right: false,
-            left_door_shut: true,
-            right_door_shut: true,
         }
     }
 }
@@ -364,17 +347,9 @@ impl Monster for Nolok {
                 if coin_flip <= 1 {
                     let coin_flip_2 = thread_rng().gen_range(0..2);
                     if coin_flip_2 == 0 {
-                        if !self.left_door_shut {
-                            self.set_room(Room::Room3);
-                        } else {
-                            self.set_room(Room::Room5)
-                        }
+                        self.set_room(Room::Room3);
                     } else {
-                        if !self.right_door_shut {
-                            self.set_room(Room::Room5);
-                        } else {
-                            self.set_room(Room::Room3);
-                        }
+                        self.set_room(Room::Room5);
                     }
                 }
             }
@@ -464,7 +439,7 @@ impl Gang {
         }
     }
 
-    pub fn step(&mut self, time: Duration, left_door_shut: bool, right_door_shut: bool) {
+    pub fn step(&mut self, time: Duration) {
         let hours = time.as_secs() / 3600;
         let minutes = time.as_secs() / 60;
         let seconds = round(time.as_secs(), 60);
@@ -474,13 +449,6 @@ impl Gang {
             if self.moved {
                 println!("NOW: {:#02}h {:#02}m {:#02}s", hours, minutes, seconds);
                 self.moved = false;
-
-                self.penny.door_shut = left_door_shut;
-                self.beastie.door_shut = right_door_shut;
-                self.tux.left_door_shut = left_door_shut;
-                self.tux.right_door_shut = right_door_shut;
-                self.nolok.left_door_shut = left_door_shut;
-                self.nolok.right_door_shut = right_door_shut;
 
                 if self.penny.active {
                     self.penny.try_move();

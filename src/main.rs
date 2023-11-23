@@ -3,6 +3,7 @@ use raylib::prelude::*;
 
 use num_traits::FromPrimitive;
 use std::{
+    alloc::System,
     error::Error,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -15,11 +16,13 @@ mod macros;
 mod monster;
 mod textures;
 
-pub const WIDTH: i32 = 1200;
-pub const HEIGHT: i32 = 900;
+pub const WIDTH: i32 = 600;
+pub const HEIGHT: i32 = 450;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let (mut rl, thread) = raylib::init().size(WIDTH, HEIGHT).title("ONAT").build();
+
+    let mut audio = RaylibAudio::init_audio_device();
 
     let textures = Textures::new(&mut rl, &thread)?;
 
@@ -28,20 +31,65 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut laptop_offset_y = 0.0;
 
     let camera_clickables = vec![
-        Rectangle::new(380.0, 121.0, 240.0, 128.0), // Room1
-        Rectangle::new(362.0, 293.0, 336.0, 208.0), // Room2
-        Rectangle::new(114.0, 724.0, 190.0, 150.0), // Room3
-        Rectangle::new(722.0, 674.0, 190.0, 150.0), // Room5
-        Rectangle::new(441.0, 539.0, 161.0, 123.0), // Room4
-        Rectangle::new(35.0, 101.0, 150.0, 128.0),  // Room6
+        Rectangle::new(
+            WIDTH as f32 * 0.40,  // 60
+            HEIGHT as f32 * 0.12, // 20
+            WIDTH as f32 * 0.20,
+            HEIGHT as f32 * 0.15,
+        ), // Room1
+        Rectangle::new(
+            WIDTH as f32 * 0.40,
+            HEIGHT as f32 * 0.30,
+            WIDTH as f32 * 0.30,
+            HEIGHT as f32 * 0.20,
+        ), // Room2
+        Rectangle::new(
+            WIDTH as f32 * 0.10,
+            HEIGHT as f32 * 0.70,
+            WIDTH as f32 * 0.20,
+            HEIGHT as f32 * 0.15,
+        ), // Room3
+        Rectangle::new(
+            WIDTH as f32 * 0.73,
+            HEIGHT as f32 * 0.69,
+            WIDTH as f32 * 0.20,
+            HEIGHT as f32 * 0.15,
+        ), // Room5
+        Rectangle::new(
+            WIDTH as f32 * 0.45,
+            HEIGHT as f32 * 0.55,
+            WIDTH as f32 * 0.15,
+            HEIGHT as f32 * 0.10,
+        ), // Room4
+        Rectangle::new(
+            WIDTH as f32 * 0.05,
+            HEIGHT as f32 * 0.08,
+            WIDTH as f32 * 0.15,
+            HEIGHT as f32 * 0.15,
+        ), // Room6
     ];
 
     let door_buttons = vec![
-        Rectangle::new(430.0, 330.0, 128.0, 128.0),
-        Rectangle::new(1360.0, 330.0, 128.0, 128.0),
+        Rectangle::new(
+            WIDTH as f32 * 0.35,
+            HEIGHT as f32 * 0.35,
+            WIDTH as f32 * 0.10,
+            WIDTH as f32 * 0.10,
+        ),
+        Rectangle::new(
+            WIDTH as f32 * 1.15,
+            HEIGHT as f32 * 0.35,
+            WIDTH as f32 * 0.10,
+            WIDTH as f32 * 0.10,
+        ),
     ];
 
-    let duct_button = Rectangle::new(960.0, 32.0, 64.0, 64.0);
+    let duct_button = Rectangle::new(
+        WIDTH as f32 * 0.75,
+        0.0,
+        WIDTH as f32 * 0.10,
+        WIDTH as f32 * 0.10,
+    );
 
     let mut sel_camera = Room::None;
     let mut timer = SystemTime::now();
@@ -52,11 +100,21 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut tainted = 0.0;
     let mut tainted_cache = 0.0;
 
+    let mut can_open_left_door = true;
+    let mut can_open_right_door = true;
+
     let mut left_door_shut = false;
     let mut right_door_shut = false;
 
+    let mut left_door_last_shut: SystemTime = SystemTime::now();
+    let mut right_door_last_shut: SystemTime = SystemTime::now();
+
     let mut duct_heat_timer = 0;
-    let mut power = 100.0;
+
+    let mut fucked = 0;
+
+    let mut door_knocking = Sound::load_sound("./assets/knocking.mp3")?;
+    let mut explosion = Sound::load_sound("./assets/explosion.mp3")?;
 
     while !rl.window_should_close() {
         if timer.elapsed()?.as_millis() <= 1 / 30 {
@@ -76,7 +134,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         let my = d.get_mouse_y();
 
         let cur_time = ingame_time.duration_since(UNIX_EPOCH)?;
-        gang.step(cur_time, left_door_shut, right_door_shut);
+        gang.step(cur_time);
         let num = {
             let ct = cur_time.as_secs() / 3600;
             if ct == 0 {
@@ -117,10 +175,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 d.draw_texture_pro(
                     &textures.laptop,
                     texture_rect!(textures.laptop),
-                    texture_rect!(
-                        textures.laptop * 2,
-                        (WIDTH / 2 - textures.laptop.width),
-                        laptop_height
+                    Rectangle::new(
+                        (WIDTH / 4) as f32,
+                        laptop_height as f32,
+                        (WIDTH / 2) as f32,
+                        (HEIGHT) as f32,
                     ),
                     Vector2::new(0.0, 0.0),
                     0.0,
@@ -129,23 +188,30 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 let mut i = 0;
                 for button in &door_buttons {
-                    d.draw_rectangle_lines(
+                    d.draw_rectangle(
                         (button.x - bg_offset_x) as i32,
                         button.y as i32,
                         button.width as i32,
                         button.height as i32,
                         Color::RED,
                     );
+                    if fucked >= 1 {
+                        continue;
+                    }
                     if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
                         && (mx as f32 >= (button.x - bg_offset_x)
                             && mx as f32 <= (button.x - bg_offset_x) + button.width
                             && my as f32 >= button.y
                             && my as f32 <= button.y + button.height)
                     {
-                        if i == 0 {
-                            left_door_shut = !left_door_shut;
-                        } else {
-                            right_door_shut = !right_door_shut;
+                        if i == 0 && can_open_left_door {
+                            left_door_shut = true;
+                            left_door_last_shut = SystemTime::now();
+                            can_open_left_door = false;
+                        } else if i == 1 && can_open_right_door {
+                            right_door_shut = true;
+                            right_door_last_shut = SystemTime::now();
+                            can_open_right_door = false;
                         }
                     }
                     i += 1;
@@ -169,12 +235,24 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 // LEFT DOOR
                 if left_door_shut {
-                    d.draw_rectangle(92 - bg_offset_x as i32, 42, 340, 940, Color::RED);
+                    d.draw_rectangle(
+                        (WIDTH as f32 * 0.09) as i32 - bg_offset_x as i32,
+                        (HEIGHT as f32 * 0.09) as i32,
+                        (WIDTH as f32 * 0.3) as i32,
+                        (WIDTH as f32 * 1.0) as i32,
+                        Color::RED,
+                    );
                 }
 
                 // RIGHT DOOR
                 if right_door_shut {
-                    d.draw_rectangle(1522 - bg_offset_x as i32, 42, 340, 940, Color::RED);
+                    d.draw_rectangle(
+                        (WIDTH as f32 * 1.19) as i32 - bg_offset_x as i32,
+                        (HEIGHT as f32 * 0.09) as i32,
+                        (WIDTH as f32 * 0.3) as i32,
+                        (WIDTH as f32 * 1.0) as i32,
+                        Color::RED,
+                    );
                 }
 
                 if mx <= (WIDTH / 4) {
@@ -231,7 +309,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 d.draw_texture_pro(
                     &textures.camera,
                     texture_rect!(textures.camera),
-                    texture_rect!(textures.camera),
+                    Rectangle::new(0.0, 0.0, WIDTH as f32, HEIGHT as f32),
                     Vector2::new(0.0, 0.0),
                     0.0,
                     Color::WHITE,
@@ -239,10 +317,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 d.draw_texture_pro(
                     &textures.laptop,
                     texture_rect!(textures.laptop),
-                    texture_rect!(
-                        textures.laptop * 2,
-                        (WIDTH / 2 - textures.laptop.width),
-                        laptop_height
+                    Rectangle::new(
+                        (WIDTH / 4) as f32,
+                        laptop_height as f32,
+                        (WIDTH / 2) as f32,
+                        (HEIGHT) as f32,
                     ),
                     Vector2::new(0.0, 0.0),
                     0.0,
@@ -313,6 +392,19 @@ fn main() -> Result<(), Box<dyn Error>> {
             Color::BLACK,
         );
 
+        if left_door_last_shut.elapsed()?.as_secs() >= 5 {
+            left_door_shut = false;
+        }
+        if left_door_last_shut.elapsed()?.as_secs() >= 10 {
+            can_open_left_door = true;
+        }
+
+        if right_door_last_shut.elapsed()?.as_secs() >= 5 {
+            right_door_shut = false;
+        }
+        if right_door_last_shut.elapsed()?.as_secs() >= 10 {
+            can_open_right_door = true;
+        }
         let inoffice = gang.in_room(&Room::Office);
         let mut y = 48;
         for mons in inoffice {
@@ -365,15 +457,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         gang.gogopher.duct_heat_timer = duct_heat_timer;
 
-        if left_door_shut {
-            power -= 0.0005;
-        }
-        if right_door_shut {
-            power -= 0.0005;
-        }
-
-        if tainted >= 100.0 || (gang.wilber.stage == 4 && gang.wilber.rage() >= 0.2) || power <= 0.0
-        {
+        if tainted >= 100.0 || (gang.wilber.stage == 4 && gang.wilber.rage() >= 0.2) {
             screen = Screen::GameOver;
         }
 
@@ -381,13 +465,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             format!("Tainted: {:.0}", tainted).as_str(),
             5,
             HEIGHT - 32,
-            32,
-            Color::WHITE,
-        );
-        d.draw_text(
-            format!("Power: {:.0}", power).as_str(),
-            5,
-            HEIGHT - 64,
             32,
             Color::WHITE,
         );
