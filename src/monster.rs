@@ -13,7 +13,7 @@ pub const TUX_START: bool = false;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
 
-pub const DEFAULT_AI_LEVEL: u8 = 5;
+pub const DEFAULT_AI_LEVEL: u8 = 2;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MonsterName {
@@ -453,7 +453,7 @@ impl Gang {
                 if self.penny.active {
                     self.penny.try_move();
                 }
-                if self.tux.active {
+                if self.beastie.active {
                     self.beastie.try_move();
                 }
 
