@@ -18,11 +18,11 @@ mod textures;
 
 pub const WIDTH: i32 = 600;
 pub const HEIGHT: i32 = 450;
+pub const SCROLL_AMOUNT: f32 = WIDTH as f32 * 0.0009;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let (mut rl, thread) = raylib::init().size(WIDTH, HEIGHT).title("ONAT").build();
-
-    let mut audio = RaylibAudio::init_audio_device();
+    //let mut audio = RaylibAudio::init_audio_device();
 
     let textures = Textures::new(&mut rl, &thread)?;
 
@@ -91,7 +91,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         WIDTH as f32 * 0.10,
     );
 
-    let mut sel_camera = Room::None;
+    let mut sel_camera = Room::Room1;
     let mut timer = SystemTime::now();
 
     let mut ingame_time = UNIX_EPOCH;
@@ -111,10 +111,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut duct_heat_timer = 0;
 
-    let mut fucked = 0;
-
-    let mut door_knocking = Sound::load_sound("./assets/knocking.mp3")?;
-    let mut explosion = Sound::load_sound("./assets/explosion.mp3")?;
+    let mut framebuffer = rl.load_render_texture(&thread, WIDTH as u32, HEIGHT as u32)?;
+    framebuffer.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
 
     while !rl.window_should_close() {
         if timer.elapsed()?.as_millis() <= 1 / 30 {
@@ -172,15 +170,25 @@ fn main() -> Result<(), Box<dyn Error>> {
                     );
                 }
 
+                let laptop_rec = Rectangle::new(
+                    (WIDTH / 4) as f32,
+                    laptop_height as f32,
+                    (WIDTH / 2) as f32,
+                    (HEIGHT) as f32 / 1.5,
+                );
+
+                d.draw_rectangle(
+                    laptop_rec.x as i32 + 32,
+                    laptop_rec.y as i32 + 8,
+                    laptop_rec.width as i32 - 64,
+                    laptop_rec.height as i32,
+                    Color::BLACK,
+                );
+
                 d.draw_texture_pro(
                     &textures.laptop,
                     texture_rect!(textures.laptop),
-                    Rectangle::new(
-                        (WIDTH / 4) as f32,
-                        laptop_height as f32,
-                        (WIDTH / 2) as f32,
-                        (HEIGHT) as f32,
-                    ),
+                    laptop_rec,
                     Vector2::new(0.0, 0.0),
                     0.0,
                     Color::WHITE,
@@ -195,9 +203,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                         button.height as i32,
                         Color::RED,
                     );
-                    if fucked >= 1 {
-                        continue;
-                    }
                     if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
                         && (mx as f32 >= (button.x - bg_offset_x)
                             && mx as f32 <= (button.x - bg_offset_x) + button.width
@@ -257,12 +262,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 if mx <= (WIDTH / 4) {
                     if bg_offset_x > 0.0 {
-                        bg_offset_x -= 1.1;
+                        bg_offset_x -= SCROLL_AMOUNT;
                     }
                 }
                 if mx >= WIDTH - (WIDTH / 4) {
-                    if bg_offset_x < 600.0 {
-                        bg_offset_x += 1.1;
+                    if bg_offset_x < (WIDTH as f32) {
+                        bg_offset_x += SCROLL_AMOUNT;
                     }
                 }
                 if laptop_offset_y > 0.0 {
@@ -275,45 +280,76 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
 
                 gang.wilber.rage_increment();
-                sel_camera = Room::None;
             }
             Screen::Camera => {
-                match sel_camera {
-                    Room::None => {
-                        d.clear_background(Color::WHITE);
-                    }
-                    Room::Room1 => d.clear_background(Color::WHITE),
-                    Room::Room2 => d.clear_background(Color::WHITE),
-                    Room::Room3 => d.clear_background(Color::WHITE),
-                    Room::Room4 => d.clear_background(Color::WHITE),
-                    Room::Room5 => d.clear_background(Color::WHITE),
-                    Room::Room6 => {
-                        d.clear_background(Color::WHITE);
-                        d.draw_text(
-                            format!("RAGE: {}", gang.wilber.rage()).as_str(),
-                            5,
-                            5,
-                            32,
-                            Color::BLACK,
-                        )
-                    }
-                    Room::Office => panic!("tried to draw office"),
-                };
+                {
+                    let mut d2 = d.begin_texture_mode(&thread, &mut framebuffer);
+                    let texture = match sel_camera {
+                        Room::Room1 => &textures.cam1,
+                        Room::Room2 => &textures.cam2,
+                        Room::Room3 => &textures.cam3,
+                        Room::Room4 => &textures.cam4,
+                        Room::Room5 => &textures.cam5,
+                        Room::Room6 => &textures.cam6,
+                        _ => panic!("tried to draw unsupported room {:?}", sel_camera),
+                    };
+                    d2.draw_texture_pro(
+                        texture,
+                        texture_rect!(texture),
+                        Rectangle::new(0.0, 0.0, WIDTH as f32, HEIGHT as f32),
+                        Vector2::new(0.0, 0.0),
+                        0.0,
+                        Color::WHITE,
+                    );
 
-                if sel_camera == Room::Room6 {
-                    gang.wilber.rage_decrement();
-                } else {
-                    gang.wilber.rage_increment();
+                    if sel_camera == Room::Room6 {
+                        gang.wilber.rage_decrement();
+                    } else {
+                        gang.wilber.rage_increment();
+                    }
+
+                    d2.draw_texture_pro(
+                        &textures.camera,
+                        texture_rect!(textures.camera),
+                        Rectangle::new(0.0, 0.0, WIDTH as f32, HEIGHT as f32),
+                        Vector2::new(0.0, 0.0),
+                        0.0,
+                        Color::WHITE,
+                    );
                 }
-
                 d.draw_texture_pro(
-                    &textures.camera,
-                    texture_rect!(textures.camera),
+                    &framebuffer,
+                    Rectangle::new(
+                        framebuffer.width() as f32,
+                        0.0,
+                        -framebuffer.width() as f32,
+                        framebuffer.height() as f32,
+                    ),
                     Rectangle::new(0.0, 0.0, WIDTH as f32, HEIGHT as f32),
-                    Vector2::new(0.0, 0.0),
-                    0.0,
+                    Vector2::new(WIDTH as f32, HEIGHT as f32),
+                    180.0,
                     Color::WHITE,
                 );
+
+                d.draw_texture_pro(
+                    &framebuffer,
+                    Rectangle::new(
+                        framebuffer.width() as f32,
+                        0.0,
+                        -framebuffer.width() as f32,
+                        framebuffer.height() as f32,
+                    ),
+                    Rectangle::new(
+                        -(WIDTH / 3) as f32 + 10.0,
+                        (laptop_height as f32 / 3.0) - 42.0,
+                        (WIDTH / 3) as f32 + 20.0,
+                        (HEIGHT / 3) as f32,
+                    ),
+                    Vector2::new(WIDTH as f32, HEIGHT as f32),
+                    180.0,
+                    Color::WHITE,
+                );
+
                 d.draw_texture_pro(
                     &textures.laptop,
                     texture_rect!(textures.laptop),
@@ -321,14 +357,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                         (WIDTH / 4) as f32,
                         laptop_height as f32,
                         (WIDTH / 2) as f32,
-                        (HEIGHT) as f32,
+                        (HEIGHT) as f32 / 1.5,
                     ),
                     Vector2::new(0.0, 0.0),
                     0.0,
                     Color::WHITE,
                 );
 
-                if laptop_offset_y < 50.0 {
+                if laptop_offset_y < 20.0 {
                     laptop_offset_y += 1.0;
                 }
                 if my >= HEIGHT - (HEIGHT / 8)
@@ -338,16 +374,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
                 for i in 0..camera_clickables.len() {
                     let clickable = &camera_clickables.get(i).unwrap();
-                    d.draw_rectangle_lines(
-                        clickable.x as i32,
-                        clickable.y as i32,
-                        clickable.width as i32,
-                        clickable.height as i32,
-                        Color::RED,
-                    );
-
                     let cam = Room::from_u64(i as u64).unwrap();
-
                     if cam == sel_camera {
                         let inroom = gang.in_room(&cam);
                         let mut y = 0;
