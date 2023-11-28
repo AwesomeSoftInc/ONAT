@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use raylib::prelude::Rectangle;
+use raylib::prelude::*;
 
 use crate::{
     enums::{Room, Screen},
@@ -22,9 +22,12 @@ pub struct State {
     pub gang: Gang,
     pub tainted: f32,
     pub tainted_cache: f32,
+
     pub camera_timer: f32,
     pub camera_booting: bool,
     pub camera_booting_timer: f32,
+
+    pub gameover_timer: f32,
 
     pub can_open_left_door: bool,
     pub can_open_right_door: bool,
@@ -118,6 +121,8 @@ impl State {
         let camera_booting = false;
         let camera_booting_timer = 0.0;
 
+        let gameover_timer = 0.0;
+
         let can_open_left_door = true;
         let can_open_right_door = true;
 
@@ -145,6 +150,7 @@ impl State {
             camera_timer,
             camera_booting,
             camera_booting_timer,
+            gameover_timer,
             can_open_left_door,
             can_open_right_door,
             left_door_shut,

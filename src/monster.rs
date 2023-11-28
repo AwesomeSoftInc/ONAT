@@ -166,8 +166,8 @@ impl Monster for Penny {
         });
         match self.next_room() {
             Room::Room3 => {
-                self.progress_to_hallway -= 1;
-                if self.progress_to_hallway <= -4 {
+                self.progress_to_hallway += 1;
+                if self.progress_to_hallway <= 4 {
                     self.set_entered_from_left(true);
                     self.set_room(self.next_room().clone());
                 }
@@ -268,7 +268,7 @@ impl Wilber {
             return;
         }
         if self.rage < 100.0 {
-            self.rage += 0.001;
+            self.rage += 0.01;
         } else {
             self.stage += 1;
             self.rage = 0.0;
@@ -279,7 +279,7 @@ impl Wilber {
             return;
         }
         if self.rage > 0.0 {
-            self.rage -= 0.002;
+            self.rage -= 0.02;
         }
     }
 }
@@ -489,6 +489,8 @@ pub struct Gang {
     two_am_checked: bool,
     three_am_checked: bool,
     four_am_checked: bool,
+
+    gopher_active_time: Option<SystemTime>,
 }
 
 fn round(num: u64, mul: u64) -> u64 {
@@ -515,6 +517,7 @@ impl Gang {
             two_am_checked: false,
             three_am_checked: false,
             four_am_checked: false,
+            gopher_active_time: None,
         }
     }
 
@@ -555,7 +558,13 @@ impl Gang {
         }
         // gogopher gets special permission to try and move every tick
         if self.gogopher.active {
-            self.gogopher.step();
+            if let Some(a) = self.gopher_active_time {
+                if a.elapsed().unwrap().as_secs() >= 15 {
+                    self.gogopher.step();
+                }
+            } else {
+                self.gopher_active_time = Some(SystemTime::now());
+            }
         }
 
         // 1 AM

@@ -76,7 +76,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                     d.draw_texture_pro(
                         &texture,
                         texture_rect!(texture),
-                        Rectangle::new(600.0 - state.bg_offset_x, 450.0, 172.0, 168.0),
+                        Rectangle::new(
+                            (WIDTH as f32) / 2.0 - state.bg_offset_x,
+                            HEIGHT as f32 / 2.0,
+                            86.0,
+                            84.0,
+                        ),
                         Vector2::new(0.0, 0.0),
                         0.0,
                         Color::WHITE,
@@ -164,6 +169,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                     state.camera_timer += 0.02;
                     // TODO: Rebooting animation
                     d.draw_text("Laptop Charging...", 0, HEIGHT / 2, 32, Color::WHITE);
+                    if state.camera_timer >= 100.0 {
+                        state.screen = Screen::Camera;
+                    }
                 } else {
                     // TODO: Rebooting animation
                     d.draw_text(

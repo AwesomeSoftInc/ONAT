@@ -3,6 +3,7 @@ use num_traits::FromPrimitive;
 
 use rand::{thread_rng, Rng};
 
+#[derive(PartialEq)]
 pub enum Screen {
     TitleScreen,
     Office,
