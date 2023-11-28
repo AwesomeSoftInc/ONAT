@@ -55,23 +55,19 @@ pub trait Monster {
     }
 
     fn try_move(&mut self) {
-        if self.last_scared_at().elapsed().unwrap().as_secs() >= 30 {
-            self.next();
+        let chance = thread_rng().gen_range(0..20);
+        // if any of them are in the hallways, have them move in.
+        if self.room() == &Room::Room3 {
+            self.set_entered_from_left(true);
+            self.set_room(Room::Office);
+            self.set_last_scared_at(SystemTime::now());
+        } else if self.room() == &Room::Room5 {
+            self.set_entered_from_right(true);
+            self.set_room(Room::Office);
+            self.set_last_scared_at(SystemTime::now());
         } else {
-            let chance = thread_rng().gen_range(0..20);
-            // if any of them are in the hallways, have them move in.
-            if self.room() == &Room::Room3 {
-                self.set_entered_from_left(true);
-                self.set_room(Room::Office);
-                self.set_last_scared_at(SystemTime::now());
-            } else if self.room() == &Room::Room5 {
-                self.set_entered_from_right(true);
-                self.set_room(Room::Office);
-                self.set_last_scared_at(SystemTime::now());
-            } else {
-                if chance <= self.ai_level() {
-                    self.go_prev_or_next(chance);
-                }
+            if chance <= self.ai_level() {
+                self.go_prev_or_next(chance);
             }
         }
     }
@@ -535,7 +531,11 @@ impl Gang {
                     self.penny.try_move();
                 }
                 if self.beastie.active {
-                    self.beastie.try_move();
+                    if self.beastie.last_scared_at().elapsed().unwrap().as_secs() >= 30 {
+                        self.beastie.next();
+                    } else {
+                        self.beastie.try_move();
+                    }
                 }
 
                 // wilber doesn't move
