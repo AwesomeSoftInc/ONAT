@@ -1,9 +1,8 @@
-use monster::{Gang, Monster, MonsterName, Wilber};
+use monster::{Gang, Monster, MonsterName};
 use raylib::prelude::*;
 
 use num_traits::FromPrimitive;
 use std::{
-    alloc::System,
     error::Error,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -22,7 +21,6 @@ pub const SCROLL_AMOUNT: f32 = WIDTH as f32 * 0.0009;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let (mut rl, thread) = raylib::init().size(WIDTH, HEIGHT).title("ONAT").build();
-    //let mut audio = RaylibAudio::init_audio_device();
 
     let textures = Textures::new(&mut rl, &thread)?;
 
@@ -111,7 +109,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut duct_heat_timer = 0;
 
-    let mut framebuffer = rl.load_render_texture(&thread, WIDTH as u32, HEIGHT as u32)?;
+    let framebuffer = rl.load_render_texture(&thread, WIDTH as u32, HEIGHT as u32)?;
     framebuffer.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
 
     while !rl.window_should_close() {
@@ -282,73 +280,29 @@ fn main() -> Result<(), Box<dyn Error>> {
                 gang.wilber.rage_increment();
             }
             Screen::Camera => {
-                {
-                    let mut d2 = d.begin_texture_mode(&thread, &mut framebuffer);
-                    let texture = match sel_camera {
-                        Room::Room1 => &textures.cam1,
-                        Room::Room2 => &textures.cam2,
-                        Room::Room3 => &textures.cam3,
-                        Room::Room4 => &textures.cam4,
-                        Room::Room5 => &textures.cam5,
-                        Room::Room6 => &textures.cam6,
-                        _ => panic!("tried to draw unsupported room {:?}", sel_camera),
-                    };
-                    d2.draw_texture_pro(
-                        texture,
-                        texture_rect!(texture),
-                        Rectangle::new(0.0, 0.0, WIDTH as f32, HEIGHT as f32),
-                        Vector2::new(0.0, 0.0),
-                        0.0,
-                        Color::WHITE,
-                    );
-
-                    if sel_camera == Room::Room6 {
-                        gang.wilber.rage_decrement();
-                    } else {
-                        gang.wilber.rage_increment();
-                    }
-
-                    d2.draw_texture_pro(
-                        &textures.camera,
-                        texture_rect!(textures.camera),
-                        Rectangle::new(0.0, 0.0, WIDTH as f32, HEIGHT as f32),
-                        Vector2::new(0.0, 0.0),
-                        0.0,
-                        Color::WHITE,
-                    );
-                }
+                let texture = match sel_camera {
+                    Room::Room1 => &textures.cam1,
+                    Room::Room2 => &textures.cam2,
+                    Room::Room3 => &textures.cam3,
+                    Room::Room4 => &textures.cam4,
+                    Room::Room5 => &textures.cam5,
+                    Room::Room6 => &textures.cam6,
+                    _ => panic!("tried to draw unsupported room {:?}", sel_camera),
+                };
                 d.draw_texture_pro(
-                    &framebuffer,
-                    Rectangle::new(
-                        framebuffer.width() as f32,
-                        0.0,
-                        -framebuffer.width() as f32,
-                        framebuffer.height() as f32,
-                    ),
+                    texture,
+                    texture_rect!(texture),
                     Rectangle::new(0.0, 0.0, WIDTH as f32, HEIGHT as f32),
-                    Vector2::new(WIDTH as f32, HEIGHT as f32),
-                    180.0,
+                    Vector2::new(0.0, 0.0),
+                    0.0,
                     Color::WHITE,
                 );
 
-                d.draw_texture_pro(
-                    &framebuffer,
-                    Rectangle::new(
-                        framebuffer.width() as f32,
-                        0.0,
-                        -framebuffer.width() as f32,
-                        framebuffer.height() as f32,
-                    ),
-                    Rectangle::new(
-                        -(WIDTH / 3) as f32 + 10.0,
-                        (laptop_height as f32 / 3.0) - 42.0,
-                        (WIDTH / 3) as f32 + 20.0,
-                        (HEIGHT / 3) as f32,
-                    ),
-                    Vector2::new(WIDTH as f32, HEIGHT as f32),
-                    180.0,
-                    Color::WHITE,
-                );
+                if sel_camera == Room::Room6 {
+                    gang.wilber.rage_decrement();
+                } else {
+                    gang.wilber.rage_increment();
+                }
 
                 d.draw_texture_pro(
                     &textures.laptop,
@@ -372,31 +326,76 @@ fn main() -> Result<(), Box<dyn Error>> {
                 {
                     screen = Screen::Office;
                 }
-                for i in 0..camera_clickables.len() {
-                    let clickable = &camera_clickables.get(i).unwrap();
-                    let cam = Room::from_u64(i as u64).unwrap();
-                    if cam == sel_camera {
-                        let inroom = gang.in_room(&cam);
-                        let mut y = 0;
-                        for mons in inroom {
-                            if mons.active() {
-                                d.draw_text(
-                                    format!(
-                                        "{} - {}{}",
-                                        &mons.name(),
-                                        &mons.ai_level(),
-                                        &mons.special_debug_info()
+                let inroom = gang.in_room(&sel_camera);
+                for mons in inroom {
+                    if mons.active() {
+                        let tex = match mons.id() {
+                            MonsterName::Penny => &textures.penny_stock_texture,
+                            MonsterName::Beastie => &textures.beastie_stock_texture,
+                            MonsterName::Wilber => &textures.wilber_stock_texture,
+                            MonsterName::GoGopher => &textures.gogopher_stock_texture,
+                            MonsterName::Tux => &textures.tux_stock_texture,
+                            MonsterName::Nolok => &textures.nolok_stock_texture,
+                            MonsterName::GoldenTux => &textures.golden_tux_texture,
+                        };
+                        let (x, y) = match &sel_camera {
+                            Room::Room1 => match mons.id() {
+                                MonsterName::Penny => (120.0, 200.0),
+                                MonsterName::Beastie => (250.0, 200.0),
+                                MonsterName::Wilber => (0.0, 0.0),
+                                MonsterName::GoGopher => (0.0, 0.0),
+                                MonsterName::Tux => (0.0, 0.0),
+                                MonsterName::Nolok => (0.0, 0.0),
+                                MonsterName::GoldenTux => (0.0, 0.0),
+                            },
+                            Room::Room2 => match mons.id() {
+                                MonsterName::Penny | MonsterName::Beastie => {
+                                    let (x_, y_) = match mons.id() {
+                                        MonsterName::Penny => ((WIDTH / 2) as f32 - 100.0, 100.0),
+                                        MonsterName::Beastie => ((WIDTH / 2) as f32, 100.0),
+                                        _ => (0.0, 0.0),
+                                    };
+
+                                    (
+                                        x_ + (mons.progress_to_hallway() as f32 * 25.0),
+                                        y_ + (mons.progress_to_hallway() as f32 * 25.0).abs(),
                                     )
-                                    .as_str(),
-                                    5 + clickable.x as i32,
-                                    5 + clickable.y as i32 + y,
-                                    16,
-                                    Color::BLACK,
-                                );
-                                y += 16;
-                            }
-                        }
+                                }
+                                MonsterName::Wilber => (0.0, 0.0),
+                                MonsterName::GoGopher => (0.0, 0.0),
+                                MonsterName::Tux => (0.0, 0.0),
+                                MonsterName::Nolok => (0.0, 0.0),
+                                MonsterName::GoldenTux => (0.0, 0.0),
+                            },
+                            Room::Room3 | Room::Room5 => ((WIDTH / 2) as f32, (HEIGHT / 2) as f32),
+                            Room::Room4 => (0.0, 0.0),
+                            Room::Room6 => (0.0, 0.0),
+                            Room::None => (0.0, 0.0),
+                            Room::Office => (0.0, 0.0),
+                        };
+
+                        d.draw_texture_pro(
+                            &tex,
+                            texture_rect!(tex),
+                            Rectangle::new(x, y, 100.0, 100.0),
+                            Vector2::new(0.0, 0.0),
+                            0.0,
+                            Color::WHITE,
+                        );
                     }
+                }
+
+                for i in 0..camera_clickables.len() {
+                    let clickable = camera_clickables.get(i).unwrap();
+
+                    d.draw_rectangle(
+                        clickable.x as i32,
+                        clickable.y as i32,
+                        clickable.width as i32,
+                        clickable.height as i32,
+                        Color::WHITE.fade(0.25),
+                    );
+                    d.draw_rectangle_lines_ex(clickable, 4, Color::WHITE);
 
                     if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
                         && (mx as f32 >= clickable.x
@@ -452,7 +451,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         tainted += mons.taint_percent();
                     } else {
                         mons.set_entered_from_left(false);
-                        mons.set_room(mons.room_after_office());
+                        mons.goto_room_after_office();
                     }
                 }
                 if mons.entered_from_right() {
@@ -460,7 +459,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         tainted += mons.taint_percent();
                     } else {
                         mons.set_entered_from_right(false);
-                        mons.set_room(mons.room_after_office());
+                        mons.goto_room_after_office();
                     }
                 }
                 // special cases

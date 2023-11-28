@@ -1,5 +1,8 @@
 use proc::{monster_derive, monster_function_macro};
-use std::time::Duration;
+use std::{
+    alloc::System,
+    time::{Duration, SystemTime},
+};
 
 use rand::{thread_rng, Rng};
 
@@ -29,14 +32,20 @@ pub enum MonsterName {
 pub trait Monster {
     fn id(&self) -> MonsterName;
     fn room(&self) -> &Room;
+    fn next_room(&self) -> &Room;
     fn ai_level(&self) -> u8;
     fn set_room(&mut self, room: Room);
+    fn set_next_room(&mut self, room: Room);
     fn active(&self) -> bool;
     fn activate(&mut self);
     fn entered_from_left(&self) -> bool;
     fn entered_from_right(&self) -> bool;
     fn set_entered_from_left(&mut self, res: bool);
     fn set_entered_from_right(&mut self, res: bool);
+    fn last_scared_at(&self) -> SystemTime;
+    fn set_last_scared_at(&mut self, time: SystemTime);
+
+    fn progress_to_hallway(&mut self) -> i8;
 
     fn name(&self) -> String {
         return format!("{:?}", self.id());
@@ -46,22 +55,28 @@ pub trait Monster {
     }
 
     fn try_move(&mut self) {
-        let chance = thread_rng().gen_range(0..20);
-        // if any of them are in the hallways, have them move in.
-        if self.room() == &Room::Room3 {
-            self.set_entered_from_left(true);
-            self.set_room(Room::Office);
-        } else if self.room() == &Room::Room5 {
-            self.set_entered_from_right(true);
-            self.set_room(Room::Office);
+        if self.last_scared_at().elapsed().unwrap().as_secs() >= 30 {
+            self.next();
         } else {
-            if chance <= self.ai_level() {
-                self.go_prev_or_next(chance);
+            let chance = thread_rng().gen_range(0..20);
+            // if any of them are in the hallways, have them move in.
+            if self.room() == &Room::Room3 {
+                self.set_entered_from_left(true);
+                self.set_room(Room::Office);
+                self.set_last_scared_at(SystemTime::now());
+            } else if self.room() == &Room::Room5 {
+                self.set_entered_from_right(true);
+                self.set_room(Room::Office);
+                self.set_last_scared_at(SystemTime::now());
+            } else {
+                if chance <= self.ai_level() {
+                    self.go_prev_or_next(chance);
+                }
             }
         }
     }
 
-    fn go_prev_or_next(&mut self, chance: u8) {
+    fn go_prev_or_next(&mut self, _chance: u8) {
         let b = thread_rng().gen_range(0..2);
         if b == 0 {
             self.prev();
@@ -102,6 +117,13 @@ pub trait Monster {
         Room::random()
     }
 
+    fn set_progress_to_hallway(&mut self, yeah: i8);
+    fn goto_room_after_office(&mut self) -> Room {
+        self.set_last_scared_at(SystemTime::now());
+        self.set_progress_to_hallway(1);
+        self.set_room(self.room_after_office());
+        self.room_after_office()
+    }
     fn special_debug_info(&self) -> String {
         String::new()
     }
@@ -117,11 +139,14 @@ impl Penny {
         Self {
             name: MonsterName::Penny,
             room: Room::Room2,
+            next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
             active: PENNY_START,
             entered_from_left: false,
             entered_from_right: false,
             door_shut: false,
+            progress_to_hallway: 1,
+            last_scared_at: SystemTime::now(),
         }
     }
 }
@@ -129,7 +154,7 @@ impl Penny {
 impl Monster for Penny {
     monster_function_macro!();
     fn next(&mut self) {
-        self.set_room(match self.room() {
+        self.set_next_room(match self.room() {
             Room::Room1 => Room::Room2,
             Room::Room2 => {
                 if !self.door_shut {
@@ -140,9 +165,20 @@ impl Monster for Penny {
             }
             Room::Room3 => Room::Office,
             _ => {
-                panic!()
+                self.goto_room_after_office();
+                return;
             }
         });
+        match self.next_room() {
+            Room::Room3 | Room::Room5 => {
+                self.progress_to_hallway -= 1;
+                if self.progress_to_hallway <= -6 {
+                    self.set_room(self.next_room().clone());
+                }
+                println!("penny: {}", self.progress_to_hallway);
+            }
+            _ => self.set_room(self.next_room().clone()),
+        }
     }
     fn room_after_office(&self) -> Room {
         Room::Room2
@@ -159,11 +195,14 @@ impl Beastie {
         Self {
             name: MonsterName::Beastie,
             room: Room::Room2,
+            next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
             active: BEASTIE_START,
             entered_from_left: false,
             entered_from_right: false,
             door_shut: false,
+            progress_to_hallway: 1,
+            last_scared_at: SystemTime::now(),
         }
     }
 }
@@ -171,7 +210,7 @@ impl Beastie {
 impl Monster for Beastie {
     monster_function_macro!();
     fn next(&mut self) {
-        self.set_room(match self.room() {
+        self.set_next_room(match self.room() {
             Room::Room1 => Room::Room2,
             Room::Room2 => {
                 if !self.door_shut {
@@ -182,9 +221,20 @@ impl Monster for Beastie {
             }
             Room::Room3 => Room::Office,
             _ => {
-                panic!()
+                self.goto_room_after_office();
+                return;
             }
         });
+        match self.next_room() {
+            Room::Room3 | Room::Room5 => {
+                self.progress_to_hallway += 1;
+                if self.progress_to_hallway >= 6 {
+                    self.set_room(self.next_room().clone());
+                }
+                println!("beastie: {}", self.progress_to_hallway);
+            }
+            _ => self.set_room(self.next_room().clone()),
+        }
     }
     fn room_after_office(&self) -> Room {
         Room::Room1
@@ -202,12 +252,15 @@ impl Wilber {
         Self {
             name: MonsterName::Wilber,
             room: Room::Room6,
+            next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
             active: WILBER_START,
             entered_from_left: false,
             entered_from_right: false,
             rage: 0.0,
             stage: 0,
+            progress_to_hallway: 1,
+            last_scared_at: SystemTime::now(),
         }
     }
     pub fn rage(&self) -> f32 {
@@ -252,12 +305,16 @@ impl GoGopher {
         Self {
             name: MonsterName::GoGopher,
             room: Room::None,
+
+            next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
             active: GO_GOPHER_START,
             entered_from_left: false,
             entered_from_right: false,
             duct_timer: 0,
             duct_heat_timer: 0,
+            progress_to_hallway: 1,
+            last_scared_at: SystemTime::now(),
         }
     }
 }
@@ -278,6 +335,7 @@ impl Monster for GoGopher {
                     self.duct_timer += 1;
                     if self.duct_timer >= 2500 {
                         self.set_room(Room::Office);
+                        self.set_last_scared_at(SystemTime::now());
                     }
                 }
                 Room::Office => {}
@@ -304,10 +362,15 @@ impl Tux {
         Self {
             name: MonsterName::Tux,
             room: Room::Room1,
+
+            next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
             active: TUX_START,
             entered_from_left: false,
             entered_from_right: false,
+            progress_to_hallway: 1,
+
+            last_scared_at: SystemTime::now(),
         }
     }
 }
@@ -335,10 +398,15 @@ impl Nolok {
         Self {
             name: MonsterName::Nolok,
             room: Room::None,
+
+            next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
             active: NOLOK_START,
             entered_from_left: false,
             entered_from_right: false,
+            progress_to_hallway: 1,
+
+            last_scared_at: SystemTime::now(),
         }
     }
 }
@@ -362,10 +430,12 @@ impl Monster for Nolok {
             Room::Room3 => {
                 self.set_entered_from_left(true);
                 self.set_room(Room::Office);
+                self.set_last_scared_at(SystemTime::now());
             }
             Room::Room5 => {
                 self.set_entered_from_right(true);
                 self.set_room(Room::Office);
+                self.set_last_scared_at(SystemTime::now());
             }
             _ => {}
         }
@@ -386,10 +456,15 @@ impl GoldenTux {
         Self {
             name: MonsterName::GoldenTux,
             room: Room::Office,
+
+            next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
             active: GOLDEN_TUX_START,
             entered_from_left: false,
             entered_from_right: false,
+            progress_to_hallway: 1,
+
+            last_scared_at: SystemTime::now(),
         }
     }
 }

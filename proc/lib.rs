@@ -33,10 +33,13 @@ pub fn monster_derive(_attr: TokenStream, item: TokenStream) -> TokenStream {
             for f in field_parse!(
                 name: MonsterName,
                 room: Room,
+                next_room: Room,
                 ai_level: u8,
                 active: bool,
                 entered_from_left: bool,
-                entered_from_right: bool
+                entered_from_right: bool,
+                progress_to_hallway: i8,
+                last_scared_at: SystemTime
             ) {
                 fields.named.push(f);
             }
@@ -66,11 +69,17 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
         fn room(&self) -> &Room {
             &self.room
         }
+        fn next_room(&self) -> &Room {
+            &self.next_room
+        }
         fn ai_level(&self) -> u8 {
             self.ai_level
         }
         fn set_room(&mut self, room: Room) {
             self.room = room;
+        }
+        fn set_next_room(&mut self, room: Room) {
+            self.next_room = room;
         }
         fn active(&self) -> bool {
             self.active
@@ -89,6 +98,18 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
         }
         fn set_entered_from_right(&mut self, res: bool)  {
             self.entered_from_right = res;
+        }
+        fn progress_to_hallway(&mut self) -> i8 {
+            self.progress_to_hallway
+        }
+        fn set_progress_to_hallway(&mut self, yeah: i8)  {
+            self.progress_to_hallway = yeah;
+        }
+        fn last_scared_at(&self) -> SystemTime {
+            self.last_scared_at
+        }
+        fn set_last_scared_at(&mut self, time: SystemTime) {
+            self.last_scared_at = time;
         }
     }
     .into();
