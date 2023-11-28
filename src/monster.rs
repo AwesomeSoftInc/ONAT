@@ -1,8 +1,5 @@
 use proc::{monster_derive, monster_function_macro};
-use std::{
-    alloc::System,
-    time::{Duration, SystemTime},
-};
+use std::time::{Duration, SystemTime};
 
 use rand::{thread_rng, Rng};
 
@@ -71,6 +68,8 @@ pub trait Monster {
             }
         }
     }
+
+    fn step(&mut self) {}
 
     fn go_prev_or_next(&mut self, _chance: u8) {
         let b = thread_rng().gen_range(0..2);
@@ -141,7 +140,7 @@ impl Penny {
             entered_from_left: false,
             entered_from_right: false,
             door_shut: false,
-            progress_to_hallway: 1,
+            progress_to_hallway: -1,
             last_scared_at: SystemTime::now(),
         }
     }
@@ -166,9 +165,10 @@ impl Monster for Penny {
             }
         });
         match self.next_room() {
-            Room::Room3 | Room::Room5 => {
+            Room::Room3 => {
                 self.progress_to_hallway -= 1;
-                if self.progress_to_hallway <= -6 {
+                if self.progress_to_hallway <= -4 {
+                    self.set_entered_from_left(true);
                     self.set_room(self.next_room().clone());
                 }
                 println!("penny: {}", self.progress_to_hallway);
@@ -215,16 +215,17 @@ impl Monster for Beastie {
                     Room::Room1
                 }
             }
-            Room::Room3 => Room::Office,
+            Room::Room5 => Room::Office,
             _ => {
                 self.goto_room_after_office();
                 return;
             }
         });
         match self.next_room() {
-            Room::Room3 | Room::Room5 => {
+            Room::Room5 => {
                 self.progress_to_hallway += 1;
-                if self.progress_to_hallway >= 6 {
+                if self.progress_to_hallway >= 4 {
+                    self.set_entered_from_right(true);
                     self.set_room(self.next_room().clone());
                 }
                 println!("beastie: {}", self.progress_to_hallway);
@@ -286,7 +287,7 @@ impl Wilber {
 impl Monster for Wilber {
     monster_function_macro!();
     fn special_debug_info(&self) -> String {
-        format!(" - {} - {}", self.rage, self.stage)
+        format!("Stage {:01} - Rage: {:.02}", self.stage, self.rage)
     }
 }
 
@@ -318,7 +319,8 @@ impl GoGopher {
 impl Monster for GoGopher {
     monster_function_macro!();
 
-    fn try_move(&mut self) {
+    fn try_move(&mut self) {}
+    fn step(&mut self) {
         if self.duct_heat_timer == 0 {
             match self.room {
                 Room::None => {
@@ -346,7 +348,7 @@ impl Monster for GoGopher {
     }
 
     fn special_debug_info(&self) -> String {
-        format!("- {} - {}", self.duct_timer, self.duct_heat_timer)
+        format!("{:.02} - {:.02}", self.duct_timer, self.duct_heat_timer)
     }
 }
 
@@ -516,7 +518,7 @@ impl Gang {
         }
     }
 
-    pub fn step(&mut self, time: Duration) {
+    pub fn step(&mut self, time: Duration) -> bool {
         let hours = time.as_secs() / 3600;
         let minutes = time.as_secs() / 60;
         let seconds = round(time.as_secs(), 60);
@@ -551,6 +553,10 @@ impl Gang {
         } else {
             self.moved = true;
         }
+        // gogopher gets special permission to try and move every tick
+        if self.gogopher.active {
+            self.gogopher.step();
+        }
 
         // 1 AM
         if hours == 1 && !self.one_am_checked {
@@ -577,10 +583,7 @@ impl Gang {
             self.ai_level_increase();
         }
 
-        // gogopher gets special permission to try and move every tick
-        if self.gogopher.active {
-            self.gogopher.try_move();
-        }
+        return hours == 6;
     }
     pub fn in_room(&mut self, room: &Room) -> Vec<&mut dyn Monster> {
         let mut res: Vec<&mut dyn Monster> = vec![];

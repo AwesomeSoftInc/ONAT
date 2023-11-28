@@ -4,9 +4,12 @@ use num_traits::FromPrimitive;
 use rand::{thread_rng, Rng};
 
 pub enum Screen {
+    TitleScreen,
     Office,
+    CameraRebooting,
     Camera,
     GameOver,
+    YouWin,
 }
 
 extern crate num_derive;
