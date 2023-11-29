@@ -4,6 +4,10 @@ use raylib::prelude::*;
 
 pub struct Textures {
     pub office: Texture2D,
+    pub office_corners: Texture2D,
+    pub door_left: Texture2D,
+    pub door_right: Texture2D,
+
     pub laptop: Texture2D,
     pub camera: Texture2D,
 
@@ -27,11 +31,25 @@ pub struct Textures {
     pub tux_stock_texture: Texture2D,
     pub nolok_stock_texture: Texture2D,
     pub golden_tux_texture: Texture2D,
+
+    pub tainted_logo: Texture2D,
+
+    pub battery_text: RenderTexture2D,
+    pub tainted_text: RenderTexture2D,
+
+    pub arrow: Texture2D,
 }
 
 impl Textures {
     pub fn new(rl: &mut RaylibHandle, thread: &RaylibThread) -> Result<Self, Box<dyn Error>> {
-        let office = rl.load_texture(&thread, "./assets/office2.png")?;
+        let office = rl.load_texture(&thread, "./assets/office.png")?;
+        let office_corners = rl.load_texture(&thread, "./assets/office_corners.png")?;
+
+        let arrow = rl.load_texture(&thread, "./assets/arrow.png")?;
+
+        let door_left = rl.load_texture(&thread, "./assets/door_left.png")?;
+        let door_right = rl.load_texture(&thread, "./assets/door_right.png")?;
+
         let laptop = rl.load_texture(&thread, "./assets/laptop.png")?;
         let camera = rl.load_texture(&thread, "./assets/camera.png")?;
 
@@ -56,7 +74,13 @@ impl Textures {
         let nolok_stock_texture = rl.load_texture(&thread, "./assets/stock_nolok.png")?;
         let golden_tux_texture = rl.load_texture(&thread, "./assets/stock_golden_tux.png")?;
 
+        let tainted_logo = rl.load_texture(&thread, "./assets/tainted_logo.png")?;
+
         office.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
+        office_corners.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
+        door_left.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
+        door_right.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
+
         laptop.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
         camera.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
         gimp1.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
@@ -79,8 +103,29 @@ impl Textures {
         nolok_stock_texture.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
         golden_tux_texture.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
 
+        arrow.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
+
+        let mut battery_text = rl.load_render_texture(&thread, 100, 28).unwrap();
+        let mut tainted_text = rl.load_render_texture(&thread, 100, 28).unwrap();
+
+        let mut d = rl.begin_drawing(&thread);
+        {
+            let mut d2 = d.begin_texture_mode(&thread, &mut battery_text);
+            d2.clear_background(Color::WHITE);
+            d2.draw_text("Battery", 5, 5, 20, Color::DARKGRAY);
+        }
+
+        {
+            let mut d2 = d.begin_texture_mode(&thread, &mut tainted_text);
+            d2.clear_background(Color::WHITE);
+            d2.draw_text("Tainted", 5, 5, 20, Color::DARKGRAY);
+        }
+
         Ok(Self {
             office,
+            office_corners,
+            door_left,
+            door_right,
             laptop,
             camera,
             gimp1,
@@ -101,6 +146,10 @@ impl Textures {
             tux_stock_texture,
             nolok_stock_texture,
             golden_tux_texture,
+            tainted_logo,
+            battery_text,
+            tainted_text,
+            arrow,
         })
     }
 }

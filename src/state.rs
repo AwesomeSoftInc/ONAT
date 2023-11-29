@@ -32,13 +32,16 @@ pub struct State {
     pub can_open_left_door: bool,
     pub can_open_right_door: bool,
 
+    pub left_door_anim_timer: f32,
+    pub right_door_anim_timer: f32,
+
     pub left_door_shut: bool,
     pub right_door_shut: bool,
 
     pub left_door_last_shut: SystemTime,
     pub right_door_last_shut: SystemTime,
 
-    pub duct_heat_timer: u16,
+    pub duct_heat_timer: f64,
 }
 
 impl State {
@@ -102,8 +105,8 @@ impl State {
         ];
 
         let duct_button = Rectangle::new(
-            WIDTH as f32 * 0.75,
-            0.0,
+            WIDTH as f32 * 0.15,
+            HEIGHT as f32 * 0.40,
             WIDTH as f32 * 0.10,
             WIDTH as f32 * 0.10,
         );
@@ -114,7 +117,7 @@ impl State {
         let ingame_time = UNIX_EPOCH;
         let gang = Gang::new();
 
-        let tainted = 0.0;
+        let tainted = 50.0;
         let tainted_cache = 0.0;
 
         let camera_timer = 100.0;
@@ -132,7 +135,7 @@ impl State {
         let left_door_last_shut: SystemTime = SystemTime::now();
         let right_door_last_shut: SystemTime = SystemTime::now();
 
-        let duct_heat_timer = 0;
+        let duct_heat_timer = 0.0;
 
         Self {
             screen,
@@ -158,6 +161,8 @@ impl State {
             left_door_last_shut,
             right_door_last_shut,
             duct_heat_timer,
+            left_door_anim_timer: -(HEIGHT as f32 * 0.09),
+            right_door_anim_timer: -(HEIGHT as f32 * 0.09),
         }
     }
 }

@@ -5,8 +5,8 @@ use rand::{thread_rng, Rng};
 
 use crate::enums::Room;
 
-pub const PENNY_START: bool = true;
-pub const BEASTIE_START: bool = true;
+pub const PENNY_START: bool = false;
+pub const BEASTIE_START: bool = false;
 pub const WILBER_START: bool = false;
 pub const GO_GOPHER_START: bool = false;
 pub const TUX_START: bool = false;
@@ -559,9 +559,7 @@ impl Gang {
         // gogopher gets special permission to try and move every tick
         if self.gogopher.active {
             if let Some(a) = self.gopher_active_time {
-                if a.elapsed().unwrap().as_secs() >= 15 {
-                    self.gogopher.step();
-                }
+                self.gogopher.step();
             } else {
                 self.gopher_active_time = Some(SystemTime::now());
             }
