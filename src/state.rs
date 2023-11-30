@@ -53,6 +53,67 @@ impl State {
         let bg_offset_x = WIDTH as f32 / 2.0;
         let laptop_offset_y = 0.0;
 
+        let camera_clickables = vec![
+            Rectangle::new(
+                WIDTH as f32 * 0.40,  // 60
+                HEIGHT as f32 * 0.12, // 20
+                WIDTH as f32 * 0.20,
+                HEIGHT as f32 * 0.15,
+            ), // Room1
+            Rectangle::new(
+                WIDTH as f32 * 0.40,
+                HEIGHT as f32 * 0.30,
+                WIDTH as f32 * 0.30,
+                HEIGHT as f32 * 0.20,
+            ), // Room2
+            Rectangle::new(
+                WIDTH as f32 * 0.10,
+                HEIGHT as f32 * 0.70,
+                WIDTH as f32 * 0.20,
+                HEIGHT as f32 * 0.15,
+            ), // Room3
+            Rectangle::new(
+                WIDTH as f32 * 0.73,
+                HEIGHT as f32 * 0.69,
+                WIDTH as f32 * 0.20,
+                HEIGHT as f32 * 0.15,
+            ), // Room5
+            Rectangle::new(
+                WIDTH as f32 * 0.45,
+                HEIGHT as f32 * 0.55,
+                WIDTH as f32 * 0.15,
+                HEIGHT as f32 * 0.10,
+            ), // Room4
+            Rectangle::new(
+                WIDTH as f32 * 0.05,
+                HEIGHT as f32 * 0.08,
+                WIDTH as f32 * 0.15,
+                HEIGHT as f32 * 0.15,
+            ), // Room6
+        ];
+
+        let door_buttons = vec![
+            Rectangle::new(
+                WIDTH as f32 * 0.35,
+                HEIGHT as f32 * 0.35,
+                WIDTH as f32 * 0.10,
+                WIDTH as f32 * 0.10,
+            ),
+            Rectangle::new(
+                WIDTH as f32 * 1.15,
+                HEIGHT as f32 * 0.35,
+                WIDTH as f32 * 0.10,
+                WIDTH as f32 * 0.10,
+            ),
+        ];
+
+        let duct_button = Rectangle::new(
+            WIDTH as f32 * 0.15,
+            HEIGHT as f32 * 0.40,
+            WIDTH as f32 * 0.10,
+            WIDTH as f32 * 0.10,
+        );
+
         let sel_camera = Room::Room1;
         let timer = SystemTime::now();
 
@@ -78,10 +139,6 @@ impl State {
         let right_door_last_shut: SystemTime = SystemTime::now();
 
         let duct_heat_timer = 0.0;
-
-        let camera_clickables = vec![];
-        let door_buttons = vec![];
-        let duct_button = Rectangle::new(0.0, 0.0, 0.0, 0.0);
 
         Self {
             screen,
@@ -110,28 +167,5 @@ impl State {
             left_door_anim_timer: -(HEIGHT as f32 * 0.09),
             right_door_anim_timer: -(HEIGHT as f32 * 0.09),
         }
-    }
-
-    pub fn step(&mut self, width: f32, height: f32) {
-        self.camera_clickables = vec![
-            Rectangle::new(
-                width * 0.40,  // 60
-                height * 0.12, // 20
-                width * 0.20,
-                height * 0.15,
-            ), // Room1
-            Rectangle::new(width * 0.40, height * 0.30, width * 0.30, height * 0.20), // Room2
-            Rectangle::new(width * 0.10, height * 0.70, width * 0.20, height * 0.15), // Room3
-            Rectangle::new(width * 0.73, height * 0.69, width * 0.20, height * 0.15), // Room5
-            Rectangle::new(width * 0.45, height * 0.55, width * 0.15, height * 0.10), // Room4
-            Rectangle::new(width * 0.05, height * 0.08, width * 0.15, height * 0.15), // Room6
-        ];
-
-        self.door_buttons = vec![
-            Rectangle::new(width * 0.35, height * 0.35, width * 0.10, width * 0.10),
-            Rectangle::new(width * 1.15, height * 0.35, width * 0.10, width * 0.10),
-        ];
-
-        self.duct_button = Rectangle::new(width * 0.15, height * 0.40, width * 0.10, width * 0.10);
     }
 }

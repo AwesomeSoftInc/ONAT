@@ -1,7 +1,7 @@
 use monster::{Monster, MonsterName};
 use raylib::prelude::*;
 
-use num_traits::{FromPrimitive, Pow};
+use num_traits::FromPrimitive;
 use state::State;
 use std::{
     error::Error,
@@ -22,47 +22,16 @@ pub const HEIGHT: i32 = 450;
 pub const SCROLL_AMOUNT: f32 = WIDTH as f32 * 0.0025;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let (mut rl, thread) = raylib::init()
-        .size(WIDTH, HEIGHT)
-        .title("ONAT")
-        .resizable()
-        .fullscreen()
-        .build();
+    let (mut rl, thread) = raylib::init().size(WIDTH, HEIGHT).title("ONAT").build();
 
     let textures = Textures::new(&mut rl, &thread)?;
 
     let mut state = State::new();
 
-    let mut framebuffer = rl.load_render_texture(&thread, WIDTH as u32, HEIGHT as u32)?;
     while !rl.window_should_close() {
-        if rl.is_key_released(KeyboardKey::KEY_F11) {
-            rl.toggle_fullscreen();
-        }
-
-        let mx = rl.get_mouse_x();
-        let my = rl.get_mouse_y();
-        let mouse_down = rl.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
-            || rl.is_mouse_button_released(MouseButton::MOUSE_MIDDLE_BUTTON)
-            || rl.is_mouse_button_released(MouseButton::MOUSE_RIGHT_BUTTON);
-
-        state.step(rl.get_screen_width() as f32, rl.get_screen_height() as f32);
-
         if state.timer.elapsed()?.as_millis() <= 1 / 30 {
             continue;
         }
-
-        let width = rl.get_screen_width();
-        let height = rl.get_screen_height();
-
-        let wait = width as f32 / height as f32;
-        let what = 4.0 / 3.0;
-        let ratio = {
-            if wait == what {
-                1.0
-            } else {
-                0.9 + (wait - what)
-            }
-        };
         state.timer = SystemTime::now();
 
         state.ingame_time += Duration::from_millis(36);
@@ -75,10 +44,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         {
-            let mut d_ = rl.begin_drawing(&thread);
-            let mut d = d_.begin_texture_mode(&thread, &mut framebuffer);
+            let mut d = rl.begin_drawing(&thread);
+
             d.clear_background(Color::BLACK);
-            d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_ARROW);
+
+            let mx = d.get_mouse_x();
+            let my = d.get_mouse_y();
 
             match state.screen {
                 Screen::TitleScreen => {
@@ -232,7 +203,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             button.height as i32,
                             Color::RED,
                         );
-                        if mouse_down
+                        if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
                             && (mx as f32 >= (button.x - state.bg_offset_x)
                                 && mx as f32 <= (button.x - state.bg_offset_x) + button.width
                                 && my as f32 >= button.y
@@ -274,7 +245,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                     state.gang.wilber.rage_increment();
                     if state.camera_timer <= 100.0 {
-                        state.camera_timer += 0.04;
+                        state.camera_timer += 0.02;
                     }
                 }
                 Screen::CameraRebooting => {
@@ -348,7 +319,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             state.duct_button.height as i32,
                             Color::BLACK,
                         );
-                        if mouse_down
+                        if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
                             && (mx as f32 >= (state.duct_button.x - state.bg_offset_x)
                                 && mx as f32
                                     <= (state.duct_button.x - state.bg_offset_x)
@@ -457,19 +428,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                         );
                         d.draw_rectangle_lines_ex(clickable, 4, Color::WHITE);
 
-                        if (mx as f32 >= clickable.x
-                            && mx as f32 <= clickable.x + clickable.width
-                            && my as f32 >= clickable.y
-                            && my as f32 <= clickable.y + clickable.height)
+                        if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
+                            && (mx as f32 >= clickable.x
+                                && mx as f32 <= clickable.x + clickable.width
+                                && my as f32 >= clickable.y
+                                && my as f32 <= clickable.y + clickable.height)
                         {
-                            d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
-                            if mouse_down {
-                                state.sel_camera = Room::from_u64(i as u64).unwrap();
-                            }
+                            state.sel_camera = Room::from_u64(i as u64).unwrap();
                         }
                     }
                     if state.camera_timer >= 0.0 {
-                        //state.camera_timer -= 0.02;
+                        state.camera_timer -= 0.02;
                     } else {
                         state.camera_booting = true;
                         state.sel_camera = Room::Room1;
@@ -478,204 +447,184 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
                 Screen::GameOver => {
                     d.clear_background(Color::RED);
-                    if state.gameover_time.elapsed()?.as_secs() >= 5 {
+                    if state.tainted >= 200.0 {
                         state.screen = Screen::TitleScreen;
                     }
                 }
             }
 
-            if Screen::TitleScreen != state.screen && Screen::GameOver != state.screen {
-                d.draw_texture_pro(
-                    &textures.arrow,
-                    texture_rect!(textures.arrow),
-                    Rectangle::new(
-                        0.0,
-                        HEIGHT as f32 - (HEIGHT as f32 / 16.0),
-                        WIDTH as f32,
-                        HEIGHT as f32 / 16.0,
-                    ),
-                    Vector2::new(0.0, 0.0),
+            if let Screen::TitleScreen = state.screen {
+                continue;
+            }
+            if let Screen::GameOver = state.screen {
+                continue;
+            }
+
+            let cur_time = state.ingame_time.duration_since(UNIX_EPOCH)?;
+            let is_over = state.gang.step(cur_time);
+            if is_over {
+                state.screen = Screen::YouWin;
+            }
+            let num = {
+                let ct = cur_time.as_secs() / 3600;
+                if ct == 0 {
+                    12
+                } else {
+                    ct
+                }
+            };
+
+            if mx <= (WIDTH / 4) {
+                if state.bg_offset_x > 0.0 {
+                    state.bg_offset_x -= SCROLL_AMOUNT;
+                }
+            }
+            if mx >= WIDTH - (WIDTH / 4) {
+                if state.bg_offset_x < (WIDTH as f32) / 2.0 {
+                    state.bg_offset_x += SCROLL_AMOUNT;
+                }
+            }
+
+            d.draw_texture_pro(
+                &textures.arrow,
+                texture_rect!(textures.arrow),
+                Rectangle::new(
                     0.0,
-                    Color::new(255, 255, 255, 128),
-                );
+                    HEIGHT as f32 - (HEIGHT as f32 / 16.0),
+                    WIDTH as f32,
+                    HEIGHT as f32 / 16.0,
+                ),
+                Vector2::new(0.0, 0.0),
+                0.0,
+                Color::new(255, 255, 255, 128),
+            );
 
-                let cur_time = state.ingame_time.duration_since(UNIX_EPOCH)?;
-                let is_over = state.gang.step(cur_time);
-                if is_over {
-                    state.screen = Screen::YouWin;
-                }
-                let num = {
-                    let ct = cur_time.as_secs() / 3600;
-                    if ct == 0 {
-                        12
-                    } else {
-                        ct
-                    }
+            if my >= HEIGHT - (HEIGHT / 16)
+                && d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
+            {
+                state.screen = match state.screen {
+                    Screen::Office => Screen::Camera,
+                    Screen::CameraRebooting => Screen::Office,
+                    Screen::Camera => Screen::Office,
+                    _ => state.screen,
                 };
-
-                d.draw_text(
-                    format!("{}:00AM", num).as_str(),
-                    WIDTH - 128,
-                    0,
-                    32,
-                    Color::BLACK,
-                );
-
-                // Bars
-
-                d.draw_rectangle(5, HEIGHT - 42, 100, 32, Color::BLACK);
-                d.draw_rectangle_gradient_h(
-                    7,
-                    HEIGHT - 40,
-                    (100.0 * (state.camera_timer / 100.0)) as i32 - 4,
-                    28,
-                    Color::WHITE,
-                    Color::WHITE,
-                );
-                let width = 100.0 * (state.camera_timer / 100.0);
-                d.draw_texture_pro(
-                    &textures.battery_text,
-                    Rectangle::new(
-                        textures.battery_text.width() as f32,
-                        0.0,
-                        -width + 7.0,
-                        textures.battery_text.height() as f32,
-                    ),
-                    Rectangle::new(width - 100.0, HEIGHT as f32 - 40.0, width - 7.0, 28.0),
-                    Vector2::new(
-                        textures.battery_text.width() as f32,
-                        textures.battery_text.height() as f32,
-                    ),
-                    180.0,
-                    Color::WHITE,
-                );
-            };
-        }
-
-        let mut d = rl.begin_drawing(&thread);
-
-        let prop_width = width as f32 / ratio;
-        let margin = width as f32 - prop_width;
-        d.clear_background(Color::BLACK);
-        d.draw_texture_pro(
-            &framebuffer,
-            Rectangle::new(
-                framebuffer.width() as f32,
-                -framebuffer.height() as f32,
-                -framebuffer.width() as f32,
-                framebuffer.height() as f32,
-            ),
-            Rectangle::new(0.0, 0.0, prop_width, height as f32),
-            Vector2::new(prop_width + (margin / 2.0), height as f32),
-            180.0,
-            Color::WHITE,
-        );
-        if let Screen::TitleScreen = state.screen {
-            continue;
-        }
-        if let Screen::GameOver = state.screen {
-            continue;
-        }
-
-        if mx <= (width / 4) {
-            if state.bg_offset_x > 0.0 {
-                state.bg_offset_x -= SCROLL_AMOUNT;
             }
-        }
-        if mx >= width - (width / 4) {
-            if state.bg_offset_x < (width as f32) / 2.0 {
-                state.bg_offset_x += SCROLL_AMOUNT;
-            }
-        }
 
-        if my >= height - (height / 16) && mouse_down {
-            state.screen = match state.screen {
-                Screen::Office => Screen::Camera,
-                Screen::CameraRebooting => Screen::Office,
-                Screen::Camera => Screen::Office,
-                _ => state.screen,
-            };
-        }
-
-        if state.camera_booting {
-            state.camera_booting_timer += 0.02;
-            if state.camera_booting_timer >= 250.0 {
-                state.camera_booting = false;
-                state.camera_booting_timer = 0.0;
-            }
-        }
-
-        if state.left_door_last_shut.elapsed()?.as_secs() >= 5 {
-            state.left_door_shut = false;
-        }
-        if state.left_door_last_shut.elapsed()?.as_secs() >= 10 {
-            state.can_open_left_door = true;
-        }
-
-        if state.right_door_last_shut.elapsed()?.as_secs() >= 5 {
-            state.right_door_shut = false;
-        }
-        if state.right_door_last_shut.elapsed()?.as_secs() >= 10 {
-            state.can_open_right_door = true;
-        }
-
-        let inoffice = state.gang.in_room(&Room::Office);
-        let mut y = 48;
-        for mons in inoffice {
-            if mons.active() {
-                let x = {
-                    if mons.entered_from_right() {
-                        WIDTH - 128 - 5
-                    } else {
-                        5
-                    }
-                };
-                d.draw_text(&mons.name(), x, y, 32, Color::BLACK);
-                y += 48;
-                if mons.entered_from_left() {
-                    if !state.left_door_shut {
-                        state.tainted += mons.taint_percent();
-                    } else {
-                        mons.set_entered_from_left(false);
-                        mons.goto_room_after_office();
-                    }
+            if state.camera_booting {
+                state.camera_booting_timer += 0.02;
+                if state.camera_booting_timer >= 250.0 {
+                    state.camera_booting = false;
+                    state.camera_booting_timer = 0.0;
                 }
-                if mons.entered_from_right() {
-                    if !state.right_door_shut {
-                        state.tainted += mons.taint_percent();
-                    } else {
-                        mons.set_entered_from_right(false);
-                        mons.goto_room_after_office();
-                    }
-                }
-                // special cases
-                match mons.id() {
-                    // GoGopher fills the tainted meter by 50% and then leaves. Once he is in the office,
-                    // he won't leave until he's finished.
-                    MonsterName::GoGopher => {
-                        if state.tainted_cache == 0.0 {
-                            state.tainted_cache = state.tainted;
+            }
+            d.draw_text(
+                format!("{}:00AM", num).as_str(),
+                WIDTH - 128,
+                0,
+                32,
+                Color::BLACK,
+            );
+
+            if state.left_door_last_shut.elapsed()?.as_secs() >= 5 {
+                state.left_door_shut = false;
+            }
+            if state.left_door_last_shut.elapsed()?.as_secs() >= 10 {
+                state.can_open_left_door = true;
+            }
+
+            if state.right_door_last_shut.elapsed()?.as_secs() >= 5 {
+                state.right_door_shut = false;
+            }
+            if state.right_door_last_shut.elapsed()?.as_secs() >= 10 {
+                state.can_open_right_door = true;
+            }
+
+            let inoffice = state.gang.in_room(&Room::Office);
+            let mut y = 48;
+            for mons in inoffice {
+                if mons.active() {
+                    let x = {
+                        if mons.entered_from_right() {
+                            WIDTH - 128 - 5
+                        } else {
+                            5
                         }
-                        if state.tainted <= state.tainted_cache + 50.0 {
+                    };
+                    d.draw_text(&mons.name(), x, y, 32, Color::BLACK);
+                    y += 48;
+                    if mons.entered_from_left() {
+                        if !state.left_door_shut {
                             state.tainted += mons.taint_percent();
                         } else {
-                            mons.set_room(Room::None);
+                            mons.set_entered_from_left(false);
+                            mons.goto_room_after_office();
                         }
                     }
-                    _ => {}
+                    if mons.entered_from_right() {
+                        if !state.right_door_shut {
+                            state.tainted += mons.taint_percent();
+                        } else {
+                            mons.set_entered_from_right(false);
+                            mons.goto_room_after_office();
+                        }
+                    }
+                    // special cases
+                    match mons.id() {
+                        // GoGopher fills the tainted meter by 50% and then leaves. Once he is in the office,
+                        // he won't leave until he's finished.
+                        MonsterName::GoGopher => {
+                            if state.tainted_cache == 0.0 {
+                                state.tainted_cache = state.tainted;
+                            }
+                            if state.tainted <= state.tainted_cache + 50.0 {
+                                state.tainted += mons.taint_percent();
+                            } else {
+                                mons.set_room(Room::None);
+                            }
+                        }
+                        _ => {}
+                    }
                 }
             }
-        }
-        if state.duct_heat_timer > 0.0 {
-            state.duct_heat_timer -= 1.0;
-        }
-        state.gang.gogopher.duct_heat_timer = state.duct_heat_timer as u16;
+            if state.duct_heat_timer > 0.0 {
+                state.duct_heat_timer -= 1.0;
+            }
+            state.gang.gogopher.duct_heat_timer = state.duct_heat_timer as u16;
 
-        if state.tainted >= 100.0
-            || (state.gang.wilber.stage == 4 && state.gang.wilber.rage() >= 0.2)
-        {
-            state.gameover_time = SystemTime::now();
-            state.screen = Screen::GameOver;
+            if state.tainted >= 100.0
+                || (state.gang.wilber.stage == 4 && state.gang.wilber.rage() >= 0.2)
+            {
+                state.screen = Screen::GameOver;
+            }
+
+            // Bars
+
+            d.draw_rectangle(5, HEIGHT - 42, 100, 32, Color::BLACK);
+            d.draw_rectangle_gradient_h(
+                7,
+                HEIGHT - 40,
+                (100.0 * (state.camera_timer / 100.0)) as i32 - 4,
+                28,
+                Color::WHITE,
+                Color::WHITE,
+            );
+            let width = 100.0 * (state.camera_timer / 100.0);
+            d.draw_texture_pro(
+                &textures.battery_text,
+                Rectangle::new(
+                    textures.battery_text.width() as f32,
+                    0.0,
+                    -width + 7.0,
+                    textures.battery_text.height() as f32,
+                ),
+                Rectangle::new(width - 100.0, HEIGHT as f32 - 40.0, width - 7.0, 28.0),
+                Vector2::new(
+                    textures.battery_text.width() as f32,
+                    textures.battery_text.height() as f32,
+                ),
+                180.0,
+                Color::WHITE,
+            );
         }
     }
 
