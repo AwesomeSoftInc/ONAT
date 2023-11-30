@@ -7,8 +7,8 @@ use raylib::prelude::*;
 
 use crate::{
     enums::{Room, Screen},
+    get_height, get_margin, get_width,
     monster::Gang,
-    HEIGHT, WIDTH,
 };
 
 pub struct State {
@@ -50,68 +50,68 @@ pub struct State {
 impl State {
     pub fn new() -> Self {
         let screen = Screen::TitleScreen;
-        let bg_offset_x = WIDTH as f32 / 2.0;
+        let bg_offset_x = get_width() as f32 / 2.0;
         let laptop_offset_y = 0.0;
 
         let camera_clickables = vec![
             Rectangle::new(
-                WIDTH as f32 * 0.40,  // 60
-                HEIGHT as f32 * 0.12, // 20
-                WIDTH as f32 * 0.20,
-                HEIGHT as f32 * 0.15,
+                get_margin() + get_width() as f32 * 0.40, // 60
+                get_height() as f32 * 0.12,               // 20
+                get_width() as f32 * 0.20,
+                get_height() as f32 * 0.15,
             ), // Room1
             Rectangle::new(
-                WIDTH as f32 * 0.40,
-                HEIGHT as f32 * 0.30,
-                WIDTH as f32 * 0.30,
-                HEIGHT as f32 * 0.20,
+                get_margin() + get_width() as f32 * 0.40,
+                get_height() as f32 * 0.30,
+                get_width() as f32 * 0.30,
+                get_height() as f32 * 0.20,
             ), // Room2
             Rectangle::new(
-                WIDTH as f32 * 0.10,
-                HEIGHT as f32 * 0.70,
-                WIDTH as f32 * 0.20,
-                HEIGHT as f32 * 0.15,
+                get_margin() + get_width() as f32 * 0.10,
+                get_height() as f32 * 0.70,
+                get_width() as f32 * 0.20,
+                get_height() as f32 * 0.15,
             ), // Room3
             Rectangle::new(
-                WIDTH as f32 * 0.73,
-                HEIGHT as f32 * 0.69,
-                WIDTH as f32 * 0.20,
-                HEIGHT as f32 * 0.15,
+                get_margin() + get_width() as f32 * 0.73,
+                get_height() as f32 * 0.69,
+                get_width() as f32 * 0.20,
+                get_height() as f32 * 0.15,
             ), // Room5
             Rectangle::new(
-                WIDTH as f32 * 0.45,
-                HEIGHT as f32 * 0.55,
-                WIDTH as f32 * 0.15,
-                HEIGHT as f32 * 0.10,
+                get_margin() + get_width() as f32 * 0.45,
+                get_height() as f32 * 0.55,
+                get_width() as f32 * 0.15,
+                get_height() as f32 * 0.10,
             ), // Room4
             Rectangle::new(
-                WIDTH as f32 * 0.05,
-                HEIGHT as f32 * 0.08,
-                WIDTH as f32 * 0.15,
-                HEIGHT as f32 * 0.15,
+                get_margin() + get_width() as f32 * 0.05,
+                get_height() as f32 * 0.08,
+                get_width() as f32 * 0.15,
+                get_height() as f32 * 0.15,
             ), // Room6
         ];
 
         let door_buttons = vec![
             Rectangle::new(
-                WIDTH as f32 * 0.35,
-                HEIGHT as f32 * 0.35,
-                WIDTH as f32 * 0.10,
-                WIDTH as f32 * 0.10,
+                get_margin() + get_width() as f32 * 0.35,
+                get_height() as f32 * 0.35,
+                get_width() as f32 * 0.10,
+                get_width() as f32 * 0.10,
             ),
             Rectangle::new(
-                WIDTH as f32 * 1.15,
-                HEIGHT as f32 * 0.35,
-                WIDTH as f32 * 0.10,
-                WIDTH as f32 * 0.10,
+                get_margin() + get_width() as f32 * 1.15,
+                get_height() as f32 * 0.35,
+                get_width() as f32 * 0.10,
+                get_width() as f32 * 0.10,
             ),
         ];
 
         let duct_button = Rectangle::new(
-            WIDTH as f32 * 0.15,
-            HEIGHT as f32 * 0.40,
-            WIDTH as f32 * 0.10,
-            WIDTH as f32 * 0.10,
+            get_margin() + get_width() as f32 * 0.15,
+            get_height() as f32 * 0.40,
+            get_width() as f32 * 0.10,
+            get_width() as f32 * 0.10,
         );
 
         let sel_camera = Room::Room1;
@@ -164,8 +164,8 @@ impl State {
             left_door_last_shut,
             right_door_last_shut,
             duct_heat_timer,
-            left_door_anim_timer: -(HEIGHT as f32 * 0.09),
-            right_door_anim_timer: -(HEIGHT as f32 * 0.09),
+            left_door_anim_timer: -(get_height() as f32 * 0.09),
+            right_door_anim_timer: -(get_height() as f32 * 0.09),
         }
     }
 }

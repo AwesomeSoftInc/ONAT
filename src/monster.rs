@@ -171,7 +171,6 @@ impl Monster for Penny {
                     self.set_entered_from_left(true);
                     self.set_room(self.next_room().clone());
                 }
-                println!("penny: {}", self.progress_to_hallway);
             }
             _ => self.set_room(self.next_room().clone()),
         }
@@ -228,7 +227,6 @@ impl Monster for Beastie {
                     self.set_entered_from_right(true);
                     self.set_room(self.next_room().clone());
                 }
-                println!("beastie: {}", self.progress_to_hallway);
             }
             _ => self.set_room(self.next_room().clone()),
         }
@@ -529,7 +527,6 @@ impl Gang {
         // every few seconds (one in game minute), generate a random number between 1 and 20, for each enemy. if the animatronic's current ai level is greater/equal to the number, the animatronic moves.
         if minutes & 1 == 1 {
             if self.moved {
-                println!("NOW: {:#02}h {:#02}m {:#02}s", hours, minutes, seconds);
                 self.moved = false;
 
                 if self.penny.active {

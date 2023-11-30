@@ -2,6 +2,8 @@ use std::error::Error;
 
 use raylib::prelude::*;
 
+use crate::{get_height, get_width};
+
 pub struct Textures {
     pub office: Texture2D,
     pub office_corners: Texture2D,
@@ -38,6 +40,8 @@ pub struct Textures {
     pub tainted_text: RenderTexture2D,
 
     pub arrow: Texture2D,
+
+    pub tv_noise: Texture2D,
 }
 
 impl Textures {
@@ -107,6 +111,8 @@ impl Textures {
 
         let mut battery_text = rl.load_render_texture(&thread, 100, 28).unwrap();
         let mut tainted_text = rl.load_render_texture(&thread, 100, 28).unwrap();
+        let img = Image::gen_image_white_noise(get_width() / 4, get_height() / 4, 0.5);
+        let tv_noise = rl.load_texture_from_image(&thread, &img)?;
 
         let mut d = rl.begin_drawing(&thread);
         {
@@ -150,6 +156,7 @@ impl Textures {
             battery_text,
             tainted_text,
             arrow,
+            tv_noise,
         })
     }
 }
