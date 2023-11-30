@@ -5,8 +5,8 @@ use rand::{thread_rng, Rng};
 
 use crate::enums::Room;
 
-pub const PENNY_START: bool = false;
-pub const BEASTIE_START: bool = false;
+pub const PENNY_START: bool = true;
+pub const BEASTIE_START: bool = true;
 pub const WILBER_START: bool = false;
 pub const GO_GOPHER_START: bool = false;
 pub const TUX_START: bool = false;
@@ -279,7 +279,7 @@ impl Wilber {
             return;
         }
         if self.rage > 0.0 {
-            self.rage -= 0.02;
+            self.rage -= 0.04;
         }
     }
 }
