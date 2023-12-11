@@ -38,12 +38,6 @@ impl ScreenInfo {
         let default_ratio = monitor_width as f32 / monitor_height as f32;
         let desired_ratio = 4.0 / 3.0;
         let ratio = 1.0 + (default_ratio - desired_ratio);
-        println!(
-            "{},{},{}",
-            monitor_width,
-            ratio,
-            monitor_width as f32 * ratio
-        );
 
         let margin = monitor_width as f32 - ((monitor_width as f32) / ratio);
 
@@ -149,24 +143,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                     );
                     continue;
                 }
-                d.draw_texture_pro(
-                    &textures.tv_noise,
-                    Rectangle::new(
-                        0.0,
-                        0.0,
-                        textures.tv_noise.width as f32,
-                        textures.tv_noise.height as f32,
-                    ),
-                    Rectangle::new(
-                        get_margin() + get_width() as f32 / 1.5 - state.bg_offset_x,
-                        get_height() as f32 / 1.75,
-                        textures.tv_noise.width as f32 * SCREEN.ratio,
-                        textures.tv_noise.height as f32 * SCREEN.ratio,
-                    ),
-                    Vector2::new(0.0, 0.0),
-                    0.0,
-                    Color::new(0, 50, 0, 255),
-                );
                 d.draw_rectangle(
                     get_margin() as i32 + (get_width() as f32 / 1.32 - state.bg_offset_x) as i32,
                     (get_height() as f32 / 1.20) as i32,
@@ -378,6 +354,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     state.screen = Screen::CameraRebooting;
                     continue;
                 }
+
                 let texture = match state.sel_camera {
                     Room::Room1 => &textures.cam1,
                     Room::Room2 => &textures.cam2,
@@ -444,7 +421,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let inroom = state.gang.in_room(&state.sel_camera);
                 for mons in inroom {
                     if mons.active() {
-                        let tex = match mons.id() {
+                        /*let tex = match mons.id() {
                             MonsterName::Penny => &textures.penny_stock_texture,
                             MonsterName::Beastie => &textures.beastie_stock_texture,
                             MonsterName::Wilber => &textures.wilber_stock_texture,
@@ -508,7 +485,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             get_height() / 2,
                             32,
                             Color::WHITE,
-                        );
+                        );*/
                     }
                 }
 
@@ -713,23 +690,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         let width = 100.0 * (state.camera_timer / 100.0);
         d.draw_texture_pro(
             &textures.battery_text,
+            Rectangle::new(0.0, 0.0, width, textures.battery_text.height as f32),
             Rectangle::new(
-                get_margin() + textures.battery_text.width() as f32,
-                0.0,
-                -width + 7.0,
-                textures.battery_text.height() as f32,
-            ),
-            Rectangle::new(
-                get_margin() + width - 100.0,
+                get_margin() + 7.0,
                 get_height() as f32 - 40.0,
                 width - 7.0,
-                28.0,
+                18.0,
             ),
-            Vector2::new(
-                textures.battery_text.width() as f32,
-                textures.battery_text.height() as f32,
-            ),
-            180.0,
+            Vector2::new(0.0, 0.0),
+            0.0,
             Color::WHITE,
         );
 

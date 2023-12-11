@@ -3,8 +3,11 @@
 
 extern crate proc_macro;
 
+use std::collections::HashMap;
+use std::fs::{File, FileType};
+
 use proc_macro::TokenStream;
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::parse::Parser;
 use syn::{parse_macro_input, ItemStruct};
 
@@ -113,4 +116,111 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
         }
     }
     .into();
+}
+
+#[proc_macro]
+pub fn asset_fill(item: TokenStream) -> TokenStream {
+    let mut structs: HashMap<String, Vec<String>> = HashMap::new();
+    let mut define_structs: HashMap<String, Vec<String>> = HashMap::new();
+    let mut impl_structs: HashMap<String, Vec<String>> = HashMap::new();
+    let mut fields = vec![];
+    let mut impl_fields = vec![];
+    let mut define = vec![];
+
+    if let Err(err) = || -> Result<(), anyhow::Error> {
+        let assets = std::fs::read_dir("./assets")?;
+
+        for asset in assets {
+            let asset = asset?;
+            let name = asset.file_name().to_str().unwrap().to_string();
+            if asset.file_type()?.is_dir() {
+                let chars = name.chars().collect::<Vec<char>>();
+                let chars_as_strings = chars[1..]
+                    .into_iter()
+                    .map(|f| f.to_string())
+                    .collect::<Vec<String>>();
+
+                let tex = format!(
+                    "{}{}Textures",
+                    chars[0].to_uppercase(),
+                    chars_as_strings.join("")
+                );
+                fields.push(format!("pub {}: {}", name, tex));
+                if let None = structs.get(&tex) {
+                    structs.insert(tex.clone(), Vec::new());
+                }
+                if let None = define_structs.get(&tex) {
+                    define_structs.insert(tex.clone(), Vec::new());
+                }
+                if let None = impl_structs.get(&tex) {
+                    impl_structs.insert(tex.clone(), Vec::new());
+                }
+                let a = structs.get_mut(&tex).unwrap();
+                let b = define_structs.get_mut(&tex).unwrap();
+                let c = impl_structs.get_mut(&tex).unwrap();
+
+                let subdir = std::fs::read_dir(format!("./assets/{}/", name))?;
+                for dir in subdir {
+                    let dir = dir?;
+                    let name_ = dir.file_name().to_str().unwrap().to_string();
+                    if name_.ends_with(".png") {
+                        let n: String = name_.replace(".png", "").replace("\"", "");
+                        a.push(format!("pub {}: Texture2D", n.clone()));
+                        b.push(n.clone());
+                        c.push(format!("let {n} = rl.load_texture(&thread, \"./assets/{name}/{n}.png\")?;{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);", n=n,name=name));
+                    }
+                }
+                define.push(name.clone());
+                impl_fields.push(format!(
+                    "let {n} = {t}::new(rl, &thread)?;",
+                    n = name,
+                    t = tex
+                ));
+            } else {
+                if name.ends_with(".png") {
+                    let n: String = name.replace(".png", "").replace("\"", "");
+                    fields.push(format!("pub {}: Texture2D", n));
+
+                    define.push(n.clone());
+                    impl_fields.push(format!("let {n} = rl.load_texture(&thread, \"./assets/{n}.png\")?;{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);", n=n));
+                }
+            }
+        }
+        Ok(())
+    }() {
+        let e = err.to_string();
+        return quote! {
+            compile_error!(#e);
+        }
+        .into();
+    } else {
+        let fuck = fields.join(",");
+        let mut you = format!("pub struct Textures {{{}}}\n", fuck);
+        let fuck1 = impl_fields.join("\n");
+        let you1 = define.join(",\n");
+        you += &format!("impl Textures {{
+                pub fn new(rl: &mut RaylibHandle, thread: &RaylibThread) -> Result<Self, Box<dyn Error>> {{
+                    {}
+                    Ok(Self {{
+                        {}
+                    }})
+                }}
+            }}", fuck1,you1);
+        for (k, v) in structs {
+            let fuck = v.join(",");
+            you += &format!("pub struct {} {{{}}}\n", k, fuck);
+
+            let fuck1 = impl_structs.get(&k).unwrap().join("\n");
+            let you1 = define_structs.get(&k).unwrap().join(",\n");
+            you += &format!("impl {} {{
+                pub fn new(rl: &mut RaylibHandle, thread: &RaylibThread) -> Result<Self, Box<dyn Error>> {{
+                    {}
+                    Ok(Self {{
+                        {}
+                    }})
+                }}
+            }}", k,fuck1,you1);
+        }
+        return you.parse().unwrap();
+    }
 }
