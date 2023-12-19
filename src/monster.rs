@@ -309,7 +309,7 @@ impl Monster for Beastie {
         }
     }
     fn room_after_office(&self) -> Room {
-        Room::Room1
+        Room::Room2
     }
 }
 

@@ -78,7 +78,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut state = State::new();
 
-    let SCROLL_AMOUNT = get_width().clone() as f32 * 0.0025;
+    let scroll_amount = get_width().clone() as f32 * 0.0025;
 
     while !rl.window_should_close() {
         if state.timer.elapsed()?.as_millis() <= 1 / 30 {
@@ -87,6 +87,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         state.timer = SystemTime::now();
 
         state.ingame_time += Duration::from_millis(36);
+
+        let img = Image::gen_image_white_noise(320, 240, 0.1);
+        let tex = rl.load_texture_from_image(&thread, &img)?;
 
         let mut d = rl.begin_drawing(&thread);
 
@@ -166,6 +169,20 @@ fn main() -> Result<(), Box<dyn Error>> {
                         get_height() as f32 / 1.25,
                         textures.tainted_logo.width as f32 * SCREEN.ratio,
                         textures.tainted_logo.height as f32 * SCREEN.ratio,
+                    ),
+                    Vector2::new(0.0, 0.0),
+                    0.0,
+                    Color::WHITE,
+                );
+
+                d.draw_texture_pro(
+                    &textures.office_corners,
+                    texture_rect!(textures.office_corners),
+                    Rectangle::new(
+                        get_margin() + -state.bg_offset_x,
+                        0.0,
+                        get_width() as f32 * 1.6,
+                        get_height() as f32,
                     ),
                     Vector2::new(0.0, 0.0),
                     0.0,
@@ -382,7 +399,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 if state.sel_camera == Room::Room4 {
                     let red = state.duct_heat_timer as u8;
-                    println!("{}", red);
                     d.draw_texture_pro(
                         texture,
                         texture_rect!(texture),
@@ -448,6 +464,20 @@ fn main() -> Result<(), Box<dyn Error>> {
                     mons.draw(&textures, &mut d, &thread, get_margin(), 0.0);
                 }
 
+                d.draw_texture_pro(
+                    &tex,
+                    texture_rect!(tex),
+                    Rectangle::new(
+                        get_margin() + 0.0,
+                        0.0,
+                        get_width() as f32,
+                        get_height() as f32,
+                    ),
+                    Vector2::new(0.0, 0.0),
+                    0.0,
+                    Color::new(255, 255, 255, 48),
+                );
+
                 for i in 0..state.camera_clickables.len() {
                     let clickable = state.camera_clickables.get(i).unwrap();
 
@@ -459,6 +489,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                         Color::WHITE.fade(0.25),
                     );
                     d.draw_rectangle_lines_ex(clickable, 4, Color::WHITE);
+                    d.draw_text(
+                        format!("CAM {}", i + 1).as_str(),
+                        clickable.x as i32 + 20,
+                        clickable.y as i32 + 20,
+                        20,
+                        Color::WHITE,
+                    );
 
                     if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
                         && (mx as f32 >= clickable.x
@@ -508,12 +545,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if mx <= (get_width() / 4) {
             if state.bg_offset_x > 0.0 {
-                state.bg_offset_x -= SCROLL_AMOUNT;
+                state.bg_offset_x -= scroll_amount;
             }
         }
         if mx >= get_width() - (get_width() / 4) {
             if state.bg_offset_x < (get_width() as f32) / 2.0 {
-                state.bg_offset_x += SCROLL_AMOUNT;
+                state.bg_offset_x += scroll_amount;
             }
         }
 

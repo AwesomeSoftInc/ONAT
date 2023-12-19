@@ -55,40 +55,40 @@ impl State {
 
         let camera_clickables = vec![
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.40, // 60
-                get_height() as f32 * 0.12,               // 20
-                get_width() as f32 * 0.20,
-                get_height() as f32 * 0.15,
+                get_margin() + get_width() as f32 * 0.75,
+                get_height() as f32 * 0.40,
+                get_width() as f32 * 0.10,
+                get_height() as f32 * 0.07,
             ), // Room1
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.40,
-                get_height() as f32 * 0.30,
-                get_width() as f32 * 0.30,
-                get_height() as f32 * 0.20,
+                get_margin() + get_width() as f32 * 0.75,
+                get_height() as f32 * 0.55,
+                get_width() as f32 * 0.10,
+                get_height() as f32 * 0.07,
             ), // Room2
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.10,
-                get_height() as f32 * 0.70,
-                get_width() as f32 * 0.20,
-                get_height() as f32 * 0.15,
+                get_margin() + get_width() as f32 * 0.65,
+                get_height() as f32 * 0.80,
+                get_width() as f32 * 0.10,
+                get_height() as f32 * 0.07,
             ), // Room3
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.73,
-                get_height() as f32 * 0.69,
-                get_width() as f32 * 0.20,
-                get_height() as f32 * 0.15,
+                get_margin() + get_width() as f32 * 0.75,
+                get_height() as f32 * 0.70,
+                get_width() as f32 * 0.10,
+                get_height() as f32 * 0.07,
             ), // Room5
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.45,
-                get_height() as f32 * 0.55,
-                get_width() as f32 * 0.15,
-                get_height() as f32 * 0.10,
+                get_margin() + get_width() as f32 * 0.85,
+                get_height() as f32 * 0.80,
+                get_width() as f32 * 0.10,
+                get_height() as f32 * 0.07,
             ), // Room4
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.05,
-                get_height() as f32 * 0.08,
-                get_width() as f32 * 0.15,
-                get_height() as f32 * 0.15,
+                get_margin() + get_width() as f32 * 0.55,
+                get_height() as f32 * 0.50,
+                get_width() as f32 * 0.10,
+                get_height() as f32 * 0.07,
             ), // Room6
         ];
 
