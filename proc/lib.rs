@@ -1,19 +1,12 @@
-// proc macro !
-// from https://github.com/eonm-abes/proc-macro-issue-minimal-example/
-
 extern crate proc_macro;
 
 use std::collections::HashMap;
-use std::fs::{File, FileType};
+use std::fs::{DirEntry, ReadDir};
 
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
+use quote::quote;
 use syn::parse::Parser;
 use syn::{parse_macro_input, ItemStruct};
-
-/* name: MonsterName,
-room: Room,
-ai_level: u32, */
 
 macro_rules! field_parse {
     ($($name:ident: $t:tt),*) => {
@@ -129,63 +122,17 @@ pub fn asset_fill(item: TokenStream) -> TokenStream {
 
     if let Err(err) = || -> Result<(), anyhow::Error> {
         let assets = std::fs::read_dir("./assets")?;
+        yeah(
+            assets,
+            &mut fields,
+            &mut impl_fields,
+            &mut define,
+            &mut structs,
+            &mut define_structs,
+            &mut impl_structs,
+            false,
+        )?;
 
-        for asset in assets {
-            let asset = asset?;
-            let name = asset.file_name().to_str().unwrap().to_string();
-            if asset.file_type()?.is_dir() {
-                let chars = name.chars().collect::<Vec<char>>();
-                let chars_as_strings = chars[1..]
-                    .into_iter()
-                    .map(|f| f.to_string())
-                    .collect::<Vec<String>>();
-
-                let tex = format!(
-                    "{}{}Textures",
-                    chars[0].to_uppercase(),
-                    chars_as_strings.join("")
-                );
-                fields.push(format!("pub {}: {}", name, tex));
-                if let None = structs.get(&tex) {
-                    structs.insert(tex.clone(), Vec::new());
-                }
-                if let None = define_structs.get(&tex) {
-                    define_structs.insert(tex.clone(), Vec::new());
-                }
-                if let None = impl_structs.get(&tex) {
-                    impl_structs.insert(tex.clone(), Vec::new());
-                }
-                let a = structs.get_mut(&tex).unwrap();
-                let b = define_structs.get_mut(&tex).unwrap();
-                let c = impl_structs.get_mut(&tex).unwrap();
-
-                let subdir = std::fs::read_dir(format!("./assets/{}/", name))?;
-                for dir in subdir {
-                    let dir = dir?;
-                    let name_ = dir.file_name().to_str().unwrap().to_string();
-                    if name_.ends_with(".png") {
-                        let n: String = name_.replace(".png", "").replace("\"", "");
-                        a.push(format!("pub {}: Texture2D", n.clone()));
-                        b.push(n.clone());
-                        c.push(format!("let {n} = rl.load_texture(&thread, \"./assets/{name}/{n}.png\")?;{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);", n=n,name=name));
-                    }
-                }
-                define.push(name.clone());
-                impl_fields.push(format!(
-                    "let {n} = {t}::new(rl, &thread)?;",
-                    n = name,
-                    t = tex
-                ));
-            } else {
-                if name.ends_with(".png") {
-                    let n: String = name.replace(".png", "").replace("\"", "");
-                    fields.push(format!("pub {}: Texture2D", n));
-
-                    define.push(n.clone());
-                    impl_fields.push(format!("let {n} = rl.load_texture(&thread, \"./assets/{n}.png\")?;{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);", n=n));
-                }
-            }
-        }
         Ok(())
     }() {
         let e = err.to_string();
@@ -223,4 +170,89 @@ pub fn asset_fill(item: TokenStream) -> TokenStream {
         }
         return you.parse().unwrap();
     }
+}
+
+fn yeah(
+    assets: ReadDir,
+    fields: &mut Vec<String>,
+    impl_fields: &mut Vec<String>,
+    define: &mut Vec<String>,
+    structs: &mut HashMap<String, Vec<String>>,
+    define_structs: &mut HashMap<String, Vec<String>>,
+    impl_structs: &mut HashMap<String, Vec<String>>,
+    subdir: bool,
+) -> Result<(), anyhow::Error> {
+    for asset in assets {
+        let asset = asset?;
+        let name = asset.file_name().to_str().unwrap().to_string();
+        let mut func = |ass: &DirEntry| -> Result<(), anyhow::Error> {
+            if ass.file_type()?.is_dir() {
+                let chars = name.chars().collect::<Vec<char>>();
+                let chars_as_strings = chars[1..]
+                    .into_iter()
+                    .map(|f| f.to_string())
+                    .collect::<Vec<String>>();
+
+                let tex = format!(
+                    "{}{}Textures",
+                    chars[0].to_uppercase(),
+                    chars_as_strings.join("")
+                );
+                fields.push(format!("pub {}: {}", name, tex));
+                if let None = structs.get(&tex) {
+                    structs.insert(tex.clone(), Vec::new());
+                }
+                if let None = define_structs.get(&tex) {
+                    define_structs.insert(tex.clone(), Vec::new());
+                }
+                if let None = impl_structs.get(&tex) {
+                    impl_structs.insert(tex.clone(), Vec::new());
+                }
+                let a = structs.get_mut(&tex).unwrap();
+                let b = define_structs.get_mut(&tex).unwrap();
+                let c = impl_structs.get_mut(&tex).unwrap();
+
+                let subdir = std::fs::read_dir(asset.path().to_str().unwrap().to_string())?;
+                for dir in subdir {
+                    let dir = dir?;
+                    let name_ = dir.file_name().to_str().unwrap().to_string();
+                    if name_.ends_with(".png") {
+                        let n: String = name_.replace(".png", "").replace("\"", "");
+                        a.push(format!("pub {}: Texture2D /* 2 */", n.clone()));
+                        b.push(n.clone());
+                        c.push(format!("let {n} = rl.load_texture(&thread, \"./assets/{name}/{n}.png\")?;{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);", n=n,name=name));
+                    }
+                }
+                define.push(name.clone());
+                impl_fields.push(format!(
+                    "let {n} = {t}::new(rl, &thread)?;",
+                    n = name,
+                    t = tex
+                ));
+
+                yeah(
+                    std::fs::read_dir(asset.path().to_str().unwrap().to_string())?,
+                    fields,
+                    impl_fields,
+                    define,
+                    structs,
+                    define_structs,
+                    impl_structs,
+                    true,
+                )?;
+            } else {
+                if !subdir {
+                    if name.ends_with(".png") {
+                        let n: String = name.replace(".png", "").replace("\"", "");
+                        fields.push(format!("pub {}: Texture2D /* 1 */", n));
+                        define.push(n.clone());
+                        impl_fields.push(format!("let {n} = rl.load_texture(&thread, \"./assets/{n}.png\")?;{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);", n=n));
+                    }
+                }
+            }
+            Ok(())
+        };
+        func(&asset)?;
+    }
+    Ok(())
 }

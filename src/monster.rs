@@ -1,9 +1,21 @@
+use num_traits::FromPrimitive;
 use proc::{monster_derive, monster_function_macro};
+use raylib::{
+    color::Color,
+    drawing::{RaylibDraw, RaylibDrawHandle},
+    math::{Rectangle, Vector2},
+    texture::Texture2D,
+    RaylibThread,
+};
 use std::time::{Duration, SystemTime};
 
 use rand::{thread_rng, Rng};
 
-use crate::enums::Room;
+use crate::{
+    enums::{Room, RoomOption},
+    get_height, get_margin, get_width, texture_rect,
+    textures::Textures,
+};
 
 pub const PENNY_START: bool = true;
 pub const BEASTIE_START: bool = true;
@@ -43,6 +55,29 @@ pub trait Monster {
     fn set_last_scared_at(&mut self, time: SystemTime);
 
     fn progress_to_hallway(&mut self) -> i8;
+
+    fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
+        None
+    }
+    fn draw(
+        &mut self,
+        textures: &Textures,
+        rl: &mut RaylibDrawHandle,
+        thread: &RaylibThread,
+        x_offset: f32,
+        y_offset: f32,
+    ) {
+        if let Some(t) = self.get_texture(textures) {
+            rl.draw_texture_pro(
+                &t,
+                texture_rect!(t),
+                Rectangle::new(x_offset, y_offset, get_width() as f32, get_height() as f32),
+                Vector2::new(0.0, 0.0),
+                0.0,
+                Color::WHITE,
+            );
+        }
+    }
 
     fn name(&self) -> String {
         return format!("{:?}", self.id());
@@ -115,7 +150,7 @@ pub trait Monster {
     fn set_progress_to_hallway(&mut self, yeah: i8);
     fn goto_room_after_office(&mut self) -> Room {
         self.set_last_scared_at(SystemTime::now());
-        self.set_progress_to_hallway(1);
+        self.set_progress_to_hallway(0);
         self.set_room(self.room_after_office());
         self.room_after_office()
     }
@@ -140,7 +175,7 @@ impl Penny {
             entered_from_left: false,
             entered_from_right: false,
             door_shut: false,
-            progress_to_hallway: -1,
+            progress_to_hallway: 0,
             last_scared_at: SystemTime::now(),
         }
     }
@@ -148,6 +183,26 @@ impl Penny {
 
 impl Monster for Penny {
     monster_function_macro!();
+    fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&Texture2D> {
+        if self.active {
+            match self.room {
+                Room::Room2 => match self.progress_to_hallway {
+                    0 => Some(&textures.penny.cam2stage1),
+                    1 => Some(&textures.penny.cam2stage2),
+                    _ => None,
+                },
+                Room::Room3 => match self.progress_to_hallway {
+                    0 => Some(&textures.penny.cam3stage1),
+                    1 => Some(&textures.penny.cam3stage2),
+                    _ => None,
+                },
+                Room::Office => Some(&textures.penny.pennydoor),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
     fn next(&mut self) {
         self.set_next_room(match self.room() {
             Room::Room1 => Room::Room2,
@@ -167,9 +222,10 @@ impl Monster for Penny {
         match self.next_room() {
             Room::Room3 => {
                 self.progress_to_hallway += 1;
-                if self.progress_to_hallway <= 4 {
+                if self.progress_to_hallway >= 2 {
                     self.set_entered_from_left(true);
                     self.set_room(self.next_room().clone());
+                    self.progress_to_hallway = 0
                 }
             }
             _ => self.set_room(self.next_room().clone()),
@@ -196,7 +252,7 @@ impl Beastie {
             entered_from_left: false,
             entered_from_right: false,
             door_shut: false,
-            progress_to_hallway: 1,
+            progress_to_hallway: 0,
             last_scared_at: SystemTime::now(),
         }
     }
@@ -204,6 +260,26 @@ impl Beastie {
 
 impl Monster for Beastie {
     monster_function_macro!();
+    fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
+        if self.active {
+            match self.room {
+                Room::Room2 => match self.progress_to_hallway {
+                    0 => Some(&textures.beastie.cam2stage1),
+                    1 => Some(&textures.beastie.cam2stage2),
+                    _ => None,
+                },
+                Room::Room5 => match self.progress_to_hallway {
+                    0 => Some(&textures.beastie.cam5stage1),
+                    1 => Some(&textures.beastie.cam5stage2),
+                    _ => None,
+                },
+                Room::Office => Some(&textures.beastie.bsdatdoor),
+                _ => None,
+            }
+        } else {
+            None
+        }
+    }
     fn next(&mut self) {
         self.set_next_room(match self.room() {
             Room::Room1 => Room::Room2,
@@ -221,11 +297,12 @@ impl Monster for Beastie {
             }
         });
         match self.next_room() {
-            Room::Room5 => {
+            Room::Room3 | Room::Room5 => {
                 self.progress_to_hallway += 1;
-                if self.progress_to_hallway >= 4 {
+                if self.progress_to_hallway >= 2 {
                     self.set_entered_from_right(true);
                     self.set_room(self.next_room().clone());
+                    self.progress_to_hallway = 0;
                 }
             }
             _ => self.set_room(self.next_room().clone()),
@@ -284,6 +361,18 @@ impl Wilber {
 
 impl Monster for Wilber {
     monster_function_macro!();
+    fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
+        if self.active {
+            match self.stage {
+                0 => Some(&textures.wilber.progress1),
+                1 => Some(&textures.wilber.progress2),
+                2 => Some(&textures.wilber.progress3),
+                _ => None,
+            }
+        } else {
+            Some(&textures.wilber.inactive)
+        }
+    }
     fn special_debug_info(&self) -> String {
         format!("Stage {:01} - Rage: {:.02}", self.stage, self.rage)
     }
@@ -317,6 +406,25 @@ impl GoGopher {
 impl Monster for GoGopher {
     monster_function_macro!();
 
+    fn taint_percent(&self) -> f32 {
+        1.0
+    }
+    fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
+        match self.room {
+            Room::Room4 => {
+                if self.duct_timer >= 1 && self.duct_timer <= 10000 {
+                    Some(&textures.gopher.gopher1)
+                } else if self.duct_timer >= 10000 {
+                    Some(&textures.gopher.gopher2)
+                } else {
+                    None
+                }
+            }
+            Room::Office => Some(&textures.gopher.gopheroffice),
+            _ => None,
+        }
+    }
+
     fn try_move(&mut self) {}
     fn step(&mut self) {
         if self.duct_heat_timer == 0 {
@@ -329,12 +437,20 @@ impl Monster for GoGopher {
                 }
                 Room::Room4 => {
                     self.duct_timer += 1;
-                    if self.duct_timer >= 2500 {
+                    if self.duct_timer >= 25000 {
                         self.set_room(Room::Office);
                         self.set_last_scared_at(SystemTime::now());
                     }
+                    if self.duct_heat_timer >= 2500 {
+                        self.set_room(Room::None);
+                    }
                 }
-                Room::Office => {}
+                Room::Office => {
+                    if self.duct_heat_timer <= 2500 {
+                        self.set_room(Room::None);
+                        self.set_last_scared_at(SystemTime::now());
+                    }
+                }
                 _ => {}
             }
         } else {
@@ -374,9 +490,34 @@ impl Tux {
 impl Monster for Tux {
     monster_function_macro!();
 
-    fn go_prev_or_next(&mut self, _chance: u8) {
-        self.next();
+    fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
+        match self.room {
+            Room::Room1 => {
+                if self.active {
+                    Some(&textures.tux.awake)
+                } else {
+                    Some(&textures.tux.inactive)
+                }
+            }
+            Room::Room3 | Room::Room5 => Some(&textures.tux.slide),
+            _ => None,
+        }
     }
+
+    fn go_prev_or_next(&mut self, _chance: u8) {
+        self.next()
+    }
+    fn next(&mut self) {
+        if let RoomOption::Room(a) = self.room().next() {
+            match a {
+                Room::Room2 => {
+                    self.set_room(Room::from_u64(thread_rng().gen_range(2..3) as u64).unwrap())
+                }
+                _ => self.set_room(a),
+            }
+        }
+    }
+
     fn room_after_office(&self) -> Room {
         Room::Room1
     }
@@ -486,7 +627,6 @@ pub struct Gang {
     one_am_checked: bool,
     two_am_checked: bool,
     three_am_checked: bool,
-    four_am_checked: bool,
 
     gopher_active_time: Option<SystemTime>,
 }
@@ -514,7 +654,6 @@ impl Gang {
             one_am_checked: false,
             two_am_checked: false,
             three_am_checked: false,
-            four_am_checked: false,
             gopher_active_time: None,
         }
     }
@@ -555,7 +694,7 @@ impl Gang {
         }
         // gogopher gets special permission to try and move every tick
         if self.gogopher.active {
-            if let Some(a) = self.gopher_active_time {
+            if let Some(_) = self.gopher_active_time {
                 self.gogopher.step();
             } else {
                 self.gopher_active_time = Some(SystemTime::now());
@@ -581,11 +720,11 @@ impl Gang {
             self.ai_level_increase();
         }
         // 4 AM
-        if hours == 4 && !self.four_am_checked {
+        /*if hours == 4 && !self.four_am_checked {
             self.nolok.activate();
             self.four_am_checked = true;
             self.ai_level_increase();
-        }
+        }*/
 
         return hours == 6;
     }

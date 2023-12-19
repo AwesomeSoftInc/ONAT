@@ -1,11 +1,10 @@
-use monster::{Monster, MonsterName};
-use parking_lot::Mutex;
+use monster::{GoGopher, Monster, MonsterName};
 use raylib::{
     ffi::{GetMonitorHeight, GetMonitorWidth},
     prelude::*,
 };
 
-use num_traits::{Float, FromPrimitive};
+use num_traits::FromPrimitive;
 use state::State;
 use std::{
     error::Error,
@@ -229,20 +228,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
                 if state.gang.wilber.active() {
                     let texture = match state.gang.wilber.stage {
-                        0 => &textures.gimp1,
-                        1 => &textures.gimp2,
-                        2 => &textures.gimp3,
-                        3 => &textures.gimp4,
-                        _ => &textures.gimp5,
+                        0 => &textures.wilber_poster.poster,
+                        1 => &textures.wilber_poster.posterprogress1,
+                        2 => &textures.wilber_poster.posterprogress2,
+                        _ => &textures.wilber_poster.posterprogress3,
                     };
                     d.draw_texture_pro(
                         &texture,
                         texture_rect!(texture),
                         Rectangle::new(
-                            get_margin() + (get_width() as f32) / 2.0 - state.bg_offset_x,
-                            get_height() as f32 / 2.0,
-                            86.0,
-                            84.0,
+                            get_margin() + -state.bg_offset_x,
+                            0.0,
+                            get_width() as f32 * 1.6,
+                            get_height() as f32,
                         ),
                         Vector2::new(0.0, 0.0),
                         0.0,
@@ -301,12 +299,29 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
                 state.gang.wilber.rage_increment();
                 if state.camera_timer <= 100.0 {
-                    state.camera_timer += 0.02;
+                    //state.camera_timer += 0.02;
+                }
+
+                for mons in state.gang.in_room(&Room::Office) {
+                    d.draw_text(
+                        mons.special_debug_info().as_str(),
+                        get_margin() as i32,
+                        64,
+                        32,
+                        Color::RED,
+                    );
+                    mons.draw(
+                        &textures,
+                        &mut d,
+                        &thread,
+                        (get_width() / 2) as f32 - state.bg_offset_x,
+                        0.0,
+                    );
                 }
             }
             Screen::CameraRebooting => {
                 if state.camera_timer <= 100.0 {
-                    state.camera_timer += 0.02;
+                    //state.camera_timer += 0.02;
                     // TODO: Rebooting animation
                     d.draw_text(
                         "Laptop Charging...",
@@ -367,6 +382,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 if state.sel_camera == Room::Room4 {
                     let red = state.duct_heat_timer as u8;
+                    println!("{}", red);
                     d.draw_texture_pro(
                         texture,
                         texture_rect!(texture),
@@ -388,14 +404,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                         Color::BLACK,
                     );
                     if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
-                        && (mx as f32 >= (state.duct_button.x - state.bg_offset_x)
-                            && mx as f32
-                                <= (state.duct_button.x - state.bg_offset_x)
-                                    + state.duct_button.width
+                        && (mx as f32 >= (state.duct_button.x)
+                            && mx as f32 <= (state.duct_button.x) + state.duct_button.width
                             && my as f32 >= state.duct_button.y
                             && my as f32 <= state.duct_button.y + state.duct_button.height)
                     {
-                        state.duct_heat_timer = 2500.0;
+                        if state.gang.gogopher.room() == &Room::Office {
+                            state.duct_heat_timer = 3000.0;
+                        } else {
+                            state.duct_heat_timer = 2500.0;
+                        }
                     }
                 } else {
                     d.draw_texture_pro(
@@ -420,73 +438,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 let inroom = state.gang.in_room(&state.sel_camera);
                 for mons in inroom {
-                    if mons.active() {
-                        /*let tex = match mons.id() {
-                            MonsterName::Penny => &textures.penny_stock_texture,
-                            MonsterName::Beastie => &textures.beastie_stock_texture,
-                            MonsterName::Wilber => &textures.wilber_stock_texture,
-                            MonsterName::GoGopher => &textures.gogopher_stock_texture,
-                            MonsterName::Tux => &textures.tux_stock_texture,
-                            MonsterName::Nolok => &textures.nolok_stock_texture,
-                            MonsterName::GoldenTux => &textures.golden_tux_texture,
-                        };
-                        let (x, y) = match &state.sel_camera {
-                            Room::Room1 => match mons.id() {
-                                MonsterName::Penny => (120.0, 200.0),
-                                MonsterName::Beastie => (250.0, 200.0),
-                                MonsterName::Wilber => (0.0, 0.0),
-                                MonsterName::GoGopher => (0.0, 0.0),
-                                MonsterName::Tux => (0.0, 0.0),
-                                MonsterName::Nolok => (0.0, 0.0),
-                                MonsterName::GoldenTux => (0.0, 0.0),
-                            },
-                            Room::Room2 => match mons.id() {
-                                MonsterName::Penny | MonsterName::Beastie => {
-                                    let (x_, y_) = match mons.id() {
-                                        MonsterName::Penny => {
-                                            ((get_width() / 2) as f32 - 100.0, 100.0)
-                                        }
-                                        MonsterName::Beastie => ((get_width() / 2) as f32, 100.0),
-                                        _ => (0.0, 0.0),
-                                    };
-
-                                    (
-                                        x_ + (mons.progress_to_hallway() as f32 * 50.0),
-                                        y_ + (mons.progress_to_hallway() as f32 * 50.0).abs(),
-                                    )
-                                }
-                                MonsterName::Wilber => (0.0, 0.0),
-                                MonsterName::GoGopher => (0.0, 0.0),
-                                MonsterName::Tux => (0.0, 0.0),
-                                MonsterName::Nolok => (0.0, 0.0),
-                                MonsterName::GoldenTux => (0.0, 0.0),
-                            },
-                            Room::Room3 | Room::Room5 => {
-                                ((get_width() / 2) as f32, (get_height() / 2) as f32)
-                            }
-                            Room::Room4 => (0.0, 0.0),
-                            Room::Room6 => (0.0, 0.0),
-                            Room::None => (0.0, 0.0),
-                            Room::Office => (0.0, 0.0),
-                        };
-
-                        d.draw_texture_pro(
-                            &tex,
-                            texture_rect!(tex),
-                            Rectangle::new(get_margin() + x, y, 100.0, 100.0),
-                            Vector2::new(0.0, 0.0),
-                            0.0,
-                            Color::WHITE,
-                        );
-
-                        d.draw_text(
-                            mons.special_debug_info().as_str(),
-                            0,
-                            get_height() / 2,
-                            32,
-                            Color::WHITE,
-                        );*/
-                    }
+                    d.draw_text(
+                        mons.special_debug_info().as_str(),
+                        get_margin() as i32,
+                        64,
+                        32,
+                        Color::RED,
+                    );
+                    mons.draw(&textures, &mut d, &thread, get_margin(), 0.0);
                 }
 
                 for i in 0..state.camera_clickables.len() {
@@ -511,7 +470,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
                 if state.camera_timer >= 0.0 {
-                    state.camera_timer -= 0.02;
+                    //state.camera_timer -= 0.02;
                 } else {
                     state.camera_booting = true;
                     state.sel_camera = Room::Room1;
@@ -641,22 +600,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                         mons.goto_room_after_office();
                     }
                 }
-                // special cases
-                match mons.id() {
-                    // GoGopher fills the tainted meter by 50% and then leaves. Once he is in the office,
-                    // he won't leave until he's finished.
-                    MonsterName::GoGopher => {
-                        if state.tainted_cache == 0.0 {
-                            state.tainted_cache = state.tainted;
-                        }
-                        if state.tainted <= state.tainted_cache + 50.0 {
-                            state.tainted += mons.taint_percent();
-                        } else {
-                            mons.set_room(Room::None);
-                        }
-                    }
-                    _ => {}
-                }
             }
         }
         if state.duct_heat_timer > 0.0 {
@@ -704,7 +647,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         d.draw_rectangle(0, 0, get_margin() as i32, get_height() as i32, Color::BLACK);
         d.draw_rectangle(
-            get_width() + get_margin() as i32,
+            get_width() + get_margin() as i32 + 1,
             0,
             get_margin() as i32,
             get_height() as i32,
