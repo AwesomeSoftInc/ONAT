@@ -35,7 +35,9 @@ pub fn monster_derive(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 entered_from_left: bool,
                 entered_from_right: bool,
                 progress_to_hallway: i8,
-                last_scared_at: SystemTime
+                last_scared_at: SystemTime,
+                timer_until_office: SystemTime,
+                move_timer: u8
             ) {
                 fields.named.push(f);
             }
@@ -106,6 +108,20 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
         }
         fn set_last_scared_at(&mut self, time: SystemTime) {
             self.last_scared_at = time;
+        }
+
+        fn move_timer(&self) -> u8 {
+            self.move_timer
+        }
+        fn set_move_timer(&mut self, val: u8)  {
+            self.move_timer = val
+        }
+        fn timer_until_office(&self) -> SystemTime {
+            self.timer_until_office
+        }
+
+        fn set_timer_until_office(&mut self, val: SystemTime) {
+            self.timer_until_office = val;
         }
     }
     .into();
@@ -221,7 +237,7 @@ fn yeah(
                         a.push(format!("pub {}: Texture2D ", n.clone()));
                         b.push(n.clone());
                         c.push(format!(
-                            "let {n} = rl.load_texture(&thread, \"./assets/{name}/{n}.png\")?;",
+                            "println!(\"loading {n}\");let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"../assets/{name}/{n}.png\").to_vec(), include_bytes!(\"../assets/{name}/{n}.png\").len() as i32)?)?;",
                             n = n,
                             name = name
                         ));
@@ -255,7 +271,7 @@ fn yeah(
                         let n: String = name.replace(".png", "").replace("\"", "");
                         fields.push(format!("pub {}: Texture2D", n));
                         define.push(n.clone());
-                        impl_fields.push(format!("let {n} = rl.load_texture(&thread, \"./assets/{n}.png\")?;{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);", n=n));
+                        impl_fields.push(format!("println!(\"loading {n}\");let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"../assets/{n}.png\").to_vec(), include_bytes!(\"../assets/{n}.png\").len() as i32)?)?;", n=n));
                     }
                 }
             }

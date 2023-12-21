@@ -19,3 +19,4 @@ raylib-sys = "3.7.0"
 [features]
 default = []
 no_camera_timer = []
+beastie_always_move = []

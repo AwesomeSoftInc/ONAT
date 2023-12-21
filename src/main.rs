@@ -1,4 +1,5 @@
 use monster::{GoGopher, Monster, MonsterName};
+use rand::{thread_rng, Rng};
 use raylib::{
     ffi::{GetMonitorHeight, GetMonitorWidth},
     prelude::*,
@@ -66,6 +67,8 @@ pub fn get_margin() -> f32 {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    set_trace_log(TraceLogLevel::LOG_ERROR);
+
     get_width();
 
     let (mut rl, thread) = raylib::init()
@@ -145,6 +148,38 @@ fn main() -> Result<(), Box<dyn Error>> {
                     );
                     continue;
                 }
+
+                for mons in state.gang.in_room(&Room::Office) {
+                    d.draw_text(
+                        mons.special_debug_info().as_str(),
+                        get_margin() as i32,
+                        64,
+                        32,
+                        Color::RED,
+                    );
+                    mons.draw(
+                        &textures,
+                        &mut d,
+                        (get_width() / 4) as f32 - state.bg_offset_x,
+                        0.0,
+                        1.6,
+                        1.0,
+                    );
+                }
+
+                d.draw_texture_pro(
+                    &textures.wallpaper,
+                    texture_rect!(textures.wallpaper),
+                    Rectangle::new(
+                        (get_width() as f32 / 3.0) + (get_margin() * 2.6) + -state.bg_offset_x,
+                        get_height() as f32 / 1.65,
+                        get_width() as f32 / 3.5,
+                        get_height() as f32 / 3.5,
+                    ),
+                    Vector2::new(0.0, 0.0),
+                    0.0,
+                    Color::WHITE,
+                );
                 d.draw_rectangle(
                     get_margin() as i32 + (get_width() as f32 / 1.32 - state.bg_offset_x) as i32,
                     (get_height() as f32 / 1.20) as i32,
@@ -174,7 +209,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                     0.0,
                     Color::WHITE,
                 );
-
+                d.draw_texture_pro(
+                    &textures.office_corners,
+                    texture_rect!(textures.office_corners),
+                    Rectangle::new(
+                        get_margin() + -state.bg_offset_x,
+                        0.0,
+                        get_width() as f32 * 1.6,
+                        get_height() as f32,
+                    ),
+                    Vector2::new(0.0, 0.0),
+                    0.0,
+                    Color::WHITE,
+                );
                 d.draw_texture_pro(
                     &textures.door_left,
                     texture_rect!(textures.door_left),
@@ -217,19 +264,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Color::WHITE,
                 );
 
-                d.draw_texture_pro(
-                    &textures.office_corners,
-                    texture_rect!(textures.office_corners),
-                    Rectangle::new(
-                        get_margin() + -state.bg_offset_x,
-                        0.0,
-                        get_width() as f32 * 1.6,
-                        get_height() as f32,
-                    ),
-                    Vector2::new(0.0, 0.0),
-                    0.0,
-                    Color::WHITE,
-                );
                 d.draw_texture_pro(
                     &textures.office,
                     texture_rect!(textures.office),
@@ -347,30 +381,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 state.gang.wilber.rage_increment();
                 #[cfg(not(feature = "no_camera_timer"))]
                 if state.camera_timer <= 100.0 {
-                    state.camera_timer += 0.02;
-                }
-
-                for mons in state.gang.in_room(&Room::Office) {
-                    d.draw_text(
-                        mons.special_debug_info().as_str(),
-                        get_margin() as i32,
-                        64,
-                        32,
-                        Color::RED,
-                    );
-                    mons.draw(
-                        &textures,
-                        &mut d,
-                        &thread,
-                        (get_width() / 2) as f32 - state.bg_offset_x,
-                        0.0,
-                    );
+                    state.camera_timer += 0.01;
                 }
             }
             Screen::CameraRebooting => {
                 #[cfg(not(feature = "no_camera_timer"))]
                 if state.camera_timer <= 100.0 {
-                    state.camera_timer += 0.02;
+                    state.camera_timer += 0.01;
                     // TODO: Rebooting animation
                     d.draw_text(
                         "Laptop Charging...",
@@ -422,7 +439,22 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let texture = match state.sel_camera {
                     Room::Room1 => &textures.cam1,
                     Room::Room2 => &textures.cam2,
-                    Room::Room3 => &textures.cam3,
+                    Room::Room3 => {
+                        if !state.skinman_appeared {
+                            if state.skinman_chance <= 1 {
+                                if state.camera_last_changed.elapsed()?.as_millis() <= 250 {
+                                    &textures.cam3_happyskinman
+                                } else {
+                                    state.skinman_appeared = true;
+                                    &textures.cam3
+                                }
+                            } else {
+                                &textures.cam3
+                            }
+                        } else {
+                            &textures.cam3
+                        }
+                    }
                     Room::Room4 => &textures.cam4,
                     Room::Room5 => &textures.cam5,
                     Room::Room6 => &textures.cam6,
@@ -493,7 +525,23 @@ fn main() -> Result<(), Box<dyn Error>> {
                         32,
                         Color::RED,
                     );
-                    mons.draw(&textures, &mut d, &thread, get_margin(), 0.0);
+                    mons.draw(&textures, &mut d, get_margin(), 0.0, 1.0, 1.0);
+                    if mons.move_timer() >= 1 {
+                        d.draw_texture_pro(
+                            &tex,
+                            texture_rect!(tex),
+                            Rectangle::new(
+                                get_margin() + 0.0,
+                                0.0,
+                                get_width() as f32,
+                                get_height() as f32,
+                            ),
+                            Vector2::new(0.0, 0.0),
+                            0.0,
+                            Color::WHITE,
+                        );
+                        break;
+                    }
                 }
 
                 d.draw_texture_pro(
@@ -565,13 +613,18 @@ fn main() -> Result<(), Box<dyn Error>> {
                         Color::BLACK,
                     );
 
-                    if d.is_mouse_button_down(MouseButton::MOUSE_LEFT_BUTTON)
+                    if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
                         && (mx as f32 >= clickable.x
                             && mx as f32 <= clickable.x + clickable.width
                             && my as f32 >= clickable.y
                             && my as f32 <= clickable.y + clickable.height)
                     {
-                        state.sel_camera = Room::from_u64(i as u64).unwrap();
+                        let sel_camera = Room::from_u64(i as u64).unwrap();
+                        if state.sel_camera != sel_camera {
+                            state.skinman_chance = state.rand.gen_range(0..1000);
+                            state.camera_last_changed = SystemTime::now();
+                            state.sel_camera = sel_camera
+                        }
                     }
                 }
 
@@ -584,7 +637,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
                 #[cfg(not(feature = "no_camera_timer"))]
                 if state.camera_timer >= 0.0 {
-                    state.camera_timer -= 0.02;
+                    state.camera_timer -= 0.04;
                 } else {
                     state.camera_booting = true;
                     state.sel_camera = Room::Room1;
@@ -635,9 +688,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             &textures.arrow,
             texture_rect!(textures.arrow),
             Rectangle::new(
-                get_margin() + 0.0,
+                get_margin() * 2.0,
                 get_height() as f32 - (get_height() as f32 / 16.0),
-                get_width() as f32,
+                (get_width() as f32 / 2.0),
                 get_height() as f32 / 16.0,
             ),
             Vector2::new(0.0, 0.0),
@@ -665,10 +718,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         d.draw_text(
             format!("{}:00AM", num).as_str(),
-            get_margin() as i32 + get_width() - (128.0 * SCREEN.ratio) as i32,
+            get_margin() as i32 + get_width() - (256.0 * SCREEN.ratio) as i32,
             0,
-            (32.0 * SCREEN.ratio) as i32,
-            Color::BLACK,
+            (64.0 * SCREEN.ratio) as i32,
+            Color::WHITE,
         );
 
         if state.left_door_last_shut.elapsed()?.as_secs() >= 5 {
@@ -689,29 +742,32 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut y = 48;
         for mons in inoffice {
             if mons.active() {
-                let x = {
+                if mons.timer_until_office().elapsed().unwrap().as_secs() >= 3 {
+                    let x = {
+                        if mons.entered_from_right() {
+                            get_width() - 128 - 5
+                        } else {
+                            5
+                        }
+                    };
+                    d.draw_text(&mons.name(), x, y, 32, Color::BLACK);
+                    y += 48;
+
+                    if mons.entered_from_left() {
+                        if !state.left_door_shut {
+                            state.tainted += mons.taint_percent();
+                        } else {
+                            mons.set_entered_from_left(false);
+                            mons.goto_room_after_office();
+                        }
+                    }
                     if mons.entered_from_right() {
-                        get_width() - 128 - 5
-                    } else {
-                        5
-                    }
-                };
-                d.draw_text(&mons.name(), x, y, 32, Color::BLACK);
-                y += 48;
-                if mons.entered_from_left() {
-                    if !state.left_door_shut {
-                        state.tainted += mons.taint_percent();
-                    } else {
-                        mons.set_entered_from_left(false);
-                        mons.goto_room_after_office();
-                    }
-                }
-                if mons.entered_from_right() {
-                    if !state.right_door_shut {
-                        state.tainted += mons.taint_percent();
-                    } else {
-                        mons.set_entered_from_right(false);
-                        mons.goto_room_after_office();
+                        if !state.right_door_shut {
+                            state.tainted += mons.taint_percent();
+                        } else {
+                            mons.set_entered_from_right(false);
+                            mons.goto_room_after_office();
+                        }
                     }
                 }
             }
@@ -729,36 +785,31 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         // Bars
-        d.draw_rectangle(
-            get_margin() as i32 + 5,
-            get_height() - 42,
-            100,
-            32,
-            Color::BLACK,
-        );
+
+        let battery_bar_y =
+            get_height() as f32 - (get_height() as f32 / 13.5) - (get_height() as f32 / 64.0);
+        let battery_bar_height = get_height() as f32 / 13.5;
         d.draw_rectangle_gradient_h(
-            get_margin() as i32 + 7,
-            get_height() - 40,
-            (100.0 * (state.camera_timer / 100.0)) as i32 - 4,
-            28,
-            Color::WHITE,
-            Color::WHITE,
+            get_margin() as i32 + 20,
+            battery_bar_y as i32 + (get_height() as f32 / 48.0) as i32,
+            (164.0 * (state.camera_timer / 100.0)) as i32 - 4,
+            (get_height() as f32 / 20.0) as i32,
+            Color::RED,
+            Color::GREEN,
         );
-        let width = 100.0 * (state.camera_timer / 100.0);
         d.draw_texture_pro(
-            &textures.battery_text,
-            Rectangle::new(0.0, 0.0, width, textures.battery_text.height as f32),
+            &textures.battery,
+            texture_rect!(textures.battery),
             Rectangle::new(
-                get_margin() + 7.0,
-                get_height() as f32 - 40.0,
-                width - 7.0,
-                18.0,
+                get_margin() + 14.0,
+                battery_bar_y,
+                get_width() as f32 / 7.5,
+                battery_bar_height,
             ),
             Vector2::new(0.0, 0.0),
             0.0,
             Color::WHITE,
         );
-
         d.draw_rectangle(0, 0, get_margin() as i32, get_height() as i32, Color::BLACK);
         d.draw_rectangle(
             get_width() + get_margin() as i32 + 1,

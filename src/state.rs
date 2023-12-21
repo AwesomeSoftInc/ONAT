@@ -3,6 +3,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use rand::{rngs::ThreadRng, thread_rng};
 use raylib::prelude::*;
 
 use crate::{
@@ -32,6 +33,8 @@ pub struct State {
 
     pub gameover_time: SystemTime,
 
+    pub camera_last_changed: SystemTime,
+
     pub can_open_left_door: bool,
     pub can_open_right_door: bool,
 
@@ -45,6 +48,10 @@ pub struct State {
     pub right_door_last_shut: SystemTime,
 
     pub duct_heat_timer: f64,
+
+    pub rand: ThreadRng,
+    pub skinman_chance: u32,
+    pub skinman_appeared: bool,
 }
 
 impl State {
@@ -67,13 +74,13 @@ impl State {
                 get_height() as f32 * 0.04,
             ), // Room2
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.92,
+                get_margin() + get_width() as f32 * 0.65,
                 get_height() as f32 * 0.865,
                 get_width() as f32 * 0.05,
                 get_height() as f32 * 0.04,
             ), // Room3
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.65,
+                get_margin() + get_width() as f32 * 0.92,
                 get_height() as f32 * 0.865,
                 get_width() as f32 * 0.05,
                 get_height() as f32 * 0.04,
@@ -117,6 +124,8 @@ impl State {
         let sel_camera = Room::Room1;
         let timer = SystemTime::now();
 
+        let camera_last_changed = SystemTime::now();
+
         let ingame_time = UNIX_EPOCH;
         let gang = Gang::new();
 
@@ -140,6 +149,10 @@ impl State {
 
         let duct_heat_timer = 0.0;
 
+        let rand = thread_rng();
+        let skinman_chance = 1000;
+        let skinman_appeared = false;
+
         Self {
             screen,
             bg_offset_x,
@@ -157,6 +170,7 @@ impl State {
             camera_booting,
             camera_booting_timer,
             gameover_time,
+            camera_last_changed,
             can_open_left_door,
             can_open_right_door,
             left_door_shut,
@@ -166,6 +180,9 @@ impl State {
             duct_heat_timer,
             left_door_anim_timer: -(get_height() as f32 * 0.09),
             right_door_anim_timer: -(get_height() as f32 * 0.09),
+            rand,
+            skinman_chance,
+            skinman_appeared,
         }
     }
 }
