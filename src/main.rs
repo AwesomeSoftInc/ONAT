@@ -637,7 +637,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
                 #[cfg(not(feature = "no_camera_timer"))]
                 if state.camera_timer >= 0.0 {
-                    state.camera_timer -= 0.04;
+                    state.camera_timer -= 0.02;
                 } else {
                     state.camera_booting = true;
                     state.sel_camera = Room::Room1;
@@ -710,7 +710,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         if state.camera_booting {
-            state.camera_booting_timer += 0.02;
+            state.camera_booting_timer += 0.01;
             if state.camera_booting_timer >= 250.0 {
                 state.camera_booting = false;
                 state.camera_booting_timer = 0.0;
