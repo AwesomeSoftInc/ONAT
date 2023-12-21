@@ -55,53 +55,53 @@ impl State {
 
         let camera_clickables = vec![
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.75,
-                get_height() as f32 * 0.40,
-                get_width() as f32 * 0.10,
-                get_height() as f32 * 0.07,
+                get_margin() + get_width() as f32 * 0.785,
+                get_height() as f32 * 0.44,
+                get_width() as f32 * 0.05,
+                get_height() as f32 * 0.04,
             ), // Room1
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.75,
-                get_height() as f32 * 0.55,
-                get_width() as f32 * 0.10,
-                get_height() as f32 * 0.07,
+                get_margin() + get_width() as f32 * 0.785,
+                get_height() as f32 * 0.65,
+                get_width() as f32 * 0.05,
+                get_height() as f32 * 0.04,
             ), // Room2
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.65,
-                get_height() as f32 * 0.80,
-                get_width() as f32 * 0.10,
-                get_height() as f32 * 0.07,
+                get_margin() + get_width() as f32 * 0.92,
+                get_height() as f32 * 0.865,
+                get_width() as f32 * 0.05,
+                get_height() as f32 * 0.04,
             ), // Room3
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.75,
-                get_height() as f32 * 0.70,
-                get_width() as f32 * 0.10,
-                get_height() as f32 * 0.07,
-            ), // Room5
-            Rectangle::new(
-                get_margin() + get_width() as f32 * 0.85,
-                get_height() as f32 * 0.80,
-                get_width() as f32 * 0.10,
-                get_height() as f32 * 0.07,
+                get_margin() + get_width() as f32 * 0.65,
+                get_height() as f32 * 0.865,
+                get_width() as f32 * 0.05,
+                get_height() as f32 * 0.04,
             ), // Room4
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.55,
-                get_height() as f32 * 0.50,
-                get_width() as f32 * 0.10,
-                get_height() as f32 * 0.07,
+                get_margin() + get_width() as f32 * 0.785,
+                get_height() as f32 * 0.79,
+                get_width() as f32 * 0.05,
+                get_height() as f32 * 0.04,
+            ), // Room5
+            Rectangle::new(
+                get_margin() + get_width() as f32 * 0.65,
+                get_height() as f32 * 0.44,
+                get_width() as f32 * 0.05,
+                get_height() as f32 * 0.04,
             ), // Room6
         ];
 
         let door_buttons = vec![
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.35,
-                get_height() as f32 * 0.35,
+                get_margin() + get_width() as f32 * 0.36,
+                get_height() as f32 * 0.42,
                 get_width() as f32 * 0.10,
                 get_width() as f32 * 0.10,
             ),
             Rectangle::new(
-                get_margin() + get_width() as f32 * 1.15,
-                get_height() as f32 * 0.35,
+                get_margin() + get_width() as f32 * 1.13,
+                get_height() as f32 * 0.42,
                 get_width() as f32 * 0.10,
                 get_width() as f32 * 0.10,
             ),
@@ -110,8 +110,8 @@ impl State {
         let duct_button = Rectangle::new(
             get_margin() + get_width() as f32 * 0.15,
             get_height() as f32 * 0.40,
-            get_width() as f32 * 0.10,
-            get_width() as f32 * 0.10,
+            get_width() as f32 * 0.20,
+            get_height() as f32 * 0.10,
         );
 
         let sel_camera = Room::Room1;

@@ -218,9 +218,18 @@ fn yeah(
                     let name_ = dir.file_name().to_str().unwrap().to_string();
                     if name_.ends_with(".png") {
                         let n: String = name_.replace(".png", "").replace("\"", "");
-                        a.push(format!("pub {}: Texture2D /* 2 */", n.clone()));
+                        a.push(format!("pub {}: Texture2D ", n.clone()));
                         b.push(n.clone());
-                        c.push(format!("let {n} = rl.load_texture(&thread, \"./assets/{name}/{n}.png\")?;{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);", n=n,name=name));
+                        c.push(format!(
+                            "let {n} = rl.load_texture(&thread, \"./assets/{name}/{n}.png\")?;",
+                            n = n,
+                            name = name
+                        ));
+                        if name != "camera" {
+                            c.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
+                        } else {
+                            c.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_POINT);",n=n));
+                        }
                     }
                 }
                 define.push(name.clone());
@@ -244,7 +253,7 @@ fn yeah(
                 if !subdir {
                     if name.ends_with(".png") {
                         let n: String = name.replace(".png", "").replace("\"", "");
-                        fields.push(format!("pub {}: Texture2D /* 1 */", n));
+                        fields.push(format!("pub {}: Texture2D", n));
                         define.push(n.clone());
                         impl_fields.push(format!("let {n} = rl.load_texture(&thread, \"./assets/{n}.png\")?;{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);", n=n));
                     }

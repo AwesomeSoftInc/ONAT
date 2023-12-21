@@ -176,34 +176,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 );
 
                 d.draw_texture_pro(
-                    &textures.office_corners,
-                    texture_rect!(textures.office_corners),
-                    Rectangle::new(
-                        get_margin() + -state.bg_offset_x,
-                        0.0,
-                        get_width() as f32 * 1.6,
-                        get_height() as f32,
-                    ),
-                    Vector2::new(0.0, 0.0),
-                    0.0,
-                    Color::WHITE,
-                );
-
-                d.draw_texture_pro(
-                    &textures.office,
-                    texture_rect!(textures.office),
-                    Rectangle::new(
-                        get_margin() + -state.bg_offset_x,
-                        0.0,
-                        get_width() as f32 * 1.6,
-                        get_height() as f32,
-                    ),
-                    Vector2::new(0.0, 0.0),
-                    0.0,
-                    Color::WHITE,
-                );
-
-                d.draw_texture_pro(
                     &textures.door_left,
                     texture_rect!(textures.door_left),
                     Rectangle::new(
@@ -230,8 +202,23 @@ fn main() -> Result<(), Box<dyn Error>> {
                     0.0,
                     Color::WHITE,
                 );
+
                 d.draw_texture_pro(
                     &textures.office,
+                    texture_rect!(textures.office),
+                    Rectangle::new(
+                        get_margin() + -state.bg_offset_x,
+                        0.0,
+                        get_width() as f32 * 1.6,
+                        get_height() as f32,
+                    ),
+                    Vector2::new(0.0, 0.0),
+                    0.0,
+                    Color::WHITE,
+                );
+
+                d.draw_texture_pro(
+                    &textures.office_corners,
                     texture_rect!(textures.office_corners),
                     Rectangle::new(
                         get_margin() + -state.bg_offset_x,
@@ -243,6 +230,47 @@ fn main() -> Result<(), Box<dyn Error>> {
                     0.0,
                     Color::WHITE,
                 );
+                d.draw_texture_pro(
+                    &textures.office,
+                    texture_rect!(textures.office),
+                    Rectangle::new(
+                        get_margin() + -state.bg_offset_x,
+                        0.0,
+                        get_width() as f32 * 1.6,
+                        get_height() as f32,
+                    ),
+                    Vector2::new(0.0, 0.0),
+                    0.0,
+                    Color::WHITE,
+                );
+
+                d.draw_texture_pro(
+                    &textures.button1,
+                    texture_rect!(textures.button1),
+                    Rectangle::new(
+                        get_margin() + -state.bg_offset_x,
+                        0.0,
+                        get_width() as f32 * 1.6,
+                        get_height() as f32,
+                    ),
+                    Vector2::new(0.0, 0.0),
+                    0.0,
+                    Color::WHITE,
+                );
+                d.draw_texture_pro(
+                    &textures.button2,
+                    texture_rect!(textures.button2),
+                    Rectangle::new(
+                        get_margin() + -state.bg_offset_x,
+                        0.0,
+                        get_width() as f32 * 1.6,
+                        get_height() as f32,
+                    ),
+                    Vector2::new(0.0, 0.0),
+                    0.0,
+                    Color::WHITE,
+                );
+
                 if state.gang.wilber.active() {
                     let texture = match state.gang.wilber.stage {
                         0 => &textures.wilber_poster.poster,
@@ -266,31 +294,33 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
 
                 let mut i = 0;
+                let mut hovering = false;
                 for button in &state.door_buttons {
-                    d.draw_rectangle(
-                        (button.x - state.bg_offset_x) as i32,
-                        button.y as i32,
-                        button.width as i32,
-                        button.height as i32,
-                        Color::RED,
-                    );
-                    if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
-                        && (mx as f32 >= (button.x - state.bg_offset_x)
-                            && mx as f32 <= (button.x - state.bg_offset_x) + button.width
-                            && my as f32 >= button.y
-                            && my as f32 <= button.y + button.height)
+                    if mx as f32 >= (button.x - state.bg_offset_x)
+                        && mx as f32 <= (button.x - state.bg_offset_x) + button.width
+                        && my as f32 >= button.y
+                        && my as f32 <= button.y + button.height
                     {
-                        if i == 0 && state.can_open_left_door {
-                            state.left_door_shut = true;
-                            state.left_door_last_shut = SystemTime::now();
-                            state.can_open_left_door = false;
-                        } else if i == 1 && state.can_open_right_door {
-                            state.right_door_shut = true;
-                            state.right_door_last_shut = SystemTime::now();
-                            state.can_open_right_door = false;
+                        hovering = true;
+                        d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
+                        if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON) {
+                            if i == 0 && state.can_open_left_door {
+                                state.left_door_shut = true;
+                                state.left_door_last_shut = SystemTime::now();
+                                state.can_open_left_door = false;
+                            } else if i == 1 && state.can_open_right_door {
+                                state.right_door_shut = true;
+                                state.right_door_last_shut = SystemTime::now();
+                                state.can_open_right_door = false;
+                            }
                         }
                     }
+
                     i += 1;
+                }
+
+                if !hovering {
+                    d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_DEFAULT);
                 }
 
                 // LEFT DOOR
@@ -315,8 +345,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
                 state.gang.wilber.rage_increment();
+                #[cfg(not(feature = "no_camera_timer"))]
                 if state.camera_timer <= 100.0 {
-                    //state.camera_timer += 0.02;
+                    state.camera_timer += 0.02;
                 }
 
                 for mons in state.gang.in_room(&Room::Office) {
@@ -337,8 +368,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
             Screen::CameraRebooting => {
+                #[cfg(not(feature = "no_camera_timer"))]
                 if state.camera_timer <= 100.0 {
-                    //state.camera_timer += 0.02;
+                    state.camera_timer += 0.02;
                     // TODO: Rebooting animation
                     d.draw_text(
                         "Laptop Charging...",
@@ -477,27 +509,63 @@ fn main() -> Result<(), Box<dyn Error>> {
                     0.0,
                     Color::new(255, 255, 255, 48),
                 );
+                d.draw_texture_pro(
+                    &textures.camera,
+                    texture_rect!(textures.camera),
+                    Rectangle::new(
+                        (get_width() as f32 - get_margin()) * 1.1,
+                        get_height() as f32 / 2.4,
+                        textures.camera.width as f32 * 1.5,
+                        textures.camera.height as f32 * 1.5,
+                    ),
+                    Vector2::new(0.0, 0.0),
+                    0.0,
+                    Color::WHITE,
+                );
 
                 for i in 0..state.camera_clickables.len() {
-                    let clickable = state.camera_clickables.get(i).unwrap();
-
+                    let clickable = state.camera_clickables.get_mut(i).unwrap();
                     d.draw_rectangle(
-                        clickable.x as i32,
-                        clickable.y as i32,
-                        clickable.width as i32,
-                        clickable.height as i32,
-                        Color::WHITE.fade(0.25),
+                        clickable.x as i32 + 1,
+                        clickable.y as i32 + 1,
+                        clickable.width as i32 - 1,
+                        clickable.height as i32 - 1,
+                        Color::GRAY,
                     );
-                    d.draw_rectangle_lines_ex(clickable, 4, Color::WHITE);
-                    d.draw_text(
-                        format!("CAM {}", i + 1).as_str(),
-                        clickable.x as i32 + 20,
-                        clickable.y as i32 + 20,
-                        20,
-                        Color::WHITE,
+                    d.draw_rectangle_lines_ex(*clickable, 2, Color::BLACK);
+
+                    let text = format!("{}", i + 1);
+
+                    d.draw_text_rec(
+                        d.get_font_default(),
+                        "CAM",
+                        Rectangle::new(
+                            clickable.x + 10.0,
+                            clickable.y + ((clickable.height / 2.0) - 20.0),
+                            clickable.width - 3.0,
+                            clickable.height + 3.0,
+                        ),
+                        20.0 * d.get_window_scale_dpi().x,
+                        3.0,
+                        true,
+                        Color::BLACK,
+                    );
+                    d.draw_text_rec(
+                        d.get_font_default(),
+                        text.as_str(),
+                        Rectangle::new(
+                            clickable.x + 26.0,
+                            clickable.y + (clickable.height / 2.0),
+                            clickable.width - 3.0,
+                            clickable.height + 3.0,
+                        ),
+                        20.0 * d.get_window_scale_dpi().x,
+                        3.0,
+                        true,
+                        Color::BLACK,
                     );
 
-                    if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
+                    if d.is_mouse_button_down(MouseButton::MOUSE_LEFT_BUTTON)
                         && (mx as f32 >= clickable.x
                             && mx as f32 <= clickable.x + clickable.width
                             && my as f32 >= clickable.y
@@ -506,8 +574,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                         state.sel_camera = Room::from_u64(i as u64).unwrap();
                     }
                 }
+
+                d.draw_text(
+                    "OFFICE",
+                    (get_margin() + get_width() as f32 * 0.78) as i32,
+                    (get_height() as f32 * 0.87) as i32,
+                    20,
+                    Color::WHITE,
+                );
+                #[cfg(not(feature = "no_camera_timer"))]
                 if state.camera_timer >= 0.0 {
-                    //state.camera_timer -= 0.02;
+                    state.camera_timer -= 0.02;
                 } else {
                     state.camera_booting = true;
                     state.sel_camera = Room::Room1;
@@ -516,7 +593,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
             Screen::GameOver => {
                 d.clear_background(Color::RED);
-                if state.tainted >= 200.0 {
+                if state.gameover_time.elapsed()?.as_secs() >= 5 {
                     state.screen = Screen::TitleScreen;
                 }
             }
@@ -647,11 +724,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         if state.tainted >= 100.0
             || (state.gang.wilber.stage == 4 && state.gang.wilber.rage() >= 0.2)
         {
+            state.gameover_time = SystemTime::now();
             state.screen = Screen::GameOver;
         }
 
         // Bars
-
         d.draw_rectangle(
             get_margin() as i32 + 5,
             get_height() - 42,
