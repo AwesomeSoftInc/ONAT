@@ -64,7 +64,7 @@ pub trait Monster {
     fn set_timer_until_office(&mut self, val: SystemTime);
 
     fn begin_move_timer(&mut self) {
-        self.set_move_timer(30);
+        self.set_move_timer(5);
     }
     fn end_move_timer(&mut self) {
         if self.move_timer() >= 1 {

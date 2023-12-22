@@ -110,12 +110,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut state = State::new();
 
     let default_font = rl.get_font_default();
-    let scroll_amount = get_width().clone() as f32 * 0.1;
+    let scroll_amount = get_width().clone() as f32 * 0.01;
 
     const CAMERA_TIME: f32 = 0.1;
+    const DOOR_ANIM_SPEED: f32 = 100.0;
+    let var_name = get_height() as f64 / 4.0;
 
-    println!("{}", get_margin());
-    let var_name = get_height() as f64 / 24.0;
     while !rl.window_should_close() {
         unsafe {
             SCREEN.update();
@@ -183,7 +183,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
                 if state.going_to_camera {
                     if state.laptop_offset_y > 0.0 {
-                        state.laptop_offset_y -= var_name as f64 / 4.0;
+                        state.laptop_offset_y -= var_name as f64;
                     } else {
                         state.screen = Screen::Camera;
                         state.going_to_camera = false;
@@ -403,22 +403,22 @@ fn main() -> Result<(), Box<dyn Error>> {
                 // LEFT DOOR
                 if state.left_door_shut {
                     if state.left_door_anim_timer <= 0.0 {
-                        state.left_door_anim_timer += 5.0;
+                        state.left_door_anim_timer += DOOR_ANIM_SPEED;
                     }
                 } else {
                     if state.left_door_anim_timer >= -(get_height() as f32) {
-                        state.left_door_anim_timer -= 5.0;
+                        state.left_door_anim_timer -= DOOR_ANIM_SPEED;
                     }
                 }
 
                 // RIGHT DOOR
                 if state.right_door_shut {
                     if state.right_door_anim_timer <= 0.0 {
-                        state.right_door_anim_timer += 5.0;
+                        state.right_door_anim_timer += DOOR_ANIM_SPEED;
                     }
                 } else {
                     if state.right_door_anim_timer >= -(get_height() as f32) {
-                        state.right_door_anim_timer -= 5.0;
+                        state.right_door_anim_timer -= DOOR_ANIM_SPEED;
                     }
                 }
                 state.gang.wilber.rage_increment();
