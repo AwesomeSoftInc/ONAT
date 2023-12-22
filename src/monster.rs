@@ -28,6 +28,8 @@ pub const TUX_START: bool = false;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
 
+pub const MONSTER_TIME_OFFICE_WAIT_THING: u64 = 5;
+
 pub const DEFAULT_AI_LEVEL: u8 = 2;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -223,7 +225,9 @@ impl Monster for Penny {
                     _ => None,
                 },
                 Room::Office => {
-                    if self.timer_until_office().elapsed().unwrap().as_secs() >= 3 {
+                    if self.timer_until_office().elapsed().unwrap().as_secs()
+                        >= MONSTER_TIME_OFFICE_WAIT_THING
+                    {
                         Some(&textures.penny.pennydoor)
                     } else {
                         None
@@ -316,7 +320,9 @@ impl Monster for Beastie {
                     _ => None,
                 },
                 Room::Office => {
-                    if self.timer_until_office().elapsed().unwrap().as_secs() >= 3 {
+                    if self.timer_until_office().elapsed().unwrap().as_secs()
+                        >= MONSTER_TIME_OFFICE_WAIT_THING
+                    {
                         Some(&textures.beastie.bsdatdoor)
                     } else {
                         None
@@ -405,7 +411,7 @@ impl Wilber {
             return;
         }
         if self.rage < 100.0 {
-            self.rage += 0.01;
+            self.rage += 0.001;
         } else {
             self.stage += 1;
             self.rage = 0.0;
@@ -416,7 +422,7 @@ impl Wilber {
             return;
         }
         if self.rage > 0.0 {
-            self.rage -= 0.04;
+            self.rage -= 0.01;
         }
     }
 }
@@ -484,7 +490,15 @@ impl Monster for GoGopher {
                     None
                 }
             }
-            Room::Office => Some(&textures.gopher.gopheroffice),
+            Room::Office => {
+                if self.timer_until_office().elapsed().unwrap().as_secs()
+                    >= MONSTER_TIME_OFFICE_WAIT_THING
+                {
+                    Some(&textures.gopher.gopheroffice)
+                } else {
+                    None
+                }
+            }
             _ => None,
         }
     }
@@ -742,7 +756,7 @@ impl Gang {
         self.tux.step();
 
         // every few seconds (one in game minute), generate a random number between 1 and 20, for each enemy. if the animatronic's current ai level is greater/equal to the number, the animatronic moves.
-        if self.since_last_move.elapsed().unwrap().as_secs() >= (10 / (hours + 1)) {
+        if self.since_last_move.elapsed().unwrap().as_secs() >= 5 {
             self.since_last_move = SystemTime::now();
             if self.penny.active {
                 if !self.penny.entered_from_left() {

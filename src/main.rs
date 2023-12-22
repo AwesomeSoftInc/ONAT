@@ -16,6 +16,8 @@ use enums::{Room, Screen};
 use once_cell::sync::Lazy;
 use textures::Textures;
 
+use crate::monster::MONSTER_TIME_OFFICE_WAIT_THING;
+
 mod enums;
 mod macros;
 mod monster;
@@ -81,8 +83,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut state = State::new();
 
+    let default_font = rl.get_font_default();
     let scroll_amount = get_width().clone() as f32 * 0.0025;
 
+    const CAMERA_TIME: f32 = 0.04;
+
+    let var_name = get_height() as f64 / 24.0;
     while !rl.window_should_close() {
         if state.timer.elapsed()?.as_millis() <= 1 / 30 {
             continue;
@@ -128,25 +134,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                 d.clear_background(Color::GREEN);
             }
             Screen::Office => {
-                if state.laptop_offset_y < get_height() as f64 {
-                    state.laptop_offset_y += 3.0;
+                #[cfg(not(feature = "no_camera_timer"))]
+                if state.camera_timer <= 100.0 {
+                    state.camera_timer += CAMERA_TIME / 4.0;
                 }
-                if state.laptop_offset_y != get_height() as f64 {
-                    d.clear_background(Color::BLACK);
-                    d.draw_texture_pro(
-                        &textures.laptop,
-                        texture_rect!(textures.laptop),
-                        Rectangle::new(
-                            get_margin() + 0.0,
-                            state.laptop_offset_y as f32,
-                            get_width() as f32,
-                            get_height() as f32,
-                        ),
-                        Vector2::new(0.0, 0.0),
-                        0.0,
-                        Color::WHITE,
-                    );
-                    continue;
+                if state.going_to_camera {
+                    if state.laptop_offset_y > 0.0 {
+                        state.laptop_offset_y -= var_name as f64 / 4.0;
+                    } else {
+                        state.screen = Screen::Camera;
+                        state.going_to_camera = false;
+                    }
                 }
 
                 for mons in state.gang.in_room(&Room::Office) {
@@ -379,43 +377,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
                 state.gang.wilber.rage_increment();
-                #[cfg(not(feature = "no_camera_timer"))]
-                if state.camera_timer <= 100.0 {
-                    state.camera_timer += 0.01;
-                }
-            }
-            Screen::CameraRebooting => {
-                #[cfg(not(feature = "no_camera_timer"))]
-                if state.camera_timer <= 100.0 {
-                    state.camera_timer += 0.01;
-                    // TODO: Rebooting animation
-                    d.draw_text(
-                        "Laptop Charging...",
-                        get_margin() as i32 + (get_width() / 2) - (7 * 32),
-                        get_height() / 2,
-                        32,
-                        Color::WHITE,
-                    );
-                    if state.camera_timer >= 100.0 {
-                        state.screen = Screen::Camera;
-                    }
-                } else {
-                    // TODO: Rebooting animation
-                    d.draw_text(
-                        format!("Laptop Rebooting: {:.0}", state.camera_booting_timer).as_str(),
-                        get_margin() as i32 + (get_width() / 2) - (7 * 32),
-                        get_height() / 2,
-                        32,
-                        Color::WHITE,
-                    );
-                }
-            }
-            Screen::Camera => {
-                if state.laptop_offset_y > 0.0 {
-                    state.laptop_offset_y -= 3.0;
-                }
-                if state.laptop_offset_y != 0.0 {
-                    d.clear_background(Color::BLACK);
+
+                if state.laptop_offset_y < get_height() as f64 {
                     d.draw_texture_pro(
                         &textures.laptop,
                         texture_rect!(textures.laptop),
@@ -429,8 +392,70 @@ fn main() -> Result<(), Box<dyn Error>> {
                         0.0,
                         Color::WHITE,
                     );
-                    continue;
                 }
+            }
+            Screen::CameraRebooting =>
+            {
+                #[cfg(not(feature = "no_camera_timer"))]
+                if state.camera_timer <= 100.0 {
+                    state.camera_timer += (CAMERA_TIME / 4.0);
+                    const width: i32 = ("Laptop Rebooting".len() as i32) * 24;
+                    let x = get_margin() as i32 + (get_width() / 2) - (width / 2);
+                    let y = get_height() / 2;
+
+                    d.draw_text_rec(
+                        &default_font,
+                        "Laptop Rebooting",
+                        Rectangle::new(
+                            (get_margin() as i32 * 2) as f32 + (width / 2) as f32,
+                            y as f32 - 16.0,
+                            width as f32,
+                            48.0,
+                        ),
+                        32.0,
+                        3.0,
+                        true,
+                        Color::WHITE,
+                    );
+                    d.draw_rectangle_lines(
+                        get_margin() as i32 * 2,
+                        (get_height() / 2) + 32,
+                        get_width() / 2,
+                        32,
+                        Color::WHITE,
+                    );
+                    d.draw_rectangle_rec(
+                        Rectangle::new(
+                            get_margin() * 2.0,
+                            (get_height() as f32 / 2.0) + 32.0,
+                            (get_width() as f32 / 2.0) * (state.camera_timer / 100.0),
+                            32.0,
+                        ),
+                        Color::WHITE,
+                    );
+                } else {
+                    state.camera_booting = false;
+                    state.screen = Screen::Office;
+                }
+            }
+            Screen::Camera => {
+                if state.going_to_office {
+                    if state.laptop_offset_y < get_height() as f64 {
+                        state.laptop_offset_y += var_name;
+                    } else {
+                        state.screen = Screen::Office;
+                        state.going_to_office = false;
+                    }
+                }
+                #[cfg(not(feature = "no_camera_timer"))]
+                if state.camera_timer >= 0.0 {
+                    state.camera_timer -= CAMERA_TIME;
+                } else {
+                    state.camera_booting = true;
+                    state.sel_camera = Room::Room1;
+                    state.screen = Screen::Office;
+                }
+
                 if state.camera_booting {
                     state.screen = Screen::CameraRebooting;
                     continue;
@@ -635,13 +660,21 @@ fn main() -> Result<(), Box<dyn Error>> {
                     20,
                     Color::WHITE,
                 );
-                #[cfg(not(feature = "no_camera_timer"))]
-                if state.camera_timer >= 0.0 {
-                    state.camera_timer -= 0.02;
-                } else {
-                    state.camera_booting = true;
-                    state.sel_camera = Room::Room1;
-                    state.screen = Screen::Office;
+
+                if state.laptop_offset_y > 0.0 {
+                    d.draw_texture_pro(
+                        &textures.laptop,
+                        texture_rect!(textures.laptop),
+                        Rectangle::new(
+                            get_margin() + 0.0,
+                            state.laptop_offset_y as f32,
+                            get_width() as f32,
+                            get_height() as f32,
+                        ),
+                        Vector2::new(0.0, 0.0),
+                        0.0,
+                        Color::WHITE,
+                    );
                 }
             }
             Screen::GameOver => {
@@ -658,11 +691,15 @@ fn main() -> Result<(), Box<dyn Error>> {
         if let Screen::GameOver = state.screen {
             continue;
         }
+        if let Screen::YouWin = state.screen {
+            continue;
+        }
 
         let cur_time = state.ingame_time.duration_since(UNIX_EPOCH)?;
         let is_over = state.gang.step(cur_time);
         if is_over {
             state.screen = Screen::YouWin;
+            continue;
         }
         let num = {
             let ct = cur_time.as_secs() / 3600;
@@ -690,7 +727,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Rectangle::new(
                 get_margin() * 2.0,
                 get_height() as f32 - (get_height() as f32 / 16.0),
-                (get_width() as f32 / 2.0),
+                get_width() as f32 / 2.0,
                 get_height() as f32 / 16.0,
             ),
             Vector2::new(0.0, 0.0),
@@ -701,12 +738,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         if my >= get_height() - (get_height() / 16)
             && d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
         {
-            state.screen = match state.screen {
-                Screen::Office => Screen::Camera,
-                Screen::CameraRebooting => Screen::Office,
-                Screen::Camera => Screen::Office,
-                _ => state.screen,
-            };
+            match state.screen {
+                Screen::Office => state.going_to_camera = true,
+                Screen::CameraRebooting | Screen::Camera => state.going_to_office = true,
+                _ => (),
+            }
         }
 
         if state.camera_booting {
@@ -742,7 +778,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         let mut y = 48;
         for mons in inoffice {
             if mons.active() {
-                if mons.timer_until_office().elapsed().unwrap().as_secs() >= 3 {
+                if mons.timer_until_office().elapsed().unwrap().as_secs()
+                    >= MONSTER_TIME_OFFICE_WAIT_THING
+                {
                     let x = {
                         if mons.entered_from_right() {
                             get_width() - 128 - 5

@@ -52,13 +52,16 @@ pub struct State {
     pub rand: ThreadRng,
     pub skinman_chance: u32,
     pub skinman_appeared: bool,
+
+    pub going_to_office: bool,
+    pub going_to_camera: bool,
 }
 
 impl State {
     pub fn new() -> Self {
         let screen = Screen::TitleScreen;
         let bg_offset_x = get_width() as f32 / 2.0;
-        let laptop_offset_y = 0.0;
+        let laptop_offset_y = get_height() as f64;
 
         let camera_clickables = vec![
             Rectangle::new(
@@ -183,6 +186,8 @@ impl State {
             rand,
             skinman_chance,
             skinman_appeared,
+            going_to_camera: false,
+            going_to_office: false,
         }
     }
 }

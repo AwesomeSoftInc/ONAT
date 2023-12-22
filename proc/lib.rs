@@ -2,6 +2,7 @@ extern crate proc_macro;
 
 use std::collections::HashMap;
 use std::fs::{DirEntry, ReadDir};
+use std::os::unix::fs::MetadataExt;
 
 use proc_macro::TokenStream;
 use quote::quote;
@@ -237,15 +238,12 @@ fn yeah(
                         a.push(format!("pub {}: Texture2D ", n.clone()));
                         b.push(n.clone());
                         c.push(format!(
-                            "println!(\"loading {n}\");let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"../assets/{name}/{n}.png\").to_vec(), include_bytes!(\"../assets/{name}/{n}.png\").len() as i32)?)?;",
+                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"../assets/{name}/{n}.png\").to_vec(), {size})?)?;",
                             n = n,
+                            size=dir.metadata()?.size(),
                             name = name
                         ));
-                        if name != "camera" {
-                            c.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
-                        } else {
-                            c.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_POINT);",n=n));
-                        }
+                        c.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
                     }
                 }
                 define.push(name.clone());
@@ -271,7 +269,8 @@ fn yeah(
                         let n: String = name.replace(".png", "").replace("\"", "");
                         fields.push(format!("pub {}: Texture2D", n));
                         define.push(n.clone());
-                        impl_fields.push(format!("println!(\"loading {n}\");let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"../assets/{n}.png\").to_vec(), include_bytes!(\"../assets/{n}.png\").len() as i32)?)?;", n=n));
+                        impl_fields.push(format!("let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"../assets/{n}.png\").to_vec(), {size})?)?;", n=n, size=ass.metadata()?.size()));
+                        impl_fields.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
                     }
                 }
             }
