@@ -8,7 +8,7 @@ use raylib::prelude::*;
 
 use crate::{
     enums::{Room, Screen},
-    get_height, get_margin, get_width,
+    get_height, get_margin, get_ratio, get_width,
     monster::Gang,
 };
 
@@ -63,39 +63,40 @@ impl State {
         let bg_offset_x = get_width() as f32 / 2.0;
         let laptop_offset_y = get_height() as f64;
 
+        let modifier = get_ratio().floor() * 0.1;
         let camera_clickables = vec![
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.785,
+                get_margin() + get_width() as f32 * (0.685 + modifier),
                 get_height() as f32 * 0.44,
                 get_width() as f32 * 0.05,
                 get_height() as f32 * 0.04,
             ), // Room1
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.785,
+                get_margin() + get_width() as f32 * (0.685 + modifier),
                 get_height() as f32 * 0.65,
                 get_width() as f32 * 0.05,
                 get_height() as f32 * 0.04,
             ), // Room2
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.65,
+                get_margin() + get_width() as f32 * (0.55 + modifier),
                 get_height() as f32 * 0.865,
                 get_width() as f32 * 0.05,
                 get_height() as f32 * 0.04,
             ), // Room3
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.92,
+                get_margin() + get_width() as f32 * (0.82 + modifier),
                 get_height() as f32 * 0.865,
                 get_width() as f32 * 0.05,
                 get_height() as f32 * 0.04,
             ), // Room4
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.785,
+                get_margin() + get_width() as f32 * (0.685 + modifier),
                 get_height() as f32 * 0.79,
                 get_width() as f32 * 0.05,
                 get_height() as f32 * 0.04,
             ), // Room5
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.65,
+                get_margin() + get_width() as f32 * (0.55 + modifier),
                 get_height() as f32 * 0.44,
                 get_width() as f32 * 0.05,
                 get_height() as f32 * 0.04,

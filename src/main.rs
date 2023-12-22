@@ -5,7 +5,7 @@ use raylib::{
     prelude::*,
 };
 
-use num_traits::FromPrimitive;
+use num_traits::{float::FloatCore, Float, FromPrimitive};
 use state::State;
 use std::{
     error::Error,
@@ -33,7 +33,7 @@ pub struct ScreenInfo {
 
 impl ScreenInfo {
     pub fn new() -> Self {
-        let (mut rl, thread) = raylib::init().fullscreen().title("ONAT").build();
+        let (rl, _) = raylib::init().fullscreen().title("ONAT").build();
         let monitor_width = get_monitor_width(get_current_monitor_index());
         let monitor_height = get_monitor_height(get_current_monitor_index());
 
@@ -41,7 +41,10 @@ impl ScreenInfo {
         let desired_ratio = 4.0 / 3.0;
         let ratio = 1.0 + (default_ratio - desired_ratio);
 
-        let margin = monitor_width as f32 - ((monitor_width as f32) / ratio);
+        let mut margin = monitor_width as f32 - ((monitor_width as f32) / ratio);
+        if margin < 0.0 {
+            margin = 0.0;
+        }
 
         drop(rl);
 
@@ -54,18 +57,22 @@ impl ScreenInfo {
     }
 }
 
-pub static SCREEN: Lazy<ScreenInfo> = Lazy::new(|| ScreenInfo::new());
+pub static mut SCREEN: Lazy<ScreenInfo> = Lazy::new(|| ScreenInfo::new());
 
 pub fn get_width() -> i32 {
-    ((SCREEN.width as f32) / SCREEN.ratio) as i32
+    unsafe { ((SCREEN.width as f32) / get_ratio()) as i32 }
 }
 
 pub fn get_height() -> i32 {
-    SCREEN.height
+    unsafe { SCREEN.height }
 }
 
 pub fn get_margin() -> f32 {
-    SCREEN.margin / 2.0
+    unsafe { SCREEN.margin / 2.0 }
+}
+
+pub fn get_ratio() -> f32 {
+    unsafe { SCREEN.ratio }
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -74,7 +81,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     get_width();
 
     let (mut rl, thread) = raylib::init()
-        .size(SCREEN.width, get_height())
+        .size(unsafe { SCREEN.width }, get_height())
         .fullscreen()
         .title("ONAT")
         .build();
@@ -88,8 +95,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     const CAMERA_TIME: f32 = 0.04;
 
+    let screen_modifier = (get_ratio().ceil() * 1.075);
+
+    println!("{}", get_margin());
     let var_name = get_height() as f64 / 24.0;
     while !rl.window_should_close() {
+        rl.set_window_size(unsafe { SCREEN.width }, get_height());
         if state.timer.elapsed()?.as_millis() <= 1 / 30 {
             continue;
         }
@@ -181,16 +192,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                 d.draw_rectangle(
                     get_margin() as i32 + (get_width() as f32 / 1.32 - state.bg_offset_x) as i32,
                     (get_height() as f32 / 1.20) as i32,
-                    (100.0 * (SCREEN.ratio + 1.0)) as i32,
+                    (100.0 * (get_ratio() + 1.0)) as i32,
                     32,
                     Color::new(0, 128, 0, 255),
                 );
                 d.draw_rectangle(
                     get_margin() as i32
                         + ((get_width() as f32 / 1.32 - state.bg_offset_x) as i32)
-                        + SCREEN.ratio.ceil() as i32,
-                    ((get_height() as f32 / 1.20) as i32) + SCREEN.ratio.ceil() as i32,
-                    ((state.tainted as i32 - 4) as f32 * (SCREEN.ratio + 1.0)) as i32,
+                        + get_ratio().ceil() as i32,
+                    ((get_height() as f32 / 1.20) as i32) + get_ratio().ceil() as i32,
+                    ((state.tainted as i32 - 4) as f32 * (get_ratio() + 1.0)) as i32,
                     28,
                     Color::GREEN,
                 );
@@ -200,8 +211,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Rectangle::new(
                         get_margin() + get_width() as f32 / 1.25 - state.bg_offset_x,
                         get_height() as f32 / 1.25,
-                        textures.tainted_logo.width as f32 * SCREEN.ratio,
-                        textures.tainted_logo.height as f32 * SCREEN.ratio,
+                        textures.tainted_logo.width as f32 * get_ratio(),
+                        textures.tainted_logo.height as f32 * get_ratio(),
                     ),
                     Vector2::new(0.0, 0.0),
                     0.0,
@@ -398,39 +409,29 @@ fn main() -> Result<(), Box<dyn Error>> {
             {
                 #[cfg(not(feature = "no_camera_timer"))]
                 if state.camera_timer <= 100.0 {
-                    state.camera_timer += (CAMERA_TIME / 4.0);
+                    state.camera_timer += CAMERA_TIME;
                     const width: i32 = ("Laptop Rebooting".len() as i32) * 24;
-                    let x = get_margin() as i32 + (get_width() / 2) - (width / 2);
+                    let x = ((get_width() as i32 / 2) as f32) - (width / 2) as f32;
                     let y = get_height() / 2;
 
                     d.draw_text_rec(
                         &default_font,
                         "Laptop Rebooting",
-                        Rectangle::new(
-                            (get_margin() as i32 * 2) as f32 + (width / 2) as f32,
-                            y as f32 - 16.0,
-                            width as f32,
-                            48.0,
-                        ),
+                        Rectangle::new(x + (width / 8) as f32, y as f32 - 16.0, width as f32, 48.0),
                         32.0,
                         3.0,
                         true,
                         Color::WHITE,
                     );
                     d.draw_rectangle_lines(
-                        get_margin() as i32 * 2,
+                        x as i32,
                         (get_height() / 2) + 32,
-                        get_width() / 2,
+                        width,
                         32,
                         Color::WHITE,
                     );
                     d.draw_rectangle_rec(
-                        Rectangle::new(
-                            get_margin() * 2.0,
-                            (get_height() as f32 / 2.0) + 32.0,
-                            (get_width() as f32 / 2.0) * (state.camera_timer / 100.0),
-                            32.0,
-                        ),
+                        Rectangle::new(x, (get_height() as f32 / 2.0) + 32.0, width as f32, 32.0),
                         Color::WHITE,
                     );
                 } else {
@@ -439,14 +440,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
             Screen::Camera => {
-                if state.going_to_office {
-                    if state.laptop_offset_y < get_height() as f64 {
-                        state.laptop_offset_y += var_name;
-                    } else {
-                        state.screen = Screen::Office;
-                        state.going_to_office = false;
-                    }
-                }
                 #[cfg(not(feature = "no_camera_timer"))]
                 if state.camera_timer >= 0.0 {
                     state.camera_timer -= CAMERA_TIME;
@@ -454,6 +447,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                     state.camera_booting = true;
                     state.sel_camera = Room::Room1;
                     state.screen = Screen::Office;
+                }
+                if state.going_to_office {
+                    if state.laptop_offset_y < get_height() as f64 {
+                        state.laptop_offset_y += var_name;
+                    } else {
+                        state.screen = Screen::Office;
+                        state.going_to_office = false;
+                    }
                 }
 
                 if state.camera_booting {
@@ -586,10 +587,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                     &textures.camera,
                     texture_rect!(textures.camera),
                     Rectangle::new(
-                        (get_width() as f32 - get_margin()) * 1.1,
-                        get_height() as f32 / 2.4,
-                        textures.camera.width as f32 * 1.5,
-                        textures.camera.height as f32 * 1.5,
+                        ((get_width() as f32 / 2.0) * screen_modifier) - get_margin(),
+                        get_height() as f32 * 0.42,
+                        get_width() as f32 / (2.8 + (screen_modifier / 10.0)),
+                        get_height() as f32 / 1.97,
                     ),
                     Vector2::new(0.0, 0.0),
                     0.0,
@@ -655,7 +656,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                 d.draw_text(
                     "OFFICE",
-                    (get_margin() + get_width() as f32 * 0.78) as i32,
+                    (get_margin() + get_width() as f32 * (0.68 + get_ratio().floor() * 0.1)) as i32,
                     (get_height() as f32 * 0.87) as i32,
                     20,
                     Color::WHITE,
@@ -725,7 +726,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             &textures.arrow,
             texture_rect!(textures.arrow),
             Rectangle::new(
-                get_margin() * 2.0,
+                (get_width() / 4) as f32,
                 get_height() as f32 - (get_height() as f32 / 16.0),
                 get_width() as f32 / 2.0,
                 get_height() as f32 / 16.0,
@@ -754,9 +755,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         d.draw_text(
             format!("{}:00AM", num).as_str(),
-            get_margin() as i32 + get_width() - (256.0 * SCREEN.ratio) as i32,
+            get_margin() as i32 + get_width() - (256.0 * get_ratio()) as i32,
             0,
-            (64.0 * SCREEN.ratio) as i32,
+            (64.0 * get_ratio()) as i32,
             Color::WHITE,
         );
 
