@@ -5,7 +5,7 @@ use raylib::{
     prelude::*,
 };
 
-use num_traits::{float::FloatCore, Float, FromPrimitive};
+use num_traits::{float::FloatCore, real::Real, Float, FromPrimitive};
 use state::State;
 use std::{
     error::Error,
@@ -55,6 +55,25 @@ impl ScreenInfo {
             margin: margin,
         }
     }
+
+    pub fn update(&mut self) {
+        let monitor_width = get_monitor_width(get_current_monitor_index());
+        let monitor_height = get_monitor_height(get_current_monitor_index());
+
+        let default_ratio = monitor_width as f32 / monitor_height as f32;
+        let desired_ratio = 4.0 / 3.0;
+        let ratio = 1.0 + (default_ratio - desired_ratio);
+
+        let mut margin = monitor_width as f32 - ((monitor_width as f32) / ratio);
+        if margin < 0.0 {
+            margin = 0.0;
+        }
+
+        self.width = monitor_width;
+        self.height = monitor_height;
+        self.ratio = ratio;
+        self.margin = margin;
+    }
 }
 
 pub static mut SCREEN: Lazy<ScreenInfo> = Lazy::new(|| ScreenInfo::new());
@@ -95,11 +114,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     const CAMERA_TIME: f32 = 0.04;
 
-    let screen_modifier = (get_ratio().ceil() * 1.075);
-
     println!("{}", get_margin());
     let var_name = get_height() as f64 / 24.0;
     while !rl.window_should_close() {
+        unsafe {
+            SCREEN.update();
+        }
         rl.set_window_size(unsafe { SCREEN.width }, get_height());
         if state.timer.elapsed()?.as_millis() <= 1 / 30 {
             continue;
@@ -177,48 +197,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
 
                 d.draw_texture_pro(
-                    &textures.wallpaper,
-                    texture_rect!(textures.wallpaper),
-                    Rectangle::new(
-                        (get_width() as f32 / 3.0) + (get_margin() * 2.6) + -state.bg_offset_x,
-                        get_height() as f32 / 1.65,
-                        get_width() as f32 / 3.5,
-                        get_height() as f32 / 3.5,
-                    ),
-                    Vector2::new(0.0, 0.0),
-                    0.0,
-                    Color::WHITE,
-                );
-                d.draw_rectangle(
-                    get_margin() as i32 + (get_width() as f32 / 1.32 - state.bg_offset_x) as i32,
-                    (get_height() as f32 / 1.20) as i32,
-                    (100.0 * (get_ratio() + 1.0)) as i32,
-                    32,
-                    Color::new(0, 128, 0, 255),
-                );
-                d.draw_rectangle(
-                    get_margin() as i32
-                        + ((get_width() as f32 / 1.32 - state.bg_offset_x) as i32)
-                        + get_ratio().ceil() as i32,
-                    ((get_height() as f32 / 1.20) as i32) + get_ratio().ceil() as i32,
-                    ((state.tainted as i32 - 4) as f32 * (get_ratio() + 1.0)) as i32,
-                    28,
-                    Color::GREEN,
-                );
-                d.draw_texture_pro(
-                    &textures.tainted_logo,
-                    texture_rect!(textures.tainted_logo),
-                    Rectangle::new(
-                        get_margin() + get_width() as f32 / 1.25 - state.bg_offset_x,
-                        get_height() as f32 / 1.25,
-                        textures.tainted_logo.width as f32 * get_ratio(),
-                        textures.tainted_logo.height as f32 * get_ratio(),
-                    ),
-                    Vector2::new(0.0, 0.0),
-                    0.0,
-                    Color::WHITE,
-                );
-                d.draw_texture_pro(
                     &textures.office_corners,
                     texture_rect!(textures.office_corners),
                     Rectangle::new(
@@ -258,7 +236,51 @@ fn main() -> Result<(), Box<dyn Error>> {
                     0.0,
                     Color::WHITE,
                 );
+                let var_name = (1.0 + get_ratio()) as i32;
 
+                d.draw_texture_pro(
+                    &textures.wallpaper,
+                    texture_rect!(textures.wallpaper),
+                    Rectangle::new(
+                        ((get_width() as f32 + get_margin() as f32) - get_width() as f32 / 3.5)
+                            - state.bg_offset_x,
+                        get_height() as f32 / 1.65,
+                        get_width() as f32 / 3.5,
+                        get_height() as f32 / 3.5,
+                    ),
+                    Vector2::new(0.0, 0.0),
+                    0.0,
+                    Color::WHITE,
+                );
+                d.draw_rectangle(
+                    (((get_width() as f32 / 1.233) + get_margin()) - state.bg_offset_x) as i32 - 50,
+                    (get_height() as f32 / 1.20) as i32,
+                    200,
+                    32,
+                    Color::new(0, 128, 0, 255),
+                );
+                d.draw_rectangle(
+                    (((get_width() as f32 / 1.233) + get_margin()) - state.bg_offset_x) as i32
+                        - (50 - var_name),
+                    ((get_height() as f32 / 1.20) as i32) + var_name,
+                    (state.tainted as i32 - 4) * (get_ratio().ceil()) as i32,
+                    32 - (var_name * 2),
+                    Color::GREEN,
+                );
+
+                d.draw_texture_pro(
+                    &textures.tainted_logo,
+                    texture_rect!(textures.tainted_logo),
+                    Rectangle::new(
+                        ((get_width() as f32 / 1.233) + get_margin()) - state.bg_offset_x,
+                        get_height() as f32 / 1.25,
+                        (get_width() as f32 + get_margin()) / 16.0,
+                        get_height() as f32 / 46.0,
+                    ),
+                    Vector2::new(0.0, 0.0),
+                    0.0,
+                    Color::WHITE,
+                );
                 d.draw_texture_pro(
                     &textures.office,
                     texture_rect!(textures.office),
@@ -423,17 +445,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                         true,
                         Color::WHITE,
                     );
-                    d.draw_rectangle_lines(
-                        x as i32,
-                        (get_height() / 2) + 32,
-                        width,
-                        32,
-                        Color::WHITE,
-                    );
-                    d.draw_rectangle_rec(
-                        Rectangle::new(x, (get_height() as f32 / 2.0) + 32.0, width as f32, 32.0),
-                        Color::WHITE,
-                    );
                 } else {
                     state.camera_booting = false;
                     state.screen = Screen::Office;
@@ -587,9 +598,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                     &textures.camera,
                     texture_rect!(textures.camera),
                     Rectangle::new(
-                        ((get_width() as f32 / 2.0) * screen_modifier) - get_margin(),
+                        ((get_width() as f32 / 2.0) * (get_ratio().ceil() * 1.075)) - get_margin(),
                         get_height() as f32 * 0.42,
-                        get_width() as f32 / (2.8 + (screen_modifier / 10.0)),
+                        get_width() as f32
+                            / (2.82 + ((get_ratio().floor() * 1.075) / 10.0).round()),
                         get_height() as f32 / 1.97,
                     ),
                     Vector2::new(0.0, 0.0),
@@ -726,7 +738,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             &textures.arrow,
             texture_rect!(textures.arrow),
             Rectangle::new(
-                (get_width() / 4) as f32,
+                (get_width() as f32 / 4.0) + get_margin(),
                 get_height() as f32 - (get_height() as f32 / 16.0),
                 get_width() as f32 / 2.0,
                 get_height() as f32 / 16.0,
@@ -753,9 +765,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 state.camera_booting_timer = 0.0;
             }
         }
+        let time = format!("{}:00AM", num);
         d.draw_text(
-            format!("{}:00AM", num).as_str(),
-            get_margin() as i32 + get_width() - (256.0 * get_ratio()) as i32,
+            time.as_str(),
+            get_margin() as i32 + get_width() - (time.len() as f32 * 50.0) as i32,
             0,
             (64.0 * get_ratio()) as i32,
             Color::WHITE,
@@ -831,7 +844,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         d.draw_rectangle_gradient_h(
             get_margin() as i32 + 20,
             battery_bar_y as i32 + (get_height() as f32 / 48.0) as i32,
-            (164.0 * (state.camera_timer / 100.0)) as i32 - 4,
+            (165.0 * (state.camera_timer / 100.0)) as i32 - 4,
             (get_height() as f32 / 20.0) as i32,
             Color::RED,
             Color::GREEN,
