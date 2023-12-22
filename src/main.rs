@@ -110,9 +110,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut state = State::new();
 
     let default_font = rl.get_font_default();
-    let scroll_amount = get_width().clone() as f32 * 0.0025;
+    let scroll_amount = get_width().clone() as f32 * 0.1;
 
-    const CAMERA_TIME: f32 = 0.04;
+    const CAMERA_TIME: f32 = 0.1;
 
     println!("{}", get_margin());
     let var_name = get_height() as f64 / 24.0;
@@ -121,15 +121,27 @@ fn main() -> Result<(), Box<dyn Error>> {
             SCREEN.update();
         }
         rl.set_window_size(unsafe { SCREEN.width }, get_height());
-        if state.timer.elapsed()?.as_millis() <= 1 / 30 {
+
+        if state.timer.elapsed()?.as_millis() <= 1000 / 60 {
             continue;
         }
+
         state.timer = SystemTime::now();
 
         state.ingame_time += Duration::from_millis(36);
 
-        let img = Image::gen_image_white_noise(320, 240, 0.1);
-        let tex = rl.load_texture_from_image(&thread, &img)?;
+        let (img, tex) = match state.screen {
+            Screen::Camera => {
+                let img = Image::gen_image_white_noise(320, 240, 0.1);
+                let tex = rl.load_texture_from_image(&thread, &img)?;
+                (img, tex)
+            }
+            _ => {
+                let img = Image::gen_image_white_noise(1, 1, 0.0);
+                let tex = rl.load_texture_from_image(&thread, &img)?;
+                (img, tex)
+            }
+        };
 
         let mut d = rl.begin_drawing(&thread);
 
@@ -167,7 +179,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Screen::Office => {
                 #[cfg(not(feature = "no_camera_timer"))]
                 if state.camera_timer <= 100.0 {
-                    state.camera_timer += CAMERA_TIME / 4.0;
+                    state.camera_timer += CAMERA_TIME;
                 }
                 if state.going_to_camera {
                     if state.laptop_offset_y > 0.0 {
@@ -189,7 +201,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     mons.draw(
                         &textures,
                         &mut d,
-                        (get_width() / 4) as f32 - state.bg_offset_x,
+                        ((get_width() as f32 + get_margin()) as i32 / 4) as f32 - state.bg_offset_x,
                         0.0,
                         1.6,
                         1.0,
@@ -427,8 +439,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                     );
                 }
             }
-            Screen::CameraRebooting =>
-            {
+            Screen::CameraRebooting => {
+                if state.going_to_office {
+                    if state.laptop_offset_y < get_height() as f64 {
+                        state.laptop_offset_y += var_name;
+                    } else {
+                        state.screen = Screen::Office;
+                        state.going_to_office = false;
+                    }
+                    continue;
+                }
                 #[cfg(not(feature = "no_camera_timer"))]
                 if state.camera_timer <= 100.0 {
                     state.camera_timer += CAMERA_TIME;
@@ -447,7 +467,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     );
                 } else {
                     state.camera_booting = false;
-                    state.screen = Screen::Office;
+                    state.screen = Screen::Camera;
                 }
             }
             Screen::Camera => {
