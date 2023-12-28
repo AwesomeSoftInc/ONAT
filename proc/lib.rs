@@ -234,7 +234,10 @@ fn yeah(
                     let dir = dir?;
                     let name_ = dir.file_name().to_str().unwrap().to_string();
                     if name_.ends_with(".png") {
-                        let n: String = name_.replace(".png", "").replace("\"", "");
+                        let n: String = name_
+                            .replace(".png", "")
+                            .replace("\"", "")
+                            .replace(" ", "_");
                         a.push(format!("pub {}: Texture2D ", n.clone()));
                         b.push(n.clone());
                         c.push(format!(
@@ -266,7 +269,8 @@ fn yeah(
             } else {
                 if !subdir {
                     if name.ends_with(".png") {
-                        let n: String = name.replace(".png", "").replace("\"", "");
+                        let n: String =
+                            name.replace(".png", "").replace("\"", "").replace(" ", "_");
                         fields.push(format!("pub {}: Texture2D", n));
                         define.push(n.clone());
                         impl_fields.push(format!("let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"../assets/{n}.png\").to_vec(), {size})?)?;", n=n, size=ass.metadata()?.size()));

@@ -182,7 +182,6 @@ dependencies = [
  "proc",
  "rand",
  "raylib",
- "raylib-sys",
 ]
 
 [[package]]

@@ -9,7 +9,7 @@ use raylib::prelude::*;
 use crate::{
     enums::{Room, Screen},
     get_height, get_margin, get_ratio, get_width,
-    monster::Gang,
+    monster::{Gang, MonsterName},
 };
 
 pub struct State {
@@ -55,6 +55,10 @@ pub struct State {
 
     pub going_to_office: bool,
     pub going_to_camera: bool,
+
+    pub jumpscare_counter: usize,
+    pub getting_jumpscared: bool,
+    pub jumpscarer: MonsterName,
 }
 
 impl State {
@@ -157,7 +161,7 @@ impl State {
         let skinman_chance = 1000;
         let skinman_appeared = false;
 
-        Self {
+        let state = Self {
             screen,
             bg_offset_x,
             laptop_offset_y,
@@ -189,6 +193,10 @@ impl State {
             skinman_appeared,
             going_to_camera: false,
             going_to_office: false,
-        }
+            jumpscare_counter: 0,
+            getting_jumpscared: false,
+            jumpscarer: MonsterName::None,
+        };
+        state
     }
 }

@@ -2,7 +2,7 @@ use num_traits::FromPrimitive;
 use proc::{monster_derive, monster_function_macro};
 use raylib::{
     color::Color,
-    drawing::{RaylibDraw, RaylibDrawHandle},
+    drawing::{RaylibDraw, RaylibDrawHandle, RaylibTextureMode},
     math::{Rectangle, Vector2},
     texture::Texture2D,
     RaylibThread,
@@ -41,6 +41,7 @@ pub enum MonsterName {
     Tux,
     Nolok,
     GoldenTux,
+    None,
 }
 
 pub trait Monster {
@@ -83,7 +84,7 @@ pub trait Monster {
     fn draw(
         &mut self,
         textures: &Textures,
-        rl: &mut RaylibDrawHandle,
+        rl: &mut RaylibTextureMode<RaylibDrawHandle>,
         x_offset: f32,
         y_offset: f32,
         width_offset: f32,
@@ -411,7 +412,7 @@ impl Wilber {
             return;
         }
         if self.rage < 100.0 {
-            self.rage += 0.001;
+            self.rage += 0.01;
         } else {
             self.stage += 1;
             self.rage = 0.0;
@@ -422,7 +423,7 @@ impl Wilber {
             return;
         }
         if self.rage > 0.0 {
-            self.rage -= 0.01;
+            self.rage -= 0.1;
         }
     }
 }
@@ -482,9 +483,9 @@ impl Monster for GoGopher {
     fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
         match self.room {
             Room::Room4 => {
-                if self.duct_timer >= 1 && self.duct_timer <= 10000 {
+                if self.duct_timer >= 1 && self.duct_timer <= 500 {
                     Some(&textures.gopher.gopher1)
-                } else if self.duct_timer >= 10000 {
+                } else if self.duct_timer >= 500 {
                     Some(&textures.gopher.gopher2)
                 } else {
                     None
@@ -509,24 +510,24 @@ impl Monster for GoGopher {
         if self.duct_heat_timer == 0 {
             match self.room {
                 Room::None => {
-                    let coin_flip = thread_rng().gen_range(0..10000);
+                    let coin_flip = thread_rng().gen_range(0..100);
                     if coin_flip <= 1 {
                         self.set_room(Room::Room4)
                     }
                 }
                 Room::Room4 => {
                     self.duct_timer += 1;
-                    if self.duct_timer >= 25000 {
+                    if self.duct_timer >= 1000 {
                         self.set_progress_to_hallway(1);
                         self.set_room(Room::Office);
                         self.set_last_scared_at(SystemTime::now());
                     }
-                    if self.duct_heat_timer >= 2500 {
+                    if self.duct_heat_timer >= 500 {
                         self.set_room(Room::None);
                     }
                 }
                 Room::Office => {
-                    if self.duct_heat_timer <= 2500 {
+                    if self.duct_heat_timer <= 500 {
                         self.set_room(Room::None);
                         self.set_last_scared_at(SystemTime::now());
                     }
@@ -590,13 +591,13 @@ impl Monster for Tux {
         self.next()
     }
     fn next(&mut self) {
-        if let RoomOption::Room(a) = self.room().next() {
-            match a {
-                Room::Room2 => {
-                    self.set_room(Room::from_u64(thread_rng().gen_range(2..3) as u64).unwrap())
-                }
-                _ => self.set_room(a),
-            }
+        match self.room {
+            Room::Room1 => match thread_rng().gen_range(0..1) as u64 {
+                0 => self.set_room(Room::Room3),
+                _ => self.set_room(Room::Room5),
+            },
+            Room::Room3 | Room::Room5 => self.set_room(Room::Office),
+            _ => {}
         }
     }
 
@@ -747,10 +748,7 @@ impl Gang {
     }
 
     pub fn step(&mut self, time: Duration) -> bool {
-        let hours = time.as_secs() / 3600;
-        let minutes = time.as_secs() / 60;
-        let seconds = round(time.as_secs(), 60);
-
+        let hours = time.as_secs() / 200;
         self.penny.step();
         self.beastie.step();
         self.tux.step();
@@ -812,12 +810,6 @@ impl Gang {
             self.three_am_checked = true;
             self.ai_level_increase();
         }
-        // 4 AM
-        /*if hours == 4 && !self.four_am_checked {
-            self.nolok.activate();
-            self.four_am_checked = true;
-            self.ai_level_increase();
-        }*/
 
         return hours == 6;
     }
