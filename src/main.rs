@@ -199,6 +199,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             _ => {
                 {
+                    d_.clear_background(Color::BLACK);
                     let mut d: RaylibTextureMode<'_, RaylibDrawHandle<'_>> =
                         d_.begin_texture_mode(&thread, &mut framebuffer);
                     d.clear_background(Color::BLACK);
@@ -481,7 +482,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                             if state.getting_jumpscared {
                                 state.bg_offset_x = 450.0;
-                                println!("{:?}", state.jumpscarer);
                                 match state.jumpscarer {
                                     // static.
                                     MonsterName::Penny
@@ -490,17 +490,32 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         let (width, height, x, y, mons, framerate) = match state
                                             .jumpscarer
                                         {
-                                            MonsterName::Penny => (
-                                                // "penny should slide up from the bottom corner"
-                                                get_width() as f32,
-                                                get_height() as f32 / 1.5,
-                                                get_margin(),
-                                                get_height() as f32 - (get_height() as f32 / 1.5),
-                                                &penny,
-                                                18,
-                                            ),
+                                            MonsterName::Penny => {
+                                                let x_offset = {
+                                                    if state.gameover_time.elapsed()?.as_millis()
+                                                        <= 150
+                                                    {
+                                                        8.5 * (state
+                                                            .gameover_time
+                                                            .elapsed()?
+                                                            .as_millis()
+                                                            as f32)
+                                                    } else {
+                                                        150.0 * 8.5
+                                                    }
+                                                };
+                                                (
+                                                    // "penny should slide up from the bottom corner"
+                                                    (get_width() as f32),
+                                                    get_height() as f32 / 1.5,
+                                                    -get_width() as f32 + x_offset + get_margin(),
+                                                    get_height() as f32
+                                                        - (get_height() as f32 / 1.5),
+                                                    &penny,
+                                                    30,
+                                                )
+                                            }
                                             MonsterName::Tux => (
-                                                // tux needs to make the screen shake.
                                                 get_width() as f32 + (get_margin() + get_margin()),
                                                 get_height() as f32,
                                                 0.0,
@@ -1060,15 +1075,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                         0.0,
                         Color::WHITE,
                     );
-                    d.draw_rectangle(0, 0, get_margin() as i32, get_height() as i32, Color::BLACK);
-                    d.draw_rectangle(
-                        get_width() + get_margin() as i32 + 1,
-                        0,
-                        get_margin() as i32,
-                        get_height() as i32,
-                        Color::BLACK,
-                    );
                 }
+                let rot = {
+                    if state.jumpscarer == MonsterName::Tux {
+                        let r = thread_rng().gen_range(-5..5);
+                        r as f32
+                    } else {
+                        0.0
+                    }
+                };
                 d_.draw_texture_pro(
                     &framebuffer,
                     Rectangle::new(
@@ -1078,14 +1093,25 @@ fn main() -> Result<(), Box<dyn Error>> {
                         framebuffer.height() as f32,
                     ),
                     Rectangle::new(
-                        framebuffer.width() as f32,
-                        framebuffer.height() as f32,
+                        (framebuffer.width() as f32 / 2.0) + rot,
+                        (framebuffer.height() as f32 / 2.0) + rot,
                         framebuffer.width() as f32,
                         framebuffer.height() as f32,
                     ),
-                    Vector2::new(0.0, 0.0),
-                    180.0,
+                    Vector2::new(
+                        framebuffer.width() as f32 / 2.0,
+                        framebuffer.height() as f32 / 2.0,
+                    ),
+                    180.0 + rot,
                     Color::WHITE,
+                );
+                d_.draw_rectangle(0, 0, get_margin() as i32, get_height() as i32, Color::BLACK);
+                d_.draw_rectangle(
+                    get_width() + get_margin() as i32 + 1,
+                    0,
+                    get_margin() as i32,
+                    get_height() as i32,
+                    Color::BLACK,
                 );
             }
         }
