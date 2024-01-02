@@ -3,3 +3,8 @@
 *.exe
 what
 /raylib
+/include
+/lib
+/libs
+/proc
+/icon.png

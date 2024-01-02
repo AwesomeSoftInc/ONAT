@@ -38,6 +38,7 @@ pub fn monster_derive(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 progress_to_hallway: i8,
                 last_scared_at: SystemTime,
                 timer_until_office: SystemTime,
+                time_in_room: SystemTime,
                 move_timer: u8
             ) {
                 fields.named.push(f);
@@ -86,6 +87,9 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
         fn activate(&mut self) {
             self.active = true;
         }
+        fn deactivate(&mut self) {
+            self.active = false;
+        }
         fn entered_from_left(&self) -> bool {
             self.entered_from_left
         }
@@ -123,6 +127,13 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
 
         fn set_timer_until_office(&mut self, val: SystemTime) {
             self.timer_until_office = val;
+        }
+
+        fn time_in_room(&mut self) -> SystemTime {
+            self.time_in_room
+        }
+        fn reset_time_in_room(&mut self) {
+            self.time_in_room = SystemTime::now();
         }
     }
     .into();

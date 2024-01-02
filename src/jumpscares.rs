@@ -11,6 +11,7 @@ pub fn load_jumpscares(
     Vec<&Texture2D>,
     Vec<&Texture2D>,
     Vec<&Texture2D>,
+    Vec<&Texture2D>,
 ) {
     (
         vec![
@@ -81,6 +82,20 @@ pub fn load_jumpscares(
             &textures.gopher_jumpscare.frame8,
             &textures.gopher_jumpscare.frame9,
             &textures.gopher_jumpscare.frame10,
+        ],
+        vec![
+            &textures.golden_tux_jumpscare_direct.frame1,
+            &textures.golden_tux_jumpscare_direct.frame2,
+            &textures.golden_tux_jumpscare_direct.frame3,
+            &textures.golden_tux_jumpscare_direct.frame4,
+            &textures.golden_tux_jumpscare_direct.frame5,
+            &textures.golden_tux_jumpscare_direct.frame6,
+            &textures.golden_tux_jumpscare_direct.frame7,
+            &textures.golden_tux_jumpscare_direct.frame8,
+            &textures.golden_tux_jumpscare_direct.frame9,
+            &textures.golden_tux_jumpscare_direct.frame10,
+            &textures.golden_tux_jumpscare_direct.frame11,
+            &textures.golden_tux_jumpscare_direct.frame12,
         ],
     )
 }

@@ -123,8 +123,8 @@ impl State {
         ];
 
         let duct_button = Rectangle::new(
-            get_margin() + get_width() as f32 * 0.15,
-            get_height() as f32 * 0.40,
+            get_margin() + get_width() as f32 * 0.01,
+            get_height() as f32 * 0.80,
             get_width() as f32 * 0.20,
             get_height() as f32 * 0.10,
         );
