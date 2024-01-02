@@ -3,7 +3,7 @@
 use monster::{GoGopher, Monster, MonsterName};
 use rand::{thread_rng, Rng};
 use raylib::{
-    ffi::{GetMonitorHeight, GetMonitorWidth},
+    ffi::{GetMonitorHeight, GetMonitorWidth, MeasureText},
     prelude::*,
 };
 
@@ -11,6 +11,7 @@ use num_traits::{float::FloatCore, real::Real, Float, FromPrimitive};
 use state::State;
 use std::{
     error::Error,
+    ffi::CString,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -806,7 +807,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 };
 
                                 if state.sel_camera == Room::Room4 {
-                                    let red = state.duct_heat_timer as u8;
+                                    let red = state.gang.gogopher.duct_heat_timer as u8;
                                     d.draw_texture_pro(
                                         texture,
                                         texture_rect!(texture),
@@ -820,42 +821,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         0.0,
                                         Color::new(255, 255 - red, 255 - red, 255),
                                     );
-                                    d.draw_rectangle(
-                                        state.duct_button.x as i32 + 1,
-                                        state.duct_button.y as i32,
-                                        state.duct_button.width as i32,
-                                        state.duct_button.height as i32,
-                                        Color::GRAY,
-                                    );
-                                    d.draw_rectangle_lines_ex(state.duct_button, 5, Color::BLACK);
-                                    d.draw_text_rec(
-                                        &default_font,
-                                        "HEAT UP",
-                                        Rectangle::new(
-                                            state.duct_button.x + 32.0,
-                                            state.duct_button.y + 32.0,
-                                            state.duct_button.width - 32.0,
-                                            state.duct_button.height - 32.0,
-                                        ),
-                                        48.0,
-                                        3.0,
-                                        true,
-                                        Color::BLACK,
-                                    );
-                                    if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
-                                        && (mx as f32 >= (state.duct_button.x)
-                                            && mx as f32
-                                                <= (state.duct_button.x) + state.duct_button.width
-                                            && my as f32 >= state.duct_button.y
-                                            && my as f32
-                                                <= state.duct_button.y + state.duct_button.height)
-                                    {
-                                        if state.gang.gogopher.room() == &Room::Office {
-                                            state.duct_heat_timer = 300.0;
-                                        } else {
-                                            state.duct_heat_timer = 250.0;
-                                        }
-                                    }
                                 } else {
                                     d.draw_texture_pro(
                                         texture,
@@ -932,45 +897,54 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                                 for i in 0..state.camera_clickables.len() {
                                     let clickable = state.camera_clickables.get_mut(i).unwrap();
-                                    d.draw_rectangle(
-                                        clickable.x as i32 + 1,
-                                        clickable.y as i32 + 1,
-                                        clickable.width as i32 - 1,
-                                        clickable.height as i32 - 1,
-                                        Color::GRAY,
-                                    );
-                                    d.draw_rectangle_lines_ex(*clickable, 2, Color::BLACK);
+                                    d.draw_rectangle_rec(*clickable, Color::LIGHTGRAY);
+                                    d.draw_rectangle_lines_ex(*clickable, 2, Color::GRAY);
 
                                     let text = format!("{}", i + 1);
 
-                                    d.draw_text_rec(
-                                        d.get_font_default(),
-                                        "CAM",
-                                        Rectangle::new(
-                                            clickable.x + 10.0,
-                                            clickable.y + ((clickable.height / 2.0) - 20.0),
-                                            clickable.width - 3.0,
-                                            clickable.height + 3.0,
-                                        ),
-                                        20.0 * d.get_window_scale_dpi().x,
-                                        3.0,
-                                        true,
-                                        Color::BLACK,
-                                    );
-                                    d.draw_text_rec(
-                                        d.get_font_default(),
-                                        text.as_str(),
-                                        Rectangle::new(
-                                            clickable.x + 26.0,
-                                            clickable.y + (clickable.height / 2.0),
-                                            clickable.width - 3.0,
-                                            clickable.height + 3.0,
-                                        ),
-                                        20.0 * d.get_window_scale_dpi().x,
-                                        3.0,
-                                        true,
-                                        Color::BLACK,
-                                    );
+                                    for x in 0..2 {
+                                        d.draw_text_rec(
+                                            d.get_font_default(),
+                                            "CAM",
+                                            Rectangle::new(
+                                                clickable.x + 10.0 + x as f32,
+                                                clickable.y + ((clickable.height / 2.0) - 20.0),
+                                                clickable.width - 3.0,
+                                                clickable.height + 3.0,
+                                            ),
+                                            20.0 * d.get_window_scale_dpi().x,
+                                            3.0,
+                                            true,
+                                            Color::new(50, 50, 50, 255),
+                                        );
+
+                                        let rust_cstring = CString::new(text.clone()).unwrap();
+                                        // Extract null-terminated raw data
+                                        let byteslice = rust_cstring.as_bytes_with_nul();
+
+                                        let r = byteslice[0] as i8;
+                                        let font_size = 20.0 * d.get_window_scale_dpi().x;
+                                        d.draw_text_rec(
+                                            d.get_font_default(),
+                                            &text.as_str(),
+                                            Rectangle::new(
+                                                clickable.x + 10.0 + x as f32, /*+ (unsafe {
+                                                                                   MeasureText(
+                                                                                       rust_cstring.as_ptr(),
+                                                                                       font_size as i32,
+                                                                                   )
+                                                                               } / 2)
+                                                                                   as f32*/
+                                                clickable.y + (clickable.height / 2.0),
+                                                clickable.width - 3.0,
+                                                clickable.height + 3.0,
+                                            ),
+                                            font_size,
+                                            3.0,
+                                            true,
+                                            Color::new(50, 50, 50, 255),
+                                        );
+                                    }
 
                                     if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
                                         && (mx as f32 >= clickable.x
@@ -1011,6 +985,41 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         0.0,
                                         Color::WHITE,
                                     );
+                                }
+                                if state.sel_camera == Room::Room4 && state.gang.gogopher.active() {
+                                    d.draw_rectangle(
+                                        state.duct_button.x as i32 + 1,
+                                        state.duct_button.y as i32,
+                                        state.duct_button.width as i32,
+                                        state.duct_button.height as i32,
+                                        Color::GRAY,
+                                    );
+                                    d.draw_rectangle_lines_ex(state.duct_button, 5, Color::BLACK);
+                                    d.draw_text_rec(
+                                        &default_font,
+                                        "HEAT UP",
+                                        Rectangle::new(
+                                            state.duct_button.x + 32.0,
+                                            state.duct_button.y + 32.0,
+                                            state.duct_button.width - 32.0,
+                                            state.duct_button.height - 32.0,
+                                        ),
+                                        48.0,
+                                        3.0,
+                                        true,
+                                        Color::BLACK,
+                                    );
+                                    if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
+                                        && (mx as f32 >= (state.duct_button.x)
+                                            && mx as f32
+                                                <= (state.duct_button.x) + state.duct_button.width
+                                            && my as f32 >= state.duct_button.y
+                                            && my as f32
+                                                <= state.duct_button.y + state.duct_button.height)
+                                    {
+                                        state.gang.gogopher.duct_heat_timer = 250;
+                                        state.gang.gogopher.duct_timer = 0;
+                                    }
                                 }
                                 if state.sel_camera == Room::Room6 && state.gang.wilber.active() {
                                     let battery_bar_height = get_height() as f32 / 13.5;
@@ -1217,10 +1226,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                             }
                         }
 
-                        if state.duct_heat_timer > 0.0 {
-                            state.duct_heat_timer -= 1.0;
+                        if state.gang.gogopher.duct_heat_timer > 0 {
+                            state.gang.gogopher.duct_heat_timer -= 1;
                         }
-                        state.gang.gogopher.duct_heat_timer = state.duct_heat_timer as u16;
 
                         // Bars
                         let battery_bar_y = get_height() as f32

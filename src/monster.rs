@@ -14,7 +14,7 @@ use crate::{enums::Room, get_height, get_margin, get_width, texture_rect, textur
 pub const PENNY_START: bool = false;
 pub const BEASTIE_START: bool = false;
 pub const WILBER_START: bool = false;
-pub const GO_GOPHER_START: bool = false;
+pub const GO_GOPHER_START: bool = true;
 pub const TUX_START: bool = false;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
@@ -488,7 +488,7 @@ impl GoGopher {
     }
 }
 
-const DUCT_THING: u16 = 1000;
+const DUCT_THING: u16 = 5000;
 
 impl Monster for GoGopher {
     monster_function_macro!();
@@ -496,7 +496,7 @@ impl Monster for GoGopher {
     fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
         match self.room {
             Room::Room4 => {
-                if self.duct_timer >= 1 && self.duct_timer <= (DUCT_THING / 2) {
+                if self.duct_timer > 1 && self.duct_timer <= (DUCT_THING / 2) {
                     Some(&textures.gopher.gopher1)
                 } else if self.duct_timer <= DUCT_THING {
                     Some(&textures.gopher.gopher2)
@@ -525,7 +525,18 @@ impl Monster for GoGopher {
         width_offset: f32,
         height_offset: f32,
     ) {
-        self._draw(&textures, rl, x_offset, -200.0, 1.6, 1.6);
+        if self.room == Room::Office {
+            self._draw(&textures, rl, x_offset, -200.0, 1.6, 1.6);
+        } else {
+            self._draw(
+                &textures,
+                rl,
+                x_offset,
+                y_offset,
+                width_offset,
+                height_offset,
+            )
+        }
     }
     fn try_move(&mut self) {}
     fn step(&mut self) {
@@ -533,7 +544,7 @@ impl Monster for GoGopher {
         if self.duct_heat_timer == 0 {
             match self.room {
                 Room::None => {
-                    let coin_flip = thread_rng().gen_range(0..100);
+                    let coin_flip = thread_rng().gen_range(0..5000);
                     if coin_flip <= 1 {
                         self.set_room(Room::Room4)
                     }
@@ -558,9 +569,7 @@ impl Monster for GoGopher {
                 _ => {}
             }
         } else {
-            if self.duct_timer > 0 {
-                self.duct_timer -= 1;
-            }
+            self.duct_timer = 0;
             self.set_room(Room::None);
         }
     }
