@@ -1159,10 +1159,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                         let inoffice = state.gang.in_room(&Room::Office);
                         for mons in inoffice {
                             if mons.active() {
-                                let duration: &Duration =
-                                    &mons.timer_until_office().elapsed().unwrap();
-                                if duration.as_millis()
-                                    >= (MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000) - 500
+                                let duration: &Duration = &mons.timer_until_office().elapsed()?;
+                                if mons.id() == MonsterName::Tux
+                                    || duration.as_millis()
+                                        >= (MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000) - 500
                                 {
                                     if mons.entered_from_left() {
                                         if !state.left_door_shut {
@@ -1201,7 +1201,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     if duration.as_nanos()
                                         <= MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000000000
                                     {
-                                        if duration.as_nanos() & 256 == 256 {
+                                        if duration.as_nanos() & 256 == 256
+                                            && mons.id() != MonsterName::Tux
+                                        {
                                             d.draw_rectangle(
                                                 get_margin() as i32,
                                                 0,
@@ -1209,10 +1211,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                                                 get_height(),
                                                 Color::BLACK,
                                             );
-                                        }
-                                        if (mons.entered_from_right() && !state.right_door_shut)
-                                            || (mons.entered_from_left() && !state.left_door_shut)
-                                        {
                                         }
                                     }
                                 };

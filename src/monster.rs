@@ -5,7 +5,10 @@ use raylib::{
     math::{Rectangle, Vector2},
     texture::Texture2D,
 };
-use std::time::{Duration, SystemTime};
+use std::{
+    ops::Add,
+    time::{Duration, SystemTime},
+};
 
 use rand::{thread_rng, Rng};
 
@@ -15,13 +18,13 @@ pub const PENNY_START: bool = true;
 pub const BEASTIE_START: bool = true;
 pub const WILBER_START: bool = false;
 pub const GO_GOPHER_START: bool = false;
-pub const TUX_START: bool = false;
+pub const TUX_START: bool = true;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
 
 pub const MONSTER_TIME_OFFICE_WAIT_THING: u64 = 5;
 
-pub const DEFAULT_AI_LEVEL: u8 = 2;
+pub const DEFAULT_AI_LEVEL: u8 = 20;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MonsterName {
@@ -126,7 +129,7 @@ pub trait Monster {
         0.2
     }
 
-    fn try_move(&mut self) {
+    fn _try_move(&mut self) {
         let chance = thread_rng().gen_range(0..20);
         // if any of them are in the hallways, have them move in.
         if self.room() == &Room::Room3 || self.room() == &Room::Room5 {
@@ -136,6 +139,9 @@ pub trait Monster {
                 self.begin_move_timer();
             }
         }
+    }
+    fn try_move(&mut self) {
+        self._try_move();
     }
 
     fn _step(&mut self) {
@@ -182,7 +188,7 @@ pub trait Monster {
         }
     }
 
-    fn room_after_office(&self) -> Room {
+    fn room_after_office(&mut self) -> Room {
         Room::random()
     }
 
@@ -190,7 +196,8 @@ pub trait Monster {
     fn goto_room_after_office(&mut self) -> Room {
         self.set_last_scared_at(SystemTime::now());
         self.set_progress_to_hallway(0);
-        self.set_room(self.room_after_office());
+        let rao = self.room_after_office();
+        self.set_room(rao);
         self.room_after_office()
     }
 }
@@ -285,7 +292,7 @@ impl Monster for Penny {
             _ => self.set_room(self.next_room().clone()),
         }
     }
-    fn room_after_office(&self) -> Room {
+    fn room_after_office(&mut self) -> Room {
         Room::Room2
     }
 }
@@ -386,7 +393,7 @@ impl Monster for Beastie {
             _ => self.set_room(self.next_room().clone()),
         }
     }
-    fn room_after_office(&self) -> Room {
+    fn room_after_office(&mut self) -> Room {
         Room::Room2
     }
 }
@@ -579,6 +586,8 @@ impl Monster for GoGopher {
 pub struct Tux {
     pub time_since_entered_hallway: SystemTime,
     pub time_since_last_attempt: SystemTime,
+    pub can_move: bool,
+    pub checked_camera: Option<SystemTime>,
 }
 
 impl Tux {
@@ -600,6 +609,8 @@ impl Tux {
             time_since_entered_hallway: SystemTime::now(),
             time_since_last_attempt: SystemTime::now(),
             time_in_room: SystemTime::now(),
+            can_move: true,
+            checked_camera: None,
         }
     }
 }
@@ -618,20 +629,20 @@ impl Monster for Tux {
     ) {
         match self.room {
             Room::Room3 | Room::Room5 => {
+                if let None = self.checked_camera {
+                    self.checked_camera = Some(SystemTime::now());
+                }
                 if let Some(t) = self.get_texture(textures) {
-                    let mo = self
-                        .time_since_entered_hallway
-                        .elapsed()
-                        .unwrap()
-                        .as_secs_f32();
+                    let checked_camera = self.checked_camera.unwrap();
+                    let mo = checked_camera.elapsed().unwrap().as_secs_f32();
                     rl.draw_texture_pro(
                         &t,
                         texture_rect!(t),
                         Rectangle::new(
-                            (get_margin() + (get_width() / 2) as f32) - (mo * 600.0),
-                            (get_height() / 2) as f32 - (mo * 500.0),
-                            t.width as f32 + get_width() as f32 * width_offset * (mo * 2.0),
-                            t.height as f32 + get_height() as f32 * height_offset * (mo * 2.0),
+                            (get_margin() + (get_width() / 2) as f32) - (mo * 2400.0),
+                            (get_height() / 2) as f32 - (mo * 2000.0),
+                            t.width as f32 + get_width() as f32 * width_offset * (mo * 4.0),
+                            t.height as f32 + get_height() as f32 * height_offset * (mo * 4.0),
                         ),
                         Vector2::new(t.width as f32 / 2.0, t.height as f32 / 2.0),
                         0.0,
@@ -672,28 +683,15 @@ impl Monster for Tux {
         }
     }
 
-    /*fn begin_move_timer(&mut self) {
-        if self.time_since_last_attempt.elapsed().unwrap().as_secs() <= 1 {
-            return;
-        }
-        self.set_move_timer(5);
-    }
-    fn end_move_timer(&mut self) {
-        if self.time_since_last_attempt.elapsed().unwrap().as_secs() <= 1 {
-            return;
-        }
-        if self.move_timer() >= 1 {
-            self.set_move_timer(self.move_timer() - 1);
-            if self.move_timer() <= 0 {
-                self.go_prev_or_next();
-            }
+    fn begin_move_timer(&mut self) {
+        if !self.can_move {
+            self.set_move_timer(0);
+        } else {
+            self.set_move_timer(5);
         }
     }
-    fn go_prev_or_next(&mut self) {
-        self.next()
-    }*/
     fn next(&mut self) {
-        if self.time_since_last_attempt.elapsed().unwrap().as_secs() <= 0 {
+        if !self.can_move {
             return;
         }
         match self.room {
@@ -705,23 +703,35 @@ impl Monster for Tux {
                     _ => self.set_room(Room::Room5),
                 }
             }
-            Room::Room3 => {
+            Room::Room3 | Room::Room5 => {
+                match self.room {
+                    Room::Room3 => {
+                        self.set_entered_from_left(true);
+                    }
+                    Room::Room5 => {
+                        self.set_entered_from_right(true);
+                    }
+                    _ => {}
+                }
                 self.begin_move_timer();
                 self.set_timer_until_office(SystemTime::now());
-                self.set_entered_from_left(true);
-                self.set_room(Room::Office)
-            }
-            Room::Room5 => {
-                self.begin_move_timer();
-                self.set_timer_until_office(SystemTime::now());
-                self.set_entered_from_right(true);
-                self.set_room(Room::Office)
+                self.set_room(Room::Office);
+                self.can_move = false;
             }
             _ => {}
         }
     }
 
-    fn room_after_office(&self) -> Room {
+    fn step(&mut self) {
+        if let Some(c) = self.checked_camera {
+            if c.elapsed().unwrap().as_secs() >= 2 {
+                self.next();
+            }
+        }
+        self._step();
+    }
+
+    fn room_after_office(&mut self) -> Room {
         Room::Room1
     }
     // Tux instakills.
@@ -783,7 +793,7 @@ impl Monster for Nolok {
             _ => {}
         }
     }
-    fn room_after_office(&self) -> Room {
+    fn room_after_office(&mut self) -> Room {
         Room::None
     }
 }
@@ -847,6 +857,8 @@ pub struct Gang {
     one_am_checked: bool,
     two_am_checked: bool,
     three_am_checked: bool,
+    four_am_checked: bool,
+    five_am_checked: bool,
 
     gopher_active_time: Option<SystemTime>,
 }
@@ -866,6 +878,8 @@ impl Gang {
             one_am_checked: false,
             two_am_checked: false,
             three_am_checked: false,
+            four_am_checked: false,
+            five_am_checked: false,
             gopher_active_time: None,
         }
     }
@@ -933,6 +947,10 @@ impl Gang {
             self.tux.activate();
             self.three_am_checked = true;
             self.ai_level_increase();
+            self.tux.can_move = true;
+        }
+        if (hours == 4 && !self.four_am_checked) || (hours == 5 && !self.four_am_checked) {
+            self.tux.can_move = true;
         }
 
         return hours == 6;
