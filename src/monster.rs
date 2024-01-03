@@ -11,10 +11,10 @@ use rand::{thread_rng, Rng};
 
 use crate::{enums::Room, get_height, get_margin, get_width, texture_rect, textures::Textures};
 
-pub const PENNY_START: bool = false;
-pub const BEASTIE_START: bool = false;
+pub const PENNY_START: bool = true;
+pub const BEASTIE_START: bool = true;
 pub const WILBER_START: bool = false;
-pub const GO_GOPHER_START: bool = true;
+pub const GO_GOPHER_START: bool = false;
 pub const TUX_START: bool = false;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
