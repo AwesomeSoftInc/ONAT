@@ -984,13 +984,13 @@ impl Gang {
     }
 
     fn ai_level_increase(&mut self) {
-        self.penny.ai_level *= 2;
-        self.beastie.ai_level *= 2;
-        self.wilber.ai_level *= 2;
-        self.gogopher.ai_level *= 2;
-        self.tux.ai_level *= 2;
-        self.nolok.ai_level *= 2;
-        self.golden_tux.ai_level *= 2;
+        self.penny.ai_level += 3;
+        self.beastie.ai_level += 3;
+        self.wilber.ai_level += 3;
+        self.gogopher.ai_level += 3;
+        self.tux.ai_level += 3;
+        self.nolok.ai_level += 3;
+        self.golden_tux.ai_level += 3;
     }
 }
 
