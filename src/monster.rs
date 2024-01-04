@@ -18,13 +18,13 @@ pub const PENNY_START: bool = true;
 pub const BEASTIE_START: bool = true;
 pub const WILBER_START: bool = false;
 pub const GO_GOPHER_START: bool = false;
-pub const TUX_START: bool = true;
+pub const TUX_START: bool = false;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
 
 pub const MONSTER_TIME_OFFICE_WAIT_THING: u64 = 5;
 
-pub const DEFAULT_AI_LEVEL: u8 = 20;
+pub const DEFAULT_AI_LEVEL: u8 = 2;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MonsterName {
