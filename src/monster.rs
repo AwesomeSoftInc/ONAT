@@ -5,26 +5,23 @@ use raylib::{
     math::{Rectangle, Vector2},
     texture::Texture2D,
 };
-use std::{
-    ops::Add,
-    time::{Duration, SystemTime},
-};
+use std::time::{Duration, SystemTime};
 
 use rand::{thread_rng, Rng};
 
 use crate::{enums::Room, get_height, get_margin, get_width, texture_rect, textures::Textures};
 
-pub const PENNY_START: bool = true;
-pub const BEASTIE_START: bool = true;
+pub const PENNY_START: bool = false;
+pub const BEASTIE_START: bool = false;
 pub const WILBER_START: bool = false;
 pub const GO_GOPHER_START: bool = false;
-pub const TUX_START: bool = false;
+pub const TUX_START: bool = true;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
 
 pub const MONSTER_TIME_OFFICE_WAIT_THING: u64 = 5;
 
-pub const DEFAULT_AI_LEVEL: u8 = 2;
+pub const DEFAULT_AI_LEVEL: u8 = 20;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MonsterName {
@@ -68,7 +65,7 @@ pub trait Monster {
             self.set_move_timer(self.move_timer() - 1);
             if self.move_timer() <= 0 {
                 self.reset_time_in_room();
-                self.go_prev_or_next();
+                self.next();
             }
         }
     }
@@ -151,41 +148,19 @@ pub trait Monster {
         self._step();
     }
 
-    fn go_prev_or_next(&mut self) {
-        let b = thread_rng().gen_range(0..2);
-        if b == 0 {
-            self.prev();
-        } else {
-            self.next();
-        }
-    }
-
-    fn prev(&mut self) {
-        match self.room().prev() {
-            crate::enums::RoomOption::Room(a) => {
-                self.set_room(a);
-            }
-            crate::enums::RoomOption::Multiple(a) => {
-                let rnd = thread_rng().gen_range(0..a.len());
-                self.set_room(a.get(rnd).unwrap().clone());
-            }
-            crate::enums::RoomOption::None => {
-                self.next();
-            }
-        }
-    }
-
-    fn next(&mut self) {
+    fn _next(&mut self) -> Room {
         match self.room().next() {
-            crate::enums::RoomOption::Room(a) => {
-                self.set_room(a);
-            }
+            crate::enums::RoomOption::Room(a) => a,
             crate::enums::RoomOption::Multiple(a) => {
                 let rnd = thread_rng().gen_range(0..a.len());
-                self.set_room(a.get(rnd).unwrap().clone());
+                a.get(rnd).unwrap().clone()
             }
-            crate::enums::RoomOption::None => {}
+            crate::enums::RoomOption::None => Room::None,
         }
+    }
+    fn next(&mut self) {
+        let r = self._next();
+        self.set_room(r);
     }
 
     fn room_after_office(&mut self) -> Room {
@@ -257,25 +232,9 @@ impl Monster for Penny {
             None
         }
     }
-    fn prev(&mut self) {
-        self.next();
-    }
     fn next(&mut self) {
-        self.set_next_room(match self.room() {
-            Room::Room1 => Room::Room2,
-            Room::Room2 => {
-                if !self.door_shut {
-                    Room::Room3
-                } else {
-                    Room::Room1
-                }
-            }
-            Room::Room3 => Room::Office,
-            _ => {
-                self.goto_room_after_office();
-                return;
-            }
-        });
+        let n = self._next();
+        self.set_next_room(n);
         match self.next_room() {
             Room::Room3 | Room::Office => {
                 self.progress_to_hallway += 1;
@@ -353,30 +312,13 @@ impl Monster for Beastie {
             None
         }
     }
-    fn prev(&mut self) {
-        self.next();
-    }
-
     #[cfg(feature = "beastie_always_move")]
     fn try_move(&mut self) {
         self.next();
     }
     fn next(&mut self) {
-        self.set_next_room(match self.room() {
-            Room::Room1 => Room::Room2,
-            Room::Room2 => {
-                if !self.door_shut {
-                    Room::Room5
-                } else {
-                    Room::Room1
-                }
-            }
-            Room::Room5 => Room::Office,
-            _ => {
-                self.goto_room_after_office();
-                return;
-            }
-        });
+        let n = self._next();
+        self.set_next_room(n);
         match self.next_room() {
             Room::Room5 | Room::Office => {
                 self.progress_to_hallway += 1;
@@ -587,6 +529,7 @@ pub struct Tux {
     pub time_since_entered_hallway: SystemTime,
     pub time_since_last_attempt: SystemTime,
     pub can_move: bool,
+    pub moved_to_hallway_at: SystemTime,
     pub checked_camera: Option<SystemTime>,
 }
 
@@ -610,6 +553,8 @@ impl Tux {
             time_since_last_attempt: SystemTime::now(),
             time_in_room: SystemTime::now(),
             can_move: true,
+
+            moved_to_hallway_at: SystemTime::now(),
             checked_camera: None,
         }
     }
@@ -702,8 +647,18 @@ impl Monster for Tux {
                     0 => self.set_room(Room::Room3),
                     _ => self.set_room(Room::Room5),
                 }
+                self.moved_to_hallway_at = SystemTime::now();
             }
             Room::Room3 | Room::Room5 => {
+                if self.moved_to_hallway_at.elapsed().unwrap().as_secs() <= 10 {
+                    if let Some(c) = self.checked_camera {
+                        if c.elapsed().unwrap().as_secs() <= 1 {
+                            return;
+                        }
+                    } else {
+                        return;
+                    }
+                }
                 match self.room {
                     Room::Room3 => {
                         self.set_entered_from_left(true);
@@ -859,8 +814,6 @@ pub struct Gang {
     three_am_checked: bool,
     four_am_checked: bool,
     five_am_checked: bool,
-
-    gopher_active_time: Option<SystemTime>,
 }
 
 impl Gang {
@@ -880,7 +833,6 @@ impl Gang {
             three_am_checked: false,
             four_am_checked: false,
             five_am_checked: false,
-            gopher_active_time: None,
         }
     }
 
@@ -892,6 +844,7 @@ impl Gang {
         self.penny.step();
         self.beastie.step();
         self.tux.step();
+        self.gogopher.step();
 
         // every few seconds (one in game minute), generate a random number between 1 and 20, for each enemy. if the animatronic's current ai level is greater/equal to the number, the animatronic moves.
         if self.since_last_move.elapsed().unwrap().as_secs() >= 5 {
@@ -921,14 +874,6 @@ impl Gang {
         } else {
             self.moved = true;
         }
-        // gogopher gets special permission to try and move every tick
-        if self.gogopher.active {
-            if let Some(_) = self.gopher_active_time {
-                self.gogopher.step();
-            } else {
-                self.gopher_active_time = Some(SystemTime::now());
-            }
-        }
 
         // 1 AM
         if hours == 1 && !self.one_am_checked {
@@ -949,8 +894,11 @@ impl Gang {
             self.ai_level_increase();
             self.tux.can_move = true;
         }
-        if (hours == 4 && !self.four_am_checked) || (hours == 5 && !self.four_am_checked) {
+        if (hours == 4 && !self.four_am_checked) || (hours == 5 && !self.five_am_checked) {
             self.tux.can_move = true;
+        }
+        if hours == 5 && !self.five_am_checked {
+            self.tux.ai_level = 10;
         }
 
         return hours == 6;
@@ -988,8 +936,8 @@ impl Gang {
         self.beastie.ai_level += 3;
         self.wilber.ai_level += 3;
         self.gogopher.ai_level += 3;
-        self.tux.ai_level += 3;
-        self.nolok.ai_level += 3;
+        //self.tux.ai_level += 3;       // Tux's AI level does not increase naturally, it bumps at 5AM
+        //self.nolok.ai_level += 3;     // Nolok is cut.
         self.golden_tux.ai_level += 3;
     }
 }
