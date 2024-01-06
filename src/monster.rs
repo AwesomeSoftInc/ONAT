@@ -13,15 +13,15 @@ use crate::{enums::Room, get_height, get_margin, get_width, texture_rect, textur
 
 pub const PENNY_START: bool = true;
 pub const BEASTIE_START: bool = true;
-pub const WILBER_START: bool = true;
-pub const GO_GOPHER_START: bool = true;
-pub const TUX_START: bool = true;
+pub const WILBER_START: bool = false;
+pub const GO_GOPHER_START: bool = false;
+pub const TUX_START: bool = false;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
 
 pub const MONSTER_TIME_OFFICE_WAIT_THING: u64 = 5;
 
-pub const DEFAULT_AI_LEVEL: u8 = 10;
+pub const DEFAULT_AI_LEVEL: u8 = 2;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MonsterName {
@@ -921,7 +921,7 @@ impl Gang {
     }
 
     pub fn hours(&mut self, time: Duration) -> u64 {
-        (time.as_secs() / 200) + 3
+        (time.as_secs() / 200)
     }
     pub fn step(&mut self, time: Duration) -> bool {
         let hours = self.hours(time);
