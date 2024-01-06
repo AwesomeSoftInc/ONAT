@@ -21,7 +21,7 @@ pub const GOLDEN_TUX_START: bool = false;
 
 pub const MONSTER_TIME_OFFICE_WAIT_THING: u64 = 5;
 
-pub const DEFAULT_AI_LEVEL: u8 = 20;
+pub const DEFAULT_AI_LEVEL: u8 = 2;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MonsterName {
@@ -136,7 +136,7 @@ pub trait Monster {
         0.2
     }
 
-    fn _try_move(&mut self) {
+    fn _try_move(&mut self) -> bool {
         let chance = thread_rng().gen_range(0..20);
         // if any of them are in the hallways, have them move in.
         if self.room() == Room::Room3 || self.room() == Room::Room5 {
@@ -144,11 +144,13 @@ pub trait Monster {
         } else {
             if chance <= self.ai_level() {
                 self.begin_move_timer();
+                return true;
             }
         }
+        false
     }
-    fn try_move(&mut self) {
-        self._try_move();
+    fn try_move(&mut self) -> bool {
+        self._try_move()
     }
 
     fn _step(&mut self) {
@@ -556,7 +558,9 @@ impl Monster for GoGopher {
             )
         }
     }
-    fn try_move(&mut self) {}
+    fn try_move(&mut self) -> bool {
+        false
+    }
     fn step(&mut self) {
         self._step();
         if self.duct_heat_timer == 0 {
@@ -721,12 +725,12 @@ impl Monster for Tux {
                 self.moved_to_hallway_at = SystemTime::now();
             }
             Room::Room3 | Room::Room5 => {
-                if self.moved_to_hallway_at.elapsed().unwrap().as_secs() <= 10 {
-                    if let Some(c) = self.checked_camera {
-                        if c.elapsed().unwrap().as_secs() <= 1 {
-                            return;
-                        }
-                    } else {
+                if let Some(c) = self.checked_camera {
+                    if c.elapsed().unwrap().as_secs() <= 2 {
+                        return;
+                    }
+                } else {
+                    if self.moved_to_hallway_at.elapsed().unwrap().as_secs() <= 10 {
                         return;
                     }
                 }
@@ -754,6 +758,7 @@ impl Monster for Tux {
                 self.next();
             }
         }
+
         self._step();
     }
 
@@ -795,7 +800,7 @@ impl Nolok {
 impl Monster for Nolok {
     monster_function_macro!();
 
-    fn try_move(&mut self) {
+    fn try_move(&mut self) -> bool {
         match self.room() {
             Room::None => {
                 let coin_flip = thread_rng().gen_range(0..1);
@@ -806,19 +811,26 @@ impl Monster for Nolok {
                     } else {
                         self.set_room(Room::Room5);
                     }
+                    return true;
+                } else {
+                    return false;
                 }
             }
             Room::Room3 => {
                 self.set_entered_from_left(true);
                 self.set_room(Room::Office);
                 self.set_last_scared_at(SystemTime::now());
+                return true;
             }
             Room::Room5 => {
                 self.set_entered_from_right(true);
                 self.set_room(Room::Office);
                 self.set_last_scared_at(SystemTime::now());
+                return true;
             }
-            _ => {}
+            _ => {
+                return false;
+            }
         }
     }
     fn room_after_office(&mut self) -> Room {
@@ -888,6 +900,7 @@ pub struct Gang {
     three_am_checked: bool,
     four_am_checked: bool,
     five_am_checked: bool,
+    pub tux_moved: bool,
 }
 
 impl Gang {
@@ -907,6 +920,7 @@ impl Gang {
             three_am_checked: false,
             four_am_checked: false,
             five_am_checked: false,
+            tux_moved: false,
         }
     }
 
@@ -939,7 +953,9 @@ impl Gang {
             }
 
             if self.tux.active {
-                self.tux.try_move();
+                if self.tux.try_move() {
+                    self.tux_moved = true;
+                }
             }
 
             if self.nolok.active {

@@ -179,6 +179,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                     get_width_unaltered() as f32 / 2.0,
                     get_height() as f32 / 2.0,
                 ));
+                rl.hide_cursor();
+            } else {
+                rl.show_cursor();
             }
             let mut d_ = rl.begin_drawing(&thread);
             match state.screen {
@@ -248,6 +251,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         state = State::new();
                         state.screen = Screen::Office;
                         state.win_time = SystemTime::now();
+                        state.going_to_office_from_title = false;
                     }
                 }
                 Screen::GameOver => {
@@ -604,10 +608,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                                                 state.left_door_shut = true;
                                                 state.left_door_last_shut = SystemTime::now();
                                                 state.can_open_left_door = false;
+                                                if state.gang.tux.room() == Room::Room3 {
+                                                    state.gang.tux.set_room(Room::Room1);
+                                                }
                                             } else if i == 1 && state.can_open_right_door {
                                                 state.right_door_shut = true;
                                                 state.right_door_last_shut = SystemTime::now();
                                                 state.can_open_right_door = false;
+                                                if state.gang.tux.room() == Room::Room5 {
+                                                    state.gang.tux.set_room(Room::Room1);
+                                                }
                                             }
                                         }
                                     }
@@ -1218,6 +1228,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                         }
                         if let Screen::YouWin = state.screen {
                             continue;
+                        }
+
+                        if state.gang.tux_moved {
+                            state.gang.tux_moved = false;
+                            match state.gang.tux.room() {
+                                Room::Room3 => {
+                                    state.left_door_shut = false;
+                                }
+                                Room::Room5 => {
+                                    state.right_door_shut = false;
+                                }
+                                _ => {}
+                            }
                         }
 
                         let mut is_over = state.gang.step(cur_time);
