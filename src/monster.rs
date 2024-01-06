@@ -11,10 +11,10 @@ use rand::{thread_rng, Rng};
 
 use crate::{enums::Room, get_height, get_margin, get_width, texture_rect, textures::Textures};
 
-pub const PENNY_START: bool = true;
+pub const PENNY_START: bool = false;
 pub const BEASTIE_START: bool = false;
 pub const WILBER_START: bool = false;
-pub const GO_GOPHER_START: bool = false;
+pub const GO_GOPHER_START: bool = true;
 pub const TUX_START: bool = false;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
@@ -497,7 +497,7 @@ impl GoGopher {
     }
 }
 
-const DUCT_THING: u16 = 5000;
+const DUCT_THING: u16 = 10000;
 
 impl Monster for GoGopher {
     monster_function_macro!();
@@ -535,7 +535,7 @@ impl Monster for GoGopher {
         height_offset: f32,
     ) {
         if self.room == Room::Office {
-            self._draw(&textures, rl, x_offset, -200.0, 1.6, 1.6);
+            self._draw(&textures, rl, x_offset + 75.0, -200.0, 1.6, 1.6);
         } else {
             self._draw(
                 &textures,
@@ -911,7 +911,7 @@ impl Gang {
         self.tux.step();
         self.gogopher.step();
 
-        // every few seconds (one in game minute), generate a random number between 1 and 20, for each enemy. if the animatronic's current ai level is greater/equal to the number, the animatronic moves.
+        // every few seconds, generate a random number between 1 and 20, for each enemy. if the animatronic's current ai level is greater/equal to the number, the animatronic moves.
         if self.since_last_move.elapsed().unwrap().as_secs() >= 5 {
             self.since_last_move = SystemTime::now();
             if self.penny.active {

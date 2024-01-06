@@ -344,7 +344,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     mons.draw(
                                         &textures,
                                         &mut d,
-                                        ((get_width() as f32 + get_margin()) as i32 / 4) as f32
+                                        ((get_width() as f32 + get_margin()) as i32 / 5) as f32
                                             - state.bg_offset_x,
                                         0.0,
                                         1.6,
