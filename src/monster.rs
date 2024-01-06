@@ -21,7 +21,7 @@ pub const GOLDEN_TUX_START: bool = false;
 
 pub const MONSTER_TIME_OFFICE_WAIT_THING: u64 = 5;
 
-pub const DEFAULT_AI_LEVEL: u8 = 2;
+pub const DEFAULT_AI_LEVEL: u8 = 20;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MonsterName {
@@ -189,6 +189,7 @@ pub trait Monster {
 
 trait HallwayMonster: Monster {
     fn hallway_room(&self) -> Room;
+    fn set_door(&mut self);
 
     fn _next(&mut self) -> Room {
         match self.room().next() {
@@ -226,7 +227,7 @@ trait HallwayMonster: Monster {
                 let n = HallwayMonster::_next(self);
                 if n == Room::Office {
                     self.set_timer_until_office(SystemTime::now());
-                    self.set_entered_from_right(true);
+                    self.set_door();
                 }
                 self.set_room(n);
                 self.set_progress_to_hallway(0);
@@ -313,6 +314,10 @@ impl HallwayMonster for Penny {
     fn hallway_room(&self) -> Room {
         Room::Room3
     }
+
+    fn set_door(&mut self) {
+        self.set_entered_from_left(true);
+    }
 }
 
 #[monster_derive]
@@ -395,6 +400,10 @@ impl Monster for Beastie {
 impl HallwayMonster for Beastie {
     fn hallway_room(&self) -> Room {
         Room::Room5
+    }
+
+    fn set_door(&mut self) {
+        self.set_entered_from_right(true);
     }
 }
 

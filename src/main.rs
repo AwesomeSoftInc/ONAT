@@ -176,7 +176,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             };
             if state.going_to_office_from_title {
                 rl.set_mouse_position(Vector2::new(
-                    get_width() as f32 / 2.0,
+                    get_width_unaltered() as f32 / 2.0,
                     get_height() as f32 / 2.0,
                 ));
             }
@@ -1233,14 +1233,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                             continue;
                         }
 
-                        let sc = (scroll_amount + (mx - get_width() / 2) as f32) / 24.0;
-                        if mx <= (get_width() / 2) {
+                        let sc = (scroll_amount + (mx - get_width_unaltered() / 2) as f32) / 24.0;
+                        if mx <= (get_width_unaltered() / 2) {
                             if state.bg_offset_x > 0.0 {
                                 state.bg_offset_x += sc;
                             }
                         }
-                        if mx >= get_width() - (get_width() / 2) {
-                            if state.bg_offset_x < (get_width() as f32) / 1.5 {
+                        if mx >= get_width_unaltered() - (get_width_unaltered() / 2) {
+                            if state.bg_offset_x < (get_width() as f32) / 1.75 {
                                 state.bg_offset_x += sc;
                             }
                         }
