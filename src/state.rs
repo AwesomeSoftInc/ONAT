@@ -32,6 +32,7 @@ pub struct State {
     pub camera_booting_timer: f32,
 
     pub gameover_time: SystemTime,
+    pub win_time: SystemTime,
 
     pub camera_last_changed: SystemTime,
 
@@ -55,6 +56,9 @@ pub struct State {
 
     pub going_to_office: bool,
     pub going_to_camera: bool,
+    pub going_to_office_from_title: bool,
+    pub title_clicked: SystemTime,
+    pub going_to_youwin: bool,
 
     pub jumpscare_counter: usize,
     pub getting_jumpscared: bool,
@@ -145,6 +149,7 @@ impl State {
         let camera_booting_timer = 0.0;
 
         let gameover_time = SystemTime::now();
+        let win_time = SystemTime::now();
 
         let can_open_left_door = true;
         let can_open_right_door = true;
@@ -178,6 +183,7 @@ impl State {
             camera_booting,
             camera_booting_timer,
             gameover_time,
+            win_time,
             camera_last_changed,
             can_open_left_door,
             can_open_right_door,
@@ -193,6 +199,9 @@ impl State {
             skinman_appeared,
             going_to_camera: false,
             going_to_office: false,
+            going_to_office_from_title: false,
+            going_to_youwin: false,
+            title_clicked: SystemTime::now(),
             jumpscare_counter: 0,
             getting_jumpscared: false,
             jumpscarer: MonsterName::None,

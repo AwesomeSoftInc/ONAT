@@ -107,7 +107,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     set_trace_log(TraceLogLevel::LOG_ERROR);
 
     get_width();
-
     let (mut rl, thread) = raylib::init()
         .size(unsafe { SCREEN.width }, get_height())
         .fullscreen()
@@ -131,6 +130,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut framebuffer =
         rl.load_render_texture(&thread, get_width_unaltered() as u32, get_height() as u32)?;
     state.gameover_time = SystemTime::now();
+
     while !rl.window_should_close() {
         if state.timer.elapsed()?.as_millis() >= 1000 / 60 {
             state.timer = SystemTime::now();
@@ -150,35 +150,104 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let tex = rl.load_texture_from_image(&thread, &img)?;
                     (img, tex)
                 }
+                Screen::TitleScreen => {
+                    let img = Image::gen_image_white_noise(
+                        get_width_unaltered() / 6,
+                        get_height() / 6,
+                        0.1,
+                    );
+                    let tex = rl.load_texture_from_image(&thread, &img)?;
+                    (img, tex)
+                }
                 _ => {
                     let img = Image::gen_image_white_noise(1, 1, 0.0);
                     let tex = rl.load_texture_from_image(&thread, &img)?;
                     (img, tex)
                 }
             };
-
+            let cur_time = state.ingame_time.duration_since(UNIX_EPOCH)?;
+            let num = {
+                let ct = state.gang.hours(cur_time);
+                if ct == 0 {
+                    12
+                } else {
+                    ct
+                }
+            };
+            if state.going_to_office_from_title {
+                rl.set_mouse_position(Vector2::new(
+                    get_width() as f32 / 2.0,
+                    get_height() as f32 / 2.0,
+                ));
+            }
             let mut d_ = rl.begin_drawing(&thread);
             match state.screen {
                 // for some fucken reason we can't draw some of these on a texture? idfk
                 Screen::TitleScreen => {
                     d_.clear_background(Color::BLACK);
+                    let tuxtex = match thread_rng().gen_range(0..150) {
+                        0 => &textures.title2,
+                        1 => &textures.title3,
+                        2 => &textures.title4,
+                        3 => &textures.title5,
+                        _ => &textures.title1,
+                    };
+                    let alpha = {
+                        if state.going_to_office_from_title {
+                            255.0
+                                - (state.title_clicked.elapsed()?.as_millis() as f32
+                                    / (5000.0 / 255.0))
+                        } else {
+                            255.0
+                        }
+                    } as u8;
+                    d_.draw_texture_pro(
+                        &tuxtex,
+                        texture_rect!(tuxtex),
+                        Rectangle::new(get_margin(), 0.0, get_width() as f32, get_height() as f32),
+                        Vector2::new(0.0, 0.0),
+                        0.0,
+                        Color::new(255, 255, 255, alpha),
+                    );
+
                     d_.draw_text(
-                        "One Night at Tux",
+                        "A Moderately\nUncomfortable\nNight\nwith Tux",
                         get_margin() as i32 + 5,
                         5,
-                        32,
-                        Color::WHITE,
+                        64,
+                        Color::new(255, 255, 255, alpha),
                     );
                     d_.draw_text(
                         "Click anywhere to start",
                         get_margin() as i32 + 5,
-                        48,
+                        get_height() - 48,
                         32,
-                        Color::WHITE,
+                        Color::new(255, 255, 255, alpha),
+                    );
+
+                    d_.draw_texture_pro(
+                        &tex,
+                        texture_rect!(tex),
+                        Rectangle::new(0.0, 0.0, get_width_unaltered() as f32, get_height() as f32),
+                        Vector2::new(0.0, 0.0),
+                        0.0,
+                        Color::new(255, 255, 255, alpha / 8),
                     );
                     if d_.is_mouse_button_pressed(MouseButton::MOUSE_LEFT_BUTTON) {
+                        state.going_to_office_from_title = true;
+                        if !d_.is_key_down(KeyboardKey::KEY_LEFT_SHIFT) {
+                            state.title_clicked = SystemTime::now();
+                        } else {
+                            state.title_clicked = UNIX_EPOCH;
+                        }
+                    }
+
+                    if state.going_to_office_from_title
+                        && state.title_clicked.elapsed()?.as_secs() >= 5 + 1
+                    {
                         state = State::new();
                         state.screen = Screen::Office;
+                        state.win_time = SystemTime::now();
                     }
                 }
                 Screen::GameOver => {
@@ -194,7 +263,98 @@ fn main() -> Result<(), Box<dyn Error>> {
                         state.screen = Screen::TitleScreen;
                     }
                 }
+                Screen::YouWin => {
+                    d_.clear_background(Color::BLACK);
+                    let fb_a = {
+                        if state.screen == Screen::YouWin {
+                            255.0 - (state.win_time.elapsed()?.as_secs_f32() * 128.0)
+                        } else {
+                            255.0
+                        }
+                    } as u8;
 
+                    let font_size = get_width() / 7;
+                    let x = get_width() / 2;
+                    let y = (get_height() / 2) - (font_size / 2);
+                    let y_ = {
+                        if state.win_time.elapsed()?.as_secs() < 1 {
+                            y as f32
+                        } else {
+                            let new = y as f32
+                                - ((state.win_time.elapsed()?.as_millis() - 1000) as f32 / 25.0);
+                            if new <= (y - font_size) as f32 {
+                                y as f32 - font_size as f32
+                            } else {
+                                new
+                            }
+                        }
+                    };
+
+                    d_.draw_text_ex(
+                        &default_font,
+                        format!("{}", num).as_str(),
+                        Vector2::new(x as f32 - (8.0 * 5.0), y_),
+                        font_size as f32,
+                        3.0,
+                        Color::WHITE,
+                    );
+                    d_.draw_text_ex(
+                        &default_font,
+                        format!("{}", num + 1).as_str(),
+                        Vector2::new(x as f32 - (8.0 * 5.0), y_ + (font_size as f32 * 1.0)),
+                        font_size as f32,
+                        3.0,
+                        Color::WHITE,
+                    );
+
+                    d_.draw_text(" :00AM", x, y, font_size, Color::WHITE);
+                    d_.draw_rectangle(
+                        0,
+                        (y - font_size) + 16,
+                        get_width_unaltered(),
+                        font_size,
+                        Color::BLACK,
+                    );
+                    d_.draw_rectangle(
+                        0,
+                        (y + font_size) - 32,
+                        get_width_unaltered(),
+                        font_size,
+                        Color::BLACK,
+                    );
+                    d_.draw_texture_pro(
+                        &framebuffer,
+                        Rectangle::new(
+                            framebuffer.width() as f32,
+                            0.0,
+                            -framebuffer.width() as f32,
+                            framebuffer.height() as f32,
+                        ),
+                        Rectangle::new(
+                            (framebuffer.width() as f32 / 2.0),
+                            (framebuffer.height() as f32 / 2.0),
+                            framebuffer.width() as f32,
+                            framebuffer.height() as f32,
+                        ),
+                        Vector2::new(
+                            framebuffer.width() as f32 / 2.0,
+                            framebuffer.height() as f32 / 2.0,
+                        ),
+                        180.0,
+                        Color::new(255, 255, 255, fb_a),
+                    );
+                    d_.draw_rectangle(0, 0, get_margin() as i32, get_height() as i32, Color::BLACK);
+                    d_.draw_rectangle(
+                        get_width() + get_margin() as i32 + 1,
+                        0,
+                        get_margin() as i32,
+                        get_height() as i32,
+                        Color::BLACK,
+                    );
+                    if state.win_time.elapsed()?.as_secs() >= 10 {
+                        state.screen = Screen::TitleScreen;
+                    }
+                }
                 _ => {
                     {
                         d_.clear_background(Color::BLACK);
@@ -206,9 +366,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                         let my = d.get_mouse_y();
 
                         match state.screen {
-                            Screen::YouWin => {
-                                d.clear_background(Color::GREEN);
-                            }
                             Screen::Office => {
                                 #[cfg(not(feature = "no_camera_timer"))]
                                 if state.camera_timer <= 100.0 {
@@ -344,8 +501,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     mons.draw(
                                         &textures,
                                         &mut d,
-                                        ((get_width() as f32 + get_margin()) as i32 / 5) as f32
-                                            - state.bg_offset_x,
+                                        get_margin() - state.bg_offset_x,
                                         0.0,
                                         1.6,
                                         1.0,
@@ -1064,20 +1220,18 @@ fn main() -> Result<(), Box<dyn Error>> {
                             continue;
                         }
 
-                        let cur_time = state.ingame_time.duration_since(UNIX_EPOCH)?;
-                        let is_over = state.gang.step(cur_time);
-                        if is_over {
+                        let mut is_over = state.gang.step(cur_time);
+
+                        #[cfg(debug_assertions)]
+                        if d.is_key_released(KeyboardKey::KEY_BACKSPACE) {
+                            is_over = true;
+                        }
+
+                        if is_over && state.screen != Screen::YouWin {
                             state.screen = Screen::YouWin;
+                            state.win_time = SystemTime::now();
                             continue;
                         }
-                        let num = {
-                            let ct = cur_time.as_secs() / 200;
-                            if ct == 0 {
-                                12
-                            } else {
-                                ct
-                            }
-                        };
 
                         let sc = (scroll_amount + (mx - get_width() / 2) as f32) / 24.0;
                         if mx <= (get_width() / 2) {
@@ -1086,7 +1240,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             }
                         }
                         if mx >= get_width() - (get_width() / 2) {
-                            if state.bg_offset_x < (get_width() as f32) / 2.0 {
+                            if state.bg_offset_x < (get_width() as f32) / 1.5 {
                                 state.bg_offset_x += sc;
                             }
                         }
@@ -1137,7 +1291,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                         let time = format!("{}:00AM", num);
                         d.draw_text(
                             time.as_str(),
-                            get_margin() as i32 + get_width() - (time.len() as f32 * 50.0) as i32,
+                            get_margin() as i32 + get_width()
+                                - (time.len() as f32 * {
+                                    if state.gang.hours(cur_time) == 0 {
+                                        50.0
+                                    } else {
+                                        56.0
+                                    }
+                                }) as i32,
                             0,
                             (64.0 * get_ratio()) as i32,
                             Color::WHITE,
@@ -1234,7 +1395,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                             - (get_height() as f32 / 13.5)
                             - (get_height() as f32 / 64.0);
                         let battery_bar_height = get_height() as f32 / 13.5;
-                        let width = (165.0 * (state.camera_timer / 100.0)) as i32 - 4;
+                        let width =
+                            ((get_width() as f32 / 7.8) * (state.camera_timer / 100.0)) as i32 - 4;
                         let color_width = (200.0 * (state.camera_timer / 100.0)) as u8;
 
                         d.draw_rectangle_gradient_h(
@@ -1288,14 +1450,23 @@ fn main() -> Result<(), Box<dyn Error>> {
                         180.0 + rot,
                         Color::WHITE,
                     );
-                    d_.draw_rectangle(0, 0, get_margin() as i32, get_height() as i32, Color::BLACK);
-                    d_.draw_rectangle(
-                        get_width() + get_margin() as i32 + 1,
-                        0,
-                        get_margin() as i32,
-                        get_height() as i32,
-                        Color::BLACK,
-                    );
+
+                    if state.screen != Screen::TitleScreen {
+                        d_.draw_rectangle(
+                            0,
+                            0,
+                            get_margin() as i32,
+                            get_height() as i32,
+                            Color::BLACK,
+                        );
+                        d_.draw_rectangle(
+                            get_width() + get_margin() as i32 + 1,
+                            0,
+                            get_margin() as i32,
+                            get_height() as i32,
+                            Color::BLACK,
+                        );
+                    }
                 }
             }
         }
