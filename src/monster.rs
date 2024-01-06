@@ -13,15 +13,15 @@ use crate::{enums::Room, get_height, get_margin, get_width, texture_rect, textur
 
 pub const PENNY_START: bool = true;
 pub const BEASTIE_START: bool = true;
-pub const WILBER_START: bool = false;
-pub const GO_GOPHER_START: bool = false;
-pub const TUX_START: bool = false;
+pub const WILBER_START: bool = true;
+pub const GO_GOPHER_START: bool = true;
+pub const TUX_START: bool = true;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
 
 pub const MONSTER_TIME_OFFICE_WAIT_THING: u64 = 5;
 
-pub const DEFAULT_AI_LEVEL: u8 = 2;
+pub const DEFAULT_AI_LEVEL: u8 = 10;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MonsterName {
@@ -379,10 +379,6 @@ impl Monster for Beastie {
             None
         }
     }
-    #[cfg(feature = "beastie_always_move")]
-    fn try_move(&mut self) {
-        self.next();
-    }
     fn _next(&mut self) -> Room {
         HallwayMonster::_next(self)
     }
@@ -718,19 +714,19 @@ impl Monster for Tux {
             Room::Room1 => {
                 self.time_since_entered_hallway = SystemTime::now();
                 self.time_since_last_attempt = SystemTime::now();
-                match thread_rng().gen_range(0..1) as u64 {
+                match thread_rng().gen_range(0..2) as u64 {
                     0 => self.set_room(Room::Room3),
                     _ => self.set_room(Room::Room5),
                 }
                 self.moved_to_hallway_at = SystemTime::now();
             }
             Room::Room3 | Room::Room5 => {
-                if let Some(c) = self.checked_camera {
-                    if c.elapsed().unwrap().as_secs() <= 2 {
-                        return;
-                    }
-                } else {
-                    if self.moved_to_hallway_at.elapsed().unwrap().as_secs() <= 10 {
+                if self.moved_to_hallway_at.elapsed().unwrap().as_secs() <= 10 {
+                    if let Some(c) = self.checked_camera {
+                        if c.elapsed().unwrap().as_secs() <= 2 {
+                            return;
+                        }
+                    } else {
                         return;
                     }
                 }
@@ -925,30 +921,28 @@ impl Gang {
     }
 
     pub fn hours(&mut self, time: Duration) -> u64 {
-        time.as_secs() / 200
+        (time.as_secs() / 200) + 3
     }
     pub fn step(&mut self, time: Duration) -> bool {
         let hours = self.hours(time);
         self.penny.step();
         self.beastie.step();
         self.tux.step();
-        self.gogopher.step();
+        if self.gogopher.active() {
+            self.gogopher.step();
+        }
 
         // every few seconds, generate a random number between 1 and 20, for each enemy. if the animatronic's current ai level is greater/equal to the number, the animatronic moves.
         if self.since_last_move.elapsed().unwrap().as_secs() >= 5 {
             self.since_last_move = SystemTime::now();
             if self.penny.active {
-                if !self.penny.entered_from_left() {
-                    self.penny.try_move();
-                }
+                self.penny.try_move();
             }
             if self.beastie.active {
-                if !self.beastie.entered_from_right() {
-                    if self.beastie.last_scared_at().elapsed().unwrap().as_secs() >= 30 {
-                        self.beastie.begin_move_timer();
-                    } else {
-                        self.beastie.try_move();
-                    }
+                if self.beastie.last_scared_at().elapsed().unwrap().as_secs() >= 30 {
+                    self.beastie.begin_move_timer();
+                } else {
+                    self.beastie.try_move();
                 }
             }
 
@@ -984,10 +978,11 @@ impl Gang {
             self.ai_level_increase();
             self.tux.can_move = true;
         }
-        if (hours == 4 && !self.four_am_checked) || (hours == 5 && !self.five_am_checked) {
+        if hours == 4 && !self.four_am_checked {
             self.tux.can_move = true;
         }
         if hours == 5 && !self.five_am_checked {
+            self.tux.can_move = true;
             self.tux.ai_level = 10;
         }
 

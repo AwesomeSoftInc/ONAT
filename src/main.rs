@@ -113,6 +113,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .resizable()
         .title("ONAT")
         .build();
+    let mut audio = RaylibAudio::init_audio_device();
 
     let textures = Textures::new(&mut rl, &thread)?;
 
@@ -130,6 +131,15 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut framebuffer =
         rl.load_render_texture(&thread, get_width_unaltered() as u32, get_height() as u32)?;
     state.gameover_time = SystemTime::now();
+    let mut tux_texture_hold = false;
+    let mut tux_texture_title = &textures.title1;
+    let mut tux_texture_hold_frames = 0;
+
+    let metal_left = Sound::load_sound("./assets/metal_door_hit_left.mp3")?;
+    let metal_right = Sound::load_sound("./assets/metal_door_hit_right.mp3")?;
+
+    let mut open_left_door_back_up = false;
+    let mut open_right_door_back_up = false;
 
     while !rl.window_should_close() {
         if state.timer.elapsed()?.as_millis() >= 1000 / 60 {
@@ -184,17 +194,36 @@ fn main() -> Result<(), Box<dyn Error>> {
                 rl.show_cursor();
             }
             let mut d_ = rl.begin_drawing(&thread);
+
             match state.screen {
                 // for some fucken reason we can't draw some of these on a texture? idfk
                 Screen::TitleScreen => {
                     d_.clear_background(Color::BLACK);
-                    let tuxtex = match thread_rng().gen_range(0..150) {
-                        0 => &textures.title2,
-                        1 => &textures.title3,
-                        2 => &textures.title4,
-                        3 => &textures.title5,
-                        _ => &textures.title1,
-                    };
+                    if !tux_texture_hold {
+                        let gen_range = thread_rng().gen_range(0..1000);
+                        match gen_range {
+                            0 | 1 | 2 | 3 => {
+                                tux_texture_hold = true;
+                                tux_texture_title = match gen_range {
+                                    0 => &textures.title2,
+                                    1 => &textures.title3,
+                                    2 => &textures.title4,
+                                    3 => &textures.title5,
+                                    _ => &textures.title1,
+                                }
+                            }
+                            _ => {}
+                        };
+                    } else {
+                        if tux_texture_hold_frames < 3 {
+                            tux_texture_hold_frames += 1;
+                        } else {
+                            tux_texture_hold_frames = 0;
+                            tux_texture_hold = false;
+                            tux_texture_title = &textures.title1;
+                        }
+                    }
+
                     let alpha = {
                         if state.going_to_office_from_title {
                             255.0
@@ -205,8 +234,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                         }
                     } as u8;
                     d_.draw_texture_pro(
-                        &tuxtex,
-                        texture_rect!(tuxtex),
+                        &tux_texture_title,
+                        texture_rect!(tux_texture_title),
                         Rectangle::new(get_margin(), 0.0, get_width() as f32, get_height() as f32),
                         Vector2::new(0.0, 0.0),
                         0.0,
@@ -604,19 +633,33 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         if d.is_mouse_button_released(
                                             MouseButton::MOUSE_LEFT_BUTTON,
                                         ) {
-                                            if i == 0 && state.can_open_left_door {
+                                            if i == 0
+                                                && state.can_open_left_door
+                                                && !state.left_door_shut
+                                            {
                                                 state.left_door_shut = true;
-                                                state.left_door_last_shut = SystemTime::now();
                                                 state.can_open_left_door = false;
+                                                state.left_door_last_shut = SystemTime::now();
                                                 if state.gang.tux.room() == Room::Room3 {
                                                     state.gang.tux.set_room(Room::Room1);
+                                                    state.gang.tux.can_move = false;
+                                                    state.gang.tux.set_entered_from_left(false);
+                                                    state.gang.tux.goto_room_after_office();
+                                                    open_left_door_back_up = true;
                                                 }
-                                            } else if i == 1 && state.can_open_right_door {
+                                            } else if i == 1
+                                                && state.can_open_right_door
+                                                && !state.right_door_shut
+                                            {
                                                 state.right_door_shut = true;
-                                                state.right_door_last_shut = SystemTime::now();
                                                 state.can_open_right_door = false;
+                                                state.right_door_last_shut = SystemTime::now();
                                                 if state.gang.tux.room() == Room::Room5 {
                                                     state.gang.tux.set_room(Room::Room1);
+                                                    state.gang.tux.can_move = false;
+                                                    state.gang.tux.set_entered_from_right(false);
+                                                    state.gang.tux.goto_room_after_office();
+                                                    open_right_door_back_up = true;
                                                 }
                                             }
                                         }
@@ -1152,7 +1195,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         Color::WHITE,
                                     );
                                 }
-                                if state.sel_camera == Room::Room4 && state.gang.gogopher.active() {
+                                if state.sel_camera == Room::Room4 {
                                     d.draw_rectangle(
                                         state.duct_button.x as i32 + 1,
                                         state.duct_button.y as i32,
@@ -1228,19 +1271,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                         }
                         if let Screen::YouWin = state.screen {
                             continue;
-                        }
-
-                        if state.gang.tux_moved {
-                            state.gang.tux_moved = false;
-                            match state.gang.tux.room() {
-                                Room::Room3 => {
-                                    state.left_door_shut = false;
-                                }
-                                Room::Room5 => {
-                                    state.right_door_shut = false;
-                                }
-                                _ => {}
-                            }
                         }
 
                         let mut is_over = state.gang.step(cur_time);
@@ -1328,6 +1358,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                         );
 
                         if state.left_door_last_shut.elapsed()?.as_secs() >= 5 {
+                            if !state.left_door_bypass_cooldown {
+                                state.can_open_left_door = false;
+                                state.left_door_bypass_cooldown = false;
+                            } else {
+                                state.left_door_last_shut =
+                                    SystemTime::now() - Duration::from_secs(10);
+                            }
                             state.left_door_shut = false;
                         }
                         if state.left_door_last_shut.elapsed()?.as_secs() >= 10 {
@@ -1335,6 +1372,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                         }
 
                         if state.right_door_last_shut.elapsed()?.as_secs() >= 5 {
+                            if !state.right_door_bypass_cooldown {
+                                state.can_open_right_door = false;
+                            } else {
+                                state.right_door_bypass_cooldown = false;
+                                state.right_door_last_shut =
+                                    SystemTime::now() - Duration::from_secs(10);
+                            }
                             state.right_door_shut = false;
                         }
                         if state.right_door_last_shut.elapsed()?.as_secs() >= 10 {
@@ -1345,16 +1389,26 @@ fn main() -> Result<(), Box<dyn Error>> {
                         for mons in inoffice {
                             if mons.active() {
                                 let duration: &Duration = &mons.timer_until_office().elapsed()?;
-                                if mons.id() == MonsterName::Tux
+                                let mut door_open_check = false;
+
+                                let is_tux = mons.id() == MonsterName::Tux;
+                                if is_tux
                                     || duration.as_millis()
                                         >= (MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000) - 500
                                 {
+                                    let mut do_flickering = true;
+
+                                    if is_tux {
+                                        door_open_check = true;
+                                        do_flickering = false;
+                                    }
                                     if mons.entered_from_left() {
                                         if !state.left_door_shut {
                                             state.tainted += mons.taint_percent();
                                         } else {
                                             mons.set_entered_from_left(false);
                                             mons.goto_room_after_office();
+                                            do_flickering = false;
                                         }
                                     }
                                     if mons.entered_from_right() {
@@ -1363,6 +1417,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         } else {
                                             mons.set_entered_from_right(false);
                                             mons.goto_room_after_office();
+                                            do_flickering = false;
                                         }
                                     }
                                     // go gopher just does it regardless.
@@ -1383,23 +1438,53 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         }
                                     }
 
-                                    if duration.as_nanos()
-                                        <= MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000000000
-                                    {
-                                        if duration.as_nanos() & 256 == 256
-                                            && mons.id() != MonsterName::Tux
+                                    if do_flickering {
+                                        if duration.as_nanos()
+                                            <= MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000000000
                                         {
-                                            d.draw_rectangle(
-                                                get_margin() as i32,
-                                                0,
-                                                get_width(),
-                                                get_height(),
-                                                Color::BLACK,
-                                            );
+                                            if duration.as_nanos() & 256 == 256
+                                                && mons.id() != MonsterName::Tux
+                                            {
+                                                d.draw_rectangle(
+                                                    get_margin() as i32,
+                                                    0,
+                                                    get_width(),
+                                                    get_height(),
+                                                    Color::BLACK,
+                                                );
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    door_open_check = true;
+                                }
+                                if door_open_check {
+                                    if mons.entered_from_left() {
+                                        if state.left_door_shut {
+                                            open_left_door_back_up = true;
+                                            mons.goto_room_after_office();
+                                        }
+                                    }
+                                    if mons.entered_from_right() {
+                                        if state.right_door_shut {
+                                            open_right_door_back_up = true;
+                                            mons.goto_room_after_office();
                                         }
                                     }
                                 };
                             }
+                        }
+                        if open_left_door_back_up {
+                            state.left_door_last_shut = SystemTime::now() - Duration::from_secs(4);
+                            audio.play_sound_multi(&metal_left);
+                            state.left_door_bypass_cooldown = true;
+                            open_left_door_back_up = false;
+                        }
+                        if open_right_door_back_up {
+                            state.right_door_last_shut = SystemTime::now() - Duration::from_secs(4);
+                            audio.play_sound_multi(&metal_right);
+                            state.right_door_bypass_cooldown = true;
+                            open_right_door_back_up = false;
                         }
                         if state.gang.wilber.stage == 4 && state.gang.wilber.rage() >= 0.2 {
                             if state.jumpscarer == MonsterName::None {

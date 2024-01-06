@@ -45,6 +45,8 @@ pub struct State {
     pub left_door_shut: bool,
     pub right_door_shut: bool,
 
+    pub left_door_bypass_cooldown: bool,
+    pub right_door_bypass_cooldown: bool,
     pub left_door_last_shut: SystemTime,
     pub right_door_last_shut: SystemTime,
 
@@ -157,8 +159,8 @@ impl State {
         let left_door_shut = false;
         let right_door_shut = false;
 
-        let left_door_last_shut: SystemTime = SystemTime::now();
-        let right_door_last_shut: SystemTime = SystemTime::now();
+        let left_door_last_shut: SystemTime = UNIX_EPOCH;
+        let right_door_last_shut: SystemTime = UNIX_EPOCH;
 
         let duct_heat_timer = 0.0;
 
@@ -189,6 +191,8 @@ impl State {
             can_open_right_door,
             left_door_shut,
             right_door_shut,
+            left_door_bypass_cooldown: false,
+            right_door_bypass_cooldown: false,
             left_door_last_shut,
             right_door_last_shut,
             duct_heat_timer,
