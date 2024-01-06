@@ -646,6 +646,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                                                     state.gang.tux.set_entered_from_left(false);
                                                     state.gang.tux.goto_room_after_office();
                                                     open_left_door_back_up = true;
+                                                    state.gang.tux.checked_camera = None;
+                                                    state.gang.tux.moved_to_hallway_at =
+                                                        SystemTime::now();
                                                 }
                                             } else if i == 1
                                                 && state.can_open_right_door
@@ -660,6 +663,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                                                     state.gang.tux.set_entered_from_right(false);
                                                     state.gang.tux.goto_room_after_office();
                                                     open_right_door_back_up = true;
+                                                    state.gang.tux.checked_camera = None;
+                                                    state.gang.tux.moved_to_hallway_at =
+                                                        SystemTime::now();
                                                 }
                                             }
                                         }
