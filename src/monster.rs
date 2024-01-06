@@ -980,10 +980,12 @@ impl Gang {
         }
         if hours == 4 && !self.four_am_checked {
             self.tux.can_move = true;
+            self.four_am_checked = true;
         }
         if hours == 5 && !self.five_am_checked {
             self.tux.can_move = true;
             self.tux.ai_level = 10;
+            self.five_am_checked = true;
         }
 
         return hours == 6;

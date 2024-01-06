@@ -325,7 +325,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                     d_.draw_text_ex(
                         &default_font,
-                        format!("{}", num).as_str(),
+                        format!("{}", num - 1).as_str(),
                         Vector2::new(x as f32 - (8.0 * 5.0), y_),
                         font_size as f32,
                         3.0,
@@ -333,7 +333,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     );
                     d_.draw_text_ex(
                         &default_font,
-                        format!("{}", num + 1).as_str(),
+                        format!("{}", num).as_str(),
                         Vector2::new(x as f32 - (8.0 * 5.0), y_ + (font_size as f32 * 1.0)),
                         font_size as f32,
                         3.0,
