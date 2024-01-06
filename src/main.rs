@@ -340,7 +340,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     Color::WHITE,
                                 );
 
-                                for mons in state.gang.in_room(&Room::Office) {
+                                for mons in state.gang.in_room(Room::Office) {
                                     mons.draw(
                                         &textures,
                                         &mut d,
@@ -842,7 +842,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     state.gang.wilber.rage_increment();
                                 }
 
-                                let inroom = state.gang.in_room(&state.sel_camera);
+                                let inroom = state.gang.in_room(state.sel_camera.clone());
                                 for mons in inroom {
                                     mons.draw(&textures, &mut d, get_margin(), 0.0, 1.0, 1.0);
                                     if mons.move_timer() >= 1
@@ -1079,14 +1079,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                             }
                         };
 
-                        if mx <= (get_width() / 4) {
+                        let sc = (scroll_amount + (mx - get_width() / 2) as f32) / 24.0;
+                        if mx <= (get_width() / 2) {
                             if state.bg_offset_x > 0.0 {
-                                state.bg_offset_x -= scroll_amount;
+                                state.bg_offset_x += sc;
                             }
                         }
-                        if mx >= get_width() - (get_width() / 4) {
+                        if mx >= get_width() - (get_width() / 2) {
                             if state.bg_offset_x < (get_width() as f32) / 2.0 {
-                                state.bg_offset_x += scroll_amount;
+                                state.bg_offset_x += sc;
                             }
                         }
 
@@ -1156,7 +1157,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             state.can_open_right_door = true;
                         }
 
-                        let inoffice = state.gang.in_room(&Room::Office);
+                        let inoffice = state.gang.in_room(Room::Office);
                         for mons in inoffice {
                             if mons.active() {
                                 let duration: &Duration = &mons.timer_until_office().elapsed()?;

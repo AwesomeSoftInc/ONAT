@@ -11,11 +11,11 @@ use rand::{thread_rng, Rng};
 
 use crate::{enums::Room, get_height, get_margin, get_width, texture_rect, textures::Textures};
 
-pub const PENNY_START: bool = false;
+pub const PENNY_START: bool = true;
 pub const BEASTIE_START: bool = false;
 pub const WILBER_START: bool = false;
 pub const GO_GOPHER_START: bool = false;
-pub const TUX_START: bool = true;
+pub const TUX_START: bool = false;
 pub const NOLOK_START: bool = false;
 pub const GOLDEN_TUX_START: bool = false;
 
@@ -37,8 +37,8 @@ pub enum MonsterName {
 
 pub trait Monster {
     fn id(&self) -> MonsterName;
-    fn room(&self) -> &Room;
-    fn next_room(&self) -> &Room;
+    fn room(&self) -> Room;
+    fn next_room(&self) -> Room;
     fn ai_level(&self) -> u8;
     fn set_room(&mut self, room: Room);
     fn set_next_room(&mut self, room: Room);
@@ -57,19 +57,29 @@ pub trait Monster {
     fn set_timer_until_office(&mut self, val: SystemTime);
     fn time_in_room(&mut self) -> SystemTime;
     fn reset_time_in_room(&mut self);
+
+    fn move_after_timer(&mut self) -> bool;
+    fn set_move_after_timer(&mut self, val: bool);
+
     fn begin_move_timer(&mut self) {
         self.set_move_timer(5);
     }
-    fn end_move_timer(&mut self) {
+
+    fn _end_move_timer(&mut self) -> bool {
         if self.move_timer() >= 1 {
             self.set_move_timer(self.move_timer() - 1);
-            if self.move_timer() <= 0 {
-                self.reset_time_in_room();
-                self.next();
+            if self.move_timer() == 0 {
+                return true;
             }
         }
+        false
     }
-
+    fn end_move_timer(&mut self) {
+        if self._end_move_timer() {
+            self.reset_time_in_room();
+            self.next();
+        };
+    }
     fn progress_to_hallway(&mut self) -> i8;
 
     fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
@@ -129,7 +139,7 @@ pub trait Monster {
     fn _try_move(&mut self) {
         let chance = thread_rng().gen_range(0..20);
         // if any of them are in the hallways, have them move in.
-        if self.room() == &Room::Room3 || self.room() == &Room::Room5 {
+        if self.room() == Room::Room3 || self.room() == Room::Room5 {
             self.next();
         } else {
             if chance <= self.ai_level() {
@@ -177,6 +187,55 @@ pub trait Monster {
     }
 }
 
+trait HallwayMonster: Monster {
+    fn hallway_room(&self) -> Room;
+
+    fn _next(&mut self) -> Room {
+        match self.room().next() {
+            crate::enums::RoomOption::Room(a) => a,
+            crate::enums::RoomOption::Multiple(_) => self.hallway_room(),
+            crate::enums::RoomOption::None => Room::None,
+        }
+    }
+
+    fn end_move_timer(&mut self) {
+        if self._end_move_timer() {
+            self.reset_time_in_room();
+            HallwayMonster::next(self);
+        }
+    }
+    fn next(&mut self) {
+        match self.progress_to_hallway() {
+            0 => {
+                let p = self.progress_to_hallway();
+                self.set_progress_to_hallway(p + 1);
+                self.set_move_after_timer(false);
+                self.reset_time_in_room();
+            }
+            1 => {
+                let p = self.progress_to_hallway();
+                self.set_progress_to_hallway(p + 1);
+                self.set_move_after_timer(false);
+                self.begin_move_timer();
+                self.reset_time_in_room();
+            }
+            2 => {
+                self.reset_time_in_room();
+                self.set_move_after_timer(true);
+
+                let n = HallwayMonster::_next(self);
+                if n == Room::Office {
+                    self.set_timer_until_office(SystemTime::now());
+                    self.set_entered_from_right(true);
+                }
+                self.set_room(n);
+                self.set_progress_to_hallway(0);
+            }
+            _ => panic!(),
+        }
+    }
+}
+
 #[monster_derive]
 pub struct Penny {
     door_shut: bool,
@@ -198,6 +257,7 @@ impl Penny {
             timer_until_office: SystemTime::now(),
             move_timer: 0,
             time_in_room: SystemTime::now(),
+            move_after_timer: true,
         }
     }
 }
@@ -232,27 +292,26 @@ impl Monster for Penny {
             None
         }
     }
-    fn next(&mut self) {
-        let n = self._next();
-        self.set_next_room(n);
-        match self.next_room() {
-            Room::Room3 | Room::Office => {
-                self.progress_to_hallway += 1;
-                if self.progress_to_hallway >= 2 {
-                    if self.next_room() == &Room::Office {
-                        self.set_timer_until_office(SystemTime::now());
-                        self.set_entered_from_left(true);
-                    }
-                    self.set_progress_to_hallway(1);
-                    self.set_room(self.next_room().clone());
-                    self.progress_to_hallway = 0;
-                }
-            }
-            _ => self.set_room(self.next_room().clone()),
-        }
+
+    fn _next(&mut self) -> Room {
+        HallwayMonster::_next(self)
     }
+    fn next(&mut self) {
+        HallwayMonster::next(self)
+    }
+
+    fn end_move_timer(&mut self) {
+        HallwayMonster::end_move_timer(self);
+    }
+
     fn room_after_office(&mut self) -> Room {
         Room::Room2
+    }
+}
+
+impl HallwayMonster for Penny {
+    fn hallway_room(&self) -> Room {
+        Room::Room3
     }
 }
 
@@ -277,6 +336,7 @@ impl Beastie {
             timer_until_office: SystemTime::now(),
             move_timer: 0,
             time_in_room: SystemTime::now(),
+            move_after_timer: true,
         }
     }
 }
@@ -316,27 +376,25 @@ impl Monster for Beastie {
     fn try_move(&mut self) {
         self.next();
     }
-    fn next(&mut self) {
-        let n = self._next();
-        self.set_next_room(n);
-        match self.next_room() {
-            Room::Room5 | Room::Office => {
-                self.progress_to_hallway += 1;
-                if self.progress_to_hallway >= 2 {
-                    if self.next_room() == &Room::Office {
-                        self.set_timer_until_office(SystemTime::now());
-                        self.set_entered_from_right(true);
-                    }
-                    self.set_progress_to_hallway(1);
-                    self.set_room(self.next_room().clone());
-                    self.progress_to_hallway = 0;
-                }
-            }
-            _ => self.set_room(self.next_room().clone()),
-        }
+    fn _next(&mut self) -> Room {
+        HallwayMonster::_next(self)
     }
+    fn next(&mut self) {
+        HallwayMonster::next(self)
+    }
+
+    fn end_move_timer(&mut self) {
+        HallwayMonster::end_move_timer(self);
+    }
+
     fn room_after_office(&mut self) -> Room {
         Room::Room2
+    }
+}
+
+impl HallwayMonster for Beastie {
+    fn hallway_room(&self) -> Room {
+        Room::Room5
     }
 }
 
@@ -365,6 +423,7 @@ impl Wilber {
             move_timer: 0,
             time_in_room: SystemTime::now(),
             time_since_appeared: None,
+            move_after_timer: true,
         }
     }
     pub fn rage(&self) -> f32 {
@@ -433,6 +492,7 @@ impl GoGopher {
             appeared: SystemTime::now(),
             move_timer: 0,
             time_in_room: SystemTime::now(),
+            move_after_timer: true,
         }
     }
 }
@@ -556,6 +616,8 @@ impl Tux {
 
             moved_to_hallway_at: SystemTime::now(),
             checked_camera: None,
+
+            move_after_timer: true,
         }
     }
 }
@@ -715,6 +777,8 @@ impl Nolok {
             timer_until_office: SystemTime::now(),
             move_timer: 0,
             time_in_room: SystemTime::now(),
+
+            move_after_timer: true,
         }
     }
 }
@@ -777,6 +841,7 @@ impl GoldenTux {
 
             appeared: SystemTime::now(),
             time_in_room: SystemTime::now(),
+            move_after_timer: true,
         }
     }
 }
@@ -903,7 +968,7 @@ impl Gang {
 
         return hours == 6;
     }
-    pub fn in_room(&mut self, room: &Room) -> Vec<&mut dyn Monster> {
+    pub fn in_room(&mut self, room: Room) -> Vec<&mut dyn Monster> {
         let mut res: Vec<&mut dyn Monster> = vec![];
 
         if self.penny.room() == room {

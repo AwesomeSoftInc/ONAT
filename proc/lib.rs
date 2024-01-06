@@ -39,7 +39,8 @@ pub fn monster_derive(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 last_scared_at: SystemTime,
                 timer_until_office: SystemTime,
                 time_in_room: SystemTime,
-                move_timer: u8
+                move_timer: u8,
+                move_after_timer: bool
             ) {
                 fields.named.push(f);
             }
@@ -66,11 +67,11 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
         fn id(&self) -> MonsterName {
             self.name.clone()
         }
-        fn room(&self) -> &Room {
-            &self.room
+        fn room(&self) -> Room {
+            self.room.clone()
         }
-        fn next_room(&self) -> &Room {
-            &self.next_room
+        fn next_room(&self) -> Room {
+            self.next_room.clone()
         }
         fn ai_level(&self) -> u8 {
             self.ai_level
@@ -134,6 +135,14 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
         }
         fn reset_time_in_room(&mut self) {
             self.time_in_room = SystemTime::now();
+        }
+
+        fn move_after_timer(&mut self) -> bool {
+            self.move_after_timer
+        }
+
+        fn set_move_after_timer(&mut self, val: bool) {
+            self.move_after_timer = val;
         }
     }
     .into();
