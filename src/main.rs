@@ -1,6 +1,5 @@
 #![feature(vec_into_raw_parts)]
 
-use dialog::DialogBox;
 use monster::{GoGopher, Monster, MonsterName};
 use rand::{thread_rng, Rng};
 use raylib::{
@@ -13,8 +12,6 @@ use state::State;
 use std::{
     error::Error,
     ffi::CString,
-    panic::{self, catch_unwind},
-    thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -106,42 +103,8 @@ pub fn get_ratio() -> f32 {
     unsafe { SCREEN.ratio }
 }
 
+#[error_window::main]
 fn main() -> Result<(), Box<dyn Error>> {
-    let builder = thread::Builder::new().name("Main thread".to_string());
-    let thread_handle = builder
-        .spawn(move || {
-            println!("Spawned");
-            let result = panic::catch_unwind(|| _main()); // will panic in fn2
-            if let Err(err) = result {
-                //  Thread panicked. Handle panic.
-                //  How to decode the "Any" returned from catch_unwind?
-                let mut er: String = String::new();
-
-                if let Some(s) = err.downcast_ref::<String>() {
-                    er = format!("{}", s);
-                } else if let Some(s) = err.downcast_ref::<&str>() {
-                    er = format!("{}", s);
-                } else {
-                    er = format!("Unknown panic type \"{:?}\"", err.type_id())
-                }
-                dialog::Message::new(er)
-                    .title("Error")
-                    .show()
-                    .expect("Could not display dialog box");
-            }
-        })
-        .expect("Asset loader thread spawn failed.");
-    let stat = thread_handle.join();
-    if let Err(e) = stat {
-        dialog::Message::new(format!("Error: {:?}", e))
-            .title("Error")
-            .show()
-            .expect("Could not display dialog box");
-    }
-    Ok(())
-}
-
-fn _main() -> Result<(), Box<dyn Error>> {
     set_trace_log(TraceLogLevel::LOG_ERROR);
 
     get_width();
