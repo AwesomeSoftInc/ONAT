@@ -14,6 +14,8 @@ proc = { path = "./proc" }
 once_cell = "1.18.0"
 parking_lot = "0.12.1"
 raylib = "3.7.0"
+getrandom = { version = "0.2.11", features = ["js"] }
+dialog = "0.3.0"
 [features]
 default = []
 no_camera_timer = []

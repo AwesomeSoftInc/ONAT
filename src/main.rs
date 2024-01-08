@@ -1,5 +1,6 @@
 #![feature(vec_into_raw_parts)]
 
+use dialog::DialogBox;
 use monster::{GoGopher, Monster, MonsterName};
 use rand::{thread_rng, Rng};
 use raylib::{
@@ -12,6 +13,8 @@ use state::State;
 use std::{
     error::Error,
     ffi::CString,
+    panic::{self, catch_unwind},
+    thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -104,6 +107,41 @@ pub fn get_ratio() -> f32 {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    let builder = thread::Builder::new().name("Main thread".to_string());
+    let thread_handle = builder
+        .spawn(move || {
+            println!("Spawned");
+            let result = panic::catch_unwind(|| _main()); // will panic in fn2
+            if let Err(err) = result {
+                //  Thread panicked. Handle panic.
+                //  How to decode the "Any" returned from catch_unwind?
+                let mut er: String = String::new();
+
+                if let Some(s) = err.downcast_ref::<String>() {
+                    er = format!("{}", s);
+                } else if let Some(s) = err.downcast_ref::<&str>() {
+                    er = format!("{}", s);
+                } else {
+                    er = format!("Unknown panic type \"{:?}\"", err.type_id())
+                }
+                dialog::Message::new(er)
+                    .title("Error")
+                    .show()
+                    .expect("Could not display dialog box");
+            }
+        })
+        .expect("Asset loader thread spawn failed.");
+    let stat = thread_handle.join();
+    if let Err(e) = stat {
+        dialog::Message::new(format!("Error: {:?}", e))
+            .title("Error")
+            .show()
+            .expect("Could not display dialog box");
+    }
+    Ok(())
+}
+
+fn _main() -> Result<(), Box<dyn Error>> {
     set_trace_log(TraceLogLevel::LOG_ERROR);
 
     get_width();
@@ -278,21 +316,72 @@ fn main() -> Result<(), Box<dyn Error>> {
                         && state.title_clicked.elapsed()?.as_secs() >= 5 + 1
                     {
                         state = State::new();
-                        state.screen = Screen::Office;
+                        state.screen = Screen::GameOver;
+                        state.gameover_time = SystemTime::now();
                         state.win_time = SystemTime::now();
                         state.going_to_office_from_title = false;
                     }
                 }
                 Screen::GameOver => {
+                    d_.clear_background(Color::BLACK);
+                    let gameover_time = state.gameover_time.elapsed()?;
+                    let alpha = {
+                        if gameover_time.as_secs() < 1 {
+                            255
+                        } else {
+                            if gameover_time.as_secs() <= 5 {
+                                255 - ((gameover_time.as_millis() as i32 - 1000) / 20)
+                            } else {
+                                0
+                            }
+                        }
+                    };
+
+                    let nolok_text = format!("TIP: Awakening Nolok from the depths of unused content hell is not advised. The game will crash in {} seconds.",15 - gameover_time.as_secs());
+                    let text = match state.jumpscarer {
+                        MonsterName::Penny => "TIP: When Penny leaves CAM 3, close the door immediately to avoid being tainted.",
+                        MonsterName::Beastie => "TIP: When Beastie leaves CAM 5, close the door immediately to avoid being tainted.",
+                        MonsterName::Wilber =>  "TIP: Heat up the air duct to reset the gopher's progress.",
+                        MonsterName::GoGopher => "TIP: Perodically check Wilbur to prevent his attack.",
+                        MonsterName::Nolok => nolok_text.as_str(),
+                        _ => "TIP: When Tux leaves his domain, he will immediately rush one of the hallways.",
+                    };
+                    let y = get_height() as f32 / 2.0;
+                    d_.draw_texture_pro(
+                        &textures.damnyoudied,
+                        texture_rect!(textures.damnyoudied),
+                        Rectangle::new(get_margin(), 0.0, get_width() as f32, get_height() as f32),
+                        Vector2::new(0.0, 0.0),
+                        0.0,
+                        Color::WHITE,
+                    );
+                    d_.draw_text_rec(
+                        &default_font,
+                        text,
+                        Rectangle::new(
+                            get_margin() + 48.0,
+                            y,
+                            get_width() as f32 / 3.0,
+                            get_height() as f32,
+                        ),
+                        50.0,
+                        3.0,
+                        true,
+                        Color::RED,
+                    );
                     d_.draw_texture_pro(
                         &tex,
                         texture_rect!(tex),
                         Rectangle::new(get_margin(), 0.0, get_width() as f32, get_height() as f32),
                         Vector2::new(0.0, 0.0),
                         0.0,
-                        Color::WHITE,
+                        Color::new(255, 255, 255, alpha as u8),
                     );
-                    if state.gameover_time.elapsed()?.as_secs() >= 5 {
+
+                    if gameover_time.as_secs() >= 15 {
+                        if state.jumpscarer == MonsterName::Nolok {
+                            panic!("Segmentation fault");
+                        }
                         state.screen = Screen::TitleScreen;
                     }
                 }
