@@ -1,5 +1,3 @@
-#![feature(vec_into_raw_parts)]
-
 use monster::{GoGopher, Monster, MonsterName};
 use rand::{thread_rng, Rng};
 use raylib::{

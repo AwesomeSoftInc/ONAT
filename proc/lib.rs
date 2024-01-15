@@ -2,8 +2,11 @@ extern crate proc_macro;
 
 use std::collections::HashMap;
 use std::fs::{DirEntry, ReadDir};
+use std::io::Read;
 use std::os::unix::fs::MetadataExt;
 
+use flate2::bufread::GzEncoder;
+use flate2::Compression;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse::Parser;
@@ -209,6 +212,29 @@ pub fn asset_fill(item: TokenStream) -> TokenStream {
     }
 }
 
+fn compress(path: String) -> Result<String, anyhow::Error> {
+    let mut buffer = std::fs::read(&path)?;
+
+    // We only actually want to compress in release mode.
+    #[cfg(feature = "release")]
+    {
+        println!("compressing");
+        let b = buffer.clone();
+        let f = b.as_slice();
+        let mut gz = GzEncoder::new(f, Compression::best());
+
+        buffer = Vec::new();
+        gz.read_to_end(&mut buffer)?;
+    }
+
+    let join = buffer
+        .into_iter()
+        .map(|f| format!("{}", f))
+        .collect::<Vec<String>>()
+        .join(",");
+    Ok(join)
+}
+
 fn yeah(
     assets: ReadDir,
     fields: &mut Vec<String>,
@@ -261,10 +287,10 @@ fn yeah(
                         a.push(format!("pub {}: Texture2D ", n.clone()));
                         b.push(n.clone());
                         c.push(format!(
-                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"../assets/{name}/{n}.png\").to_vec(), {size})?)?;",
+                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &decompress(vec![{b}]), {size})?)?;",
                             n = n,
                             size=dir.metadata()?.size(),
-                            name = name
+                            b = compress(format!("./assets/{name}/{n}.png",name=name,n=n))?
                         ));
                         c.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
                     }
@@ -293,7 +319,12 @@ fn yeah(
                             name.replace(".png", "").replace("\"", "").replace(" ", "_");
                         fields.push(format!("pub {}: Texture2D", n));
                         define.push(n.clone());
-                        impl_fields.push(format!("let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"../assets/{n}.png\").to_vec(), {size})?)?;", n=n, size=ass.metadata()?.size()));
+                        impl_fields.push(format!(
+                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &decompress(vec![{b}]), {size})?)?;",
+                            n = n,
+                            size=ass.metadata()?.size(),
+                            b = compress(format!("./assets/{n}.png",n=n))?
+                        ));
                         impl_fields.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
                     }
                 }

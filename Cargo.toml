@@ -17,9 +17,20 @@ raylib = "3.7.0"
 getrandom = { version = "0.2.11", features = ["js"] }
 dialog = "0.3.0"
 error-window = "1.0.0"
+flate2 = "1.0.28"
+
+
 [features]
 default = []
 no_camera_timer = []
 beastie_always_move = []
 [package.metadata.appimage]
 auto_link = true
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+
+[profile.release.package.proc]
+features = ["release"]
