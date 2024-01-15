@@ -30,7 +30,6 @@ auto_link = true
 [profile.release]
 strip = true
 lto = true
-codegen-units = 1
 
-[profile.release.package.proc]
+[profile.release.dependencies.proc]
 features = ["release"]

@@ -215,17 +215,13 @@ pub fn asset_fill(item: TokenStream) -> TokenStream {
 fn compress(path: String) -> Result<String, anyhow::Error> {
     let mut buffer = std::fs::read(&path)?;
 
-    // We only actually want to compress in release mode.
-    #[cfg(feature = "release")]
-    {
-        println!("compressing");
-        let b = buffer.clone();
-        let f = b.as_slice();
-        let mut gz = GzEncoder::new(f, Compression::best());
+    println!("compressing file of {}kb", buffer.len() / 1000);
+    let b = buffer.clone();
+    let f = b.as_slice();
+    let mut gz = GzEncoder::new(f, Compression::best());
 
-        buffer = Vec::new();
-        gz.read_to_end(&mut buffer)?;
-    }
+    buffer = Vec::new();
+    gz.read_to_end(&mut buffer)?;
 
     let join = buffer
         .into_iter()
@@ -287,7 +283,7 @@ fn yeah(
                         a.push(format!("pub {}: Texture2D ", n.clone()));
                         b.push(n.clone());
                         c.push(format!(
-                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &decompress(vec![{b}]), {size})?)?;",
+                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &decompress([{b}].to_vec()), {size})?)?;",
                             n = n,
                             size=dir.metadata()?.size(),
                             b = compress(format!("./assets/{name}/{n}.png",name=name,n=n))?
@@ -320,7 +316,7 @@ fn yeah(
                         fields.push(format!("pub {}: Texture2D", n));
                         define.push(n.clone());
                         impl_fields.push(format!(
-                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &decompress(vec![{b}]), {size})?)?;",
+                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &decompress([{b}].to_vec()), {size})?)?;",
                             n = n,
                             size=ass.metadata()?.size(),
                             b = compress(format!("./assets/{n}.png",n=n))?
