@@ -215,19 +215,31 @@ pub fn asset_fill(item: TokenStream) -> TokenStream {
 fn compress(path: String) -> Result<String, anyhow::Error> {
     let mut buffer = std::fs::read(&path)?;
 
-    println!("compressing file of {}kb", buffer.len() / 1000);
-    let b = buffer.clone();
-    let f = b.as_slice();
-    let mut gz = GzEncoder::new(f, Compression::best());
+    #[cfg(feature = "release")]
+    {
+        println!("compressing file of {}kb", buffer.len() / 1000);
+        let b = buffer.clone();
+        let f = b.as_slice();
+        let mut gz = GzEncoder::new(f, Compression::best());
 
-    buffer = Vec::new();
-    gz.read_to_end(&mut buffer)?;
+        buffer = Vec::new();
+        gz.read_to_end(&mut buffer)?;
+    }
 
-    let join = buffer
-        .into_iter()
-        .map(|f| format!("{}", f))
-        .collect::<Vec<String>>()
-        .join(",");
+    let mut cursor = 0;
+    let mut join = "".to_owned();
+    loop {
+        match buffer.get(cursor) {
+            Some(a) => {
+                join += &a.to_string();
+                join += ",";
+                cursor += 1;
+            }
+            None => {
+                break;
+            }
+        }
+    }
     Ok(join)
 }
 

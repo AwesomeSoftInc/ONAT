@@ -1,5 +1,6 @@
 use std::{error::Error, io::Read};
 
+#[cfg(not(debug_assertions))]
 fn decompress(data: Vec<u8>) -> Vec<u8> {
     let mut d = GzDecoder::new(data.as_slice());
     let mut buf = Vec::new();
@@ -7,7 +8,12 @@ fn decompress(data: Vec<u8>) -> Vec<u8> {
     buf
 }
 
-use flate2::bufread::GzDecoder;
+#[cfg(debug_assertions)]
+#[inline(always)]
+fn decompress(data: Vec<u8>) -> Vec<u8> {
+    data
+}
+
 use proc::asset_fill;
 use raylib::prelude::*;
 asset_fill!();
