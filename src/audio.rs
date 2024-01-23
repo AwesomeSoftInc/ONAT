@@ -38,12 +38,12 @@ impl Audio {
     pub fn step(&mut self, bg_offset_x: f32) -> Result<(), Box<dyn std::error::Error>> {
         let mut left = 160.0 + (bg_offset_x / 8.0);
         if left >= 255.0 {
-                left = 255.0;
+            left = 255.0;
         }
         let left = left as u8;
-        println!("{}",left);
+        println!("{}", left);
         if let Some(mut ch) = self.door_channel {
-            ch.set_panning(left,0)?;
+            ch.set_panning(left, 0)?;
         }
 
         Ok(())
