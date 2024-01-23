@@ -151,8 +151,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 rl.toggle_fullscreen();
             }
 
-            audio.step(state.bg_offset_x)?;
-
             // Due to a fatal bug with KDE(/X11?), we can't make the window non-resizable and fullscreen. So we force it to be whatever it was originally.
             rl.set_window_size(get_width_unaltered(), get_height());
 
@@ -202,7 +200,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             match state.screen {
                 // for some fucken reason we can't draw some of these on a texture? idfk
                 Screen::TitleScreen => {
+                    audio.play_title_if_not_already()?;
                     d_.clear_background(Color::BLACK);
+
                     if !tux_texture_hold {
                         let gen_range = thread_rng().gen_range(0..1000);
                         match gen_range {
@@ -281,6 +281,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                     if state.going_to_office_from_title
                         && state.title_clicked.elapsed()?.as_secs() >= 5 + 1
                     {
+                        audio.halt();
+                        if state.title_clicked.elapsed()?.as_secs() <= 10 {
+                            audio.play_title_if_not_already()?;
+                        }
                         state = State::new();
                         state.screen = Screen::Office;
                         state.gameover_time = SystemTime::now();
@@ -1120,6 +1124,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     if mons.move_timer() >= 1
                                         || mons.time_in_room().elapsed()?.as_millis() <= 50
                                     {
+                                        audio.play_noise_if_not_already()?;
                                         d.draw_texture_pro(
                                             &tex,
                                             texture_rect!(tex),
@@ -1322,6 +1327,28 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         Color::WHITE,
                                     );
                                 }
+                                let millis = state.camera_last_changed.elapsed()?.as_millis();
+
+                                if millis <= 50 {
+                                    audio.play_noise_if_not_already()?;
+                                    d.draw_texture_pro(
+                                        &tex,
+                                        texture_rect!(tex),
+                                        Rectangle::new(
+                                            get_margin() + 0.0,
+                                            0.0,
+                                            get_width() as f32,
+                                            get_height() as f32,
+                                        ),
+                                        Vector2::new(0.0, 0.0),
+                                        0.0,
+                                        Color::WHITE,
+                                    );
+                                }
+
+                                if millis > 50 && millis <= 60 {
+                                    audio.noise_halt();
+                                }
                             }
                             _ => {}
                         }
@@ -1425,6 +1452,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 state.can_open_left_door = false;
                                 state.left_door_bypass_cooldown = false;
                             } else {
+                                audio.play_thud_left()?;
                                 state.left_door_last_shut =
                                     SystemTime::now() - Duration::from_secs(14);
                             }
@@ -1438,6 +1466,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             if !state.right_door_bypass_cooldown {
                                 state.can_open_right_door = false;
                             } else {
+                                audio.play_thud_right()?;
                                 state.right_door_bypass_cooldown = false;
                                 state.right_door_last_shut =
                                     SystemTime::now() - Duration::from_secs(14);
@@ -1539,6 +1568,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         }
                         if open_left_door_back_up {
                             state.left_door_last_shut = SystemTime::now() - Duration::from_secs(4);
+
                             //audio.play_sound_multi(&metal_left);
                             state.left_door_bypass_cooldown = true;
                             open_left_door_back_up = false;
@@ -1640,6 +1670,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
             }
+            audio.step(state.bg_offset_x, &state)?;
         }
     }
 

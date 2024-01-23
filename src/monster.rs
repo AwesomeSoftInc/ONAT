@@ -21,7 +21,7 @@ pub const GOLDEN_TUX_START: bool = false;
 
 pub const MONSTER_TIME_OFFICE_WAIT_THING: u64 = 5;
 
-pub const DEFAULT_AI_LEVEL: u8 = 2;
+pub const DEFAULT_AI_LEVEL: u8 = 20;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MonsterName {
