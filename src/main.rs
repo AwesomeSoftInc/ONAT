@@ -705,7 +705,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                                     state.gang.tux.moved_to_hallway_at =
                                                         SystemTime::now();
                                                 }
-                                                audio.play_door_sound()?;
+                                                audio.play_door_left()?;
                                             } else if i == 1
                                                 && state.can_open_right_door
                                                 && !state.right_door_shut
@@ -723,6 +723,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                                     state.gang.tux.moved_to_hallway_at =
                                                         SystemTime::now();
                                                 }
+                                                audio.play_door_right()?;
                                             }
                                         }
                                     }
