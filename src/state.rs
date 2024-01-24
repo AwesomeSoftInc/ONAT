@@ -7,9 +7,10 @@ use rand::{rngs::ThreadRng, thread_rng};
 use raylib::prelude::*;
 
 use crate::{
+    audio::Audio,
     enums::{Room, Screen},
     get_height, get_margin, get_ratio, get_width,
-    monster::{Gang, MonsterName},
+    monster::{Gang, Monster, MonsterName},
 };
 
 pub struct State {
@@ -17,6 +18,7 @@ pub struct State {
     pub bg_offset_x: f32,
     pub laptop_offset_y: f64,
     pub camera_clickables: Vec<Rectangle>,
+    pub plush_clickable: Rectangle,
     pub door_buttons: Vec<Rectangle>,
     pub duct_button: Rectangle,
     pub sel_camera: Room,
@@ -62,9 +64,14 @@ pub struct State {
     pub title_clicked: SystemTime,
     pub going_to_youwin: bool,
 
+    pub wilber_snd_played: bool,
+    pub tux_snd_played: bool,
+    pub gopher_snd_played: bool,
+
     pub jumpscare_counter: usize,
     pub getting_jumpscared: bool,
     pub jumpscarer: MonsterName,
+    pub has_won: bool,
 }
 
 impl State {
@@ -113,6 +120,12 @@ impl State {
             ), // Room6
         ];
 
+        let plush_clickable = Rectangle::new(
+            ((get_width() / 3) as f32 * 1.6),
+            (get_height() / 4) as f32 + (get_height() / 2) as f32,
+            200.0,
+            200.0,
+        );
         let door_buttons = vec![
             Rectangle::new(
                 get_margin() + get_width() as f32 * 0.36,
@@ -173,6 +186,7 @@ impl State {
             bg_offset_x,
             laptop_offset_y,
             camera_clickables,
+            plush_clickable,
             door_buttons,
             duct_button,
             sel_camera,
@@ -209,6 +223,10 @@ impl State {
             jumpscare_counter: 0,
             getting_jumpscared: false,
             jumpscarer: MonsterName::None,
+            wilber_snd_played: false,
+            tux_snd_played: false,
+            gopher_snd_played: false,
+            has_won: false,
         };
         state
     }

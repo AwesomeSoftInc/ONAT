@@ -891,11 +891,11 @@ pub struct Gang {
 
     since_last_move: SystemTime,
     moved: bool,
-    one_am_checked: bool,
-    two_am_checked: bool,
-    three_am_checked: bool,
-    four_am_checked: bool,
-    five_am_checked: bool,
+    pub one_am_checked: bool,
+    pub two_am_checked: bool,
+    pub three_am_checked: bool,
+    pub four_am_checked: bool,
+    pub five_am_checked: bool,
     pub tux_moved: bool,
 }
 
@@ -961,6 +961,7 @@ impl Gang {
 
         // 1 AM
         if hours == 1 && !self.one_am_checked {
+            self.wilber.time_since_appeared = Some(SystemTime::now());
             self.wilber.activate();
             self.one_am_checked = true;
             self.ai_level_increase();

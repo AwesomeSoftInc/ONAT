@@ -177,6 +177,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     (img, tex)
                 }
             };
+
             let cur_time = state.ingame_time.duration_since(UNIX_EPOCH)?;
             let num = {
                 let ct = state.gang.hours(cur_time);
@@ -195,12 +196,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             } else {
                 rl.show_cursor();
             }
+
             let mut d_ = rl.begin_drawing(&thread);
 
             match state.screen {
                 // for some fucken reason we can't draw some of these on a texture? idfk
                 Screen::TitleScreen => {
-                    audio.play_title_if_not_already()?;
+                    audio.play_title(state.has_won)?;
                     d_.clear_background(Color::BLACK);
 
                     if !tux_texture_hold {
@@ -282,14 +284,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                         && state.title_clicked.elapsed()?.as_secs() >= 5 + 1
                     {
                         audio.halt();
-                        if state.title_clicked.elapsed()?.as_secs() <= 10 {
-                            audio.play_title_if_not_already()?;
-                        }
                         state = State::new();
+                        audio = Audio::new()?;
                         state.screen = Screen::Office;
                         state.gameover_time = SystemTime::now();
                         state.win_time = SystemTime::now();
                         state.going_to_office_from_title = false;
+                        audio.play_brownian_noise()?;
                     }
                 }
                 Screen::GameOver => {
@@ -356,6 +357,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
                 Screen::YouWin => {
+                    audio.play_bells()?;
                     d_.clear_background(Color::BLACK);
                     let fb_a = {
                         if state.screen == Screen::YouWin {
@@ -443,12 +445,47 @@ fn main() -> Result<(), Box<dyn Error>> {
                         get_height() as i32,
                         Color::BLACK,
                     );
-                    if state.win_time.elapsed()?.as_secs() >= 10 {
+                    if state.win_time.elapsed()?.as_secs() >= 20 {
                         state.screen = Screen::TitleScreen;
                     }
                 }
                 _ => {
                     {
+                        if d_.is_key_released(KeyboardKey::KEY_ONE) {
+                            state.gang.wilber.time_since_appeared = Some(SystemTime::now());
+                            state.gang.wilber.activate();
+                        }
+                        if d_.is_key_released(KeyboardKey::KEY_TWO) {
+                            state.gang.tux.activate();
+                        }
+                        if d_.is_key_released(KeyboardKey::KEY_THREE) {
+                            state.gang.gogopher.activate();
+                        }
+                        if d_.is_key_released(KeyboardKey::KEY_FOUR) {
+                            state.gang.gogopher.activate();
+                        }
+                        if state.gang.wilber.active() && !state.wilber_snd_played {
+                            audio.play_wilber()?;
+                            state.wilber_snd_played = true;
+                        }
+                        if state.gang.tux.active() && !state.tux_snd_played {
+                            audio.play_tux()?;
+                            state.tux_snd_played = true;
+                        }
+                        for mons in state.gang.in_room(Room::Office) {
+                            if mons.active() {
+                                let duration: &Duration = &mons.timer_until_office().elapsed()?;
+
+                                let is_tux = mons.id() == MonsterName::Tux;
+                                if !is_tux
+                                    && duration.as_millis()
+                                        >= (MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000) - 500
+                                {
+                                    let note: usize = (state.tainted * 0.36) as usize;
+                                    audio.play_tainted(note).unwrap();
+                                }
+                            }
+                        }
                         d_.clear_background(Color::BLACK);
                         let mut d: RaylibTextureMode<'_, RaylibDrawHandle<'_>> =
                             d_.begin_texture_mode(&thread, &mut framebuffer);
@@ -459,6 +496,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 
                         match state.screen {
                             Screen::Office => {
+                                let cx = (get_margin() - state.bg_offset_x) as i32
+                                    + ((get_width() / 3) as f32 * 1.6) as i32;
+                                let cy = (get_height() / 4) + (get_height() / 2);
+                                if mx >= cx && mx <= cx + 200 && my >= cy && my <= cy + 200 {
+                                    d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
+                                    if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON) {
+                                        println!("{:?}", state.screen);
+
+                                        if state.screen == Screen::Office {
+                                            audio.play_plush()?;
+                                        }
+                                    }
+                                }
                                 #[cfg(not(feature = "no_camera_timer"))]
                                 if state.camera_timer <= 100.0 {
                                     state.camera_timer += CAMERA_TIME;
@@ -657,11 +707,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                                 b as u8
                                             }
                                         }
-                                        None => {
-                                            state.gang.wilber.time_since_appeared =
-                                                Some(SystemTime::now());
-                                            0
-                                        }
+                                        None => 0,
                                     };
                                     d.draw_texture_pro(
                                         &texture,
@@ -779,9 +825,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 }
 
                                 if state.getting_jumpscared {
+                                    // sound
+                                    match state.jumpscarer {
+                                        MonsterName::Tux => {
+                                            audio.play_tux_jumpscare()?;
+                                        }
+                                        _ => {
+                                            audio.play_regular_jumpscare()?;
+                                        }
+                                    }
+
+                                    // animation
                                     state.bg_offset_x = 450.0;
                                     match state.jumpscarer {
-                                        // static.
                                         MonsterName::Penny
                                         | MonsterName::Tux
                                         | MonsterName::GoGopher
@@ -865,6 +921,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                                     Color::WHITE,
                                                 );
                                             } else {
+                                                audio.brownian_halt();
                                                 state.screen = Screen::GameOver;
 
                                                 state.gameover_time = SystemTime::now();
@@ -1124,7 +1181,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     if mons.move_timer() >= 1
                                         || mons.time_in_room().elapsed()?.as_millis() <= 50
                                     {
-                                        audio.play_noise_if_not_already()?;
+                                        audio.play_noise()?;
                                         d.draw_texture_pro(
                                             &tex,
                                             texture_rect!(tex),
@@ -1195,23 +1252,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                                             Color::new(50, 50, 50, 255),
                                         );
 
-                                        let rust_cstring = CString::new(text.clone()).unwrap();
-                                        // Extract null-terminated raw data
-                                        let byteslice = rust_cstring.as_bytes_with_nul();
-
-                                        let r = byteslice[0] as i8;
                                         let font_size = 20.0 * d.get_window_scale_dpi().x;
                                         d.draw_text_rec(
                                             d.get_font_default(),
                                             &text.as_str(),
                                             Rectangle::new(
-                                                clickable.x + 10.0 + x as f32, /*+ (unsafe {
-                                                                                   MeasureText(
-                                                                                       rust_cstring.as_ptr(),
-                                                                                       font_size as i32,
-                                                                                   )
-                                                                               } / 2)
-                                                                                   as f32*/
+                                                clickable.x + 10.0 + x as f32,
                                                 clickable.y + (clickable.height / 2.0),
                                                 clickable.width - 3.0,
                                                 clickable.height + 3.0,
@@ -1237,7 +1283,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         }
                                     }
                                 }
-
                                 d.draw_text(
                                     "OFFICE",
                                     (get_margin()
@@ -1330,7 +1375,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 let millis = state.camera_last_changed.elapsed()?.as_millis();
 
                                 if millis <= 50 {
-                                    audio.play_noise_if_not_already()?;
+                                    audio.play_noise()?;
                                     d.draw_texture_pro(
                                         &tex,
                                         texture_rect!(tex),
@@ -1371,6 +1416,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                         }
 
                         if is_over && state.screen != Screen::YouWin {
+                            audio.brownian_halt();
+                            state.has_won = true;
                             state.screen = Screen::YouWin;
                             state.win_time = SystemTime::now();
                             continue;
@@ -1653,6 +1700,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     );
 
                     if state.screen != Screen::TitleScreen {
+                        audio.play_ambience()?;
                         d_.draw_rectangle(
                             0,
                             0,
@@ -1670,7 +1718,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     }
                 }
             }
-            audio.step(state.bg_offset_x, &state)?;
+            audio.step(&state)?;
         }
     }
 
