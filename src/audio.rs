@@ -128,12 +128,12 @@ impl Audio {
         if let None = self.ambient_channel {
             let chance_to_play = self.thread_rng.gen_range(1..1000);
             if chance_to_play <= 1 {
-                let chance = self.thread_rng.gen_range(1..1000);
+                let chance = self.thread_rng.gen_range(1..150);
                 let vec;
                 if chance <= 1 {
-                    vec = &self.ambience_sinister;
-                } else {
                     vec = &self.ambience_ominous;
+                } else {
+                    vec = &self.ambience_sinister;
                 }
                 let chance = self.thread_rng.gen_range(1..vec.len());
                 let snd = vec.get(chance - 1).unwrap();

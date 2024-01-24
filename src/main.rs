@@ -137,13 +137,24 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut tux_texture_title = &textures.title1;
     let mut tux_texture_hold_frames = 0;
 
-    //let metal_left = Sound::load_sound("./assets/metal_door_hit_left.mp3")?;
-    //let metal_right = Sound::load_sound("./assets/metal_door_hit_right.mp3")?;
-
     let mut open_left_door_back_up = false;
     let mut open_right_door_back_up = false;
-
+    let fuck = SystemTime::now();
     while !rl.window_should_close() {
+        let cur_time = state.ingame_time.duration_since(UNIX_EPOCH)?;
+        let num = {
+            let ct = state.gang.hours(cur_time);
+            if ct == 0 {
+                12
+            } else {
+                ct
+            }
+        };
+        println!(
+            "{} - {}",
+            state.gang.hours(cur_time),
+            fuck.elapsed()?.as_secs_f64()
+        );
         if state.timer.elapsed()?.as_millis() >= 1000 / 60 {
             state.timer = SystemTime::now();
 
@@ -178,15 +189,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             };
 
-            let cur_time = state.ingame_time.duration_since(UNIX_EPOCH)?;
-            let num = {
-                let ct = state.gang.hours(cur_time);
-                if ct == 0 {
-                    12
-                } else {
-                    ct
-                }
-            };
             if state.going_to_office_from_title {
                 rl.set_mouse_position(Vector2::new(
                     get_width_unaltered() as f32 / 2.0,
