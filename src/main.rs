@@ -139,7 +139,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut open_left_door_back_up = false;
     let mut open_right_door_back_up = false;
-    let fuck = SystemTime::now();
     while !rl.window_should_close() {
         let cur_time = state.ingame_time.duration_since(UNIX_EPOCH)?;
         let num = {
@@ -150,11 +149,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 ct
             }
         };
-        println!(
-            "{} - {}",
-            state.gang.hours(cur_time),
-            fuck.elapsed()?.as_secs_f64()
-        );
         if state.timer.elapsed()?.as_millis() >= 1000 / 60 {
             state.timer = SystemTime::now();
 
@@ -493,8 +487,20 @@ fn main() -> Result<(), Box<dyn Error>> {
                             d_.begin_texture_mode(&thread, &mut framebuffer);
                         d.clear_background(Color::BLACK);
 
-                        let mx = d.get_mouse_x();
-                        let my = d.get_mouse_y();
+                        let mx: i32 = {
+                            if d.get_touch_x() != 0 {
+                                d.get_touch_x()
+                            } else {
+                                d.get_mouse_x()
+                            }
+                        };
+                        let my: i32 = {
+                            if d.get_touch_y() != 0 {
+                                d.get_touch_y()
+                            } else {
+                                d.get_mouse_y()
+                            }
+                        };
 
                         match state.screen {
                             Screen::Office => {
@@ -504,11 +510,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 if mx >= cx && mx <= cx + 200 && my >= cy && my <= cy + 200 {
                                     d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
                                     if d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON) {
-                                        println!("{:?}", state.screen);
-
-                                        if state.screen == Screen::Office {
-                                            audio.play_plush()?;
-                                        }
+                                        audio.play_plush()?;
                                     }
                                 }
                                 #[cfg(not(feature = "no_camera_timer"))]
@@ -533,47 +535,27 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         }
                                     }
                                 }
+                                macro_rules! a {
+                                    ($($val:tt).*) => {
+                                        d.draw_texture_pro(
+                                            &$($val).*,
+                                            texture_rect!($($val).*),
+                                            Rectangle::new(
+                                                get_margin() + -state.bg_offset_x,
+                                                0.0,
+                                                get_width() as f32 * 1.6,
+                                                get_height() as f32,
+                                            ),
+                                            Vector2::new(0.0, 0.0),
+                                            0.0,
+                                            Color::WHITE,
+                                        );
+                                    };
+                                }
 
-                                d.draw_texture_pro(
-                                    &textures.office_corners,
-                                    texture_rect!(textures.office_corners),
-                                    Rectangle::new(
-                                        get_margin() + -state.bg_offset_x,
-                                        0.0,
-                                        get_width() as f32 * 1.6,
-                                        get_height() as f32,
-                                    ),
-                                    Vector2::new(0.0, 0.0),
-                                    0.0,
-                                    Color::WHITE,
-                                );
-                                d.draw_texture_pro(
-                                    &textures.door_left,
-                                    texture_rect!(textures.door_left),
-                                    Rectangle::new(
-                                        get_margin() + -state.bg_offset_x,
-                                        state.left_door_anim_timer,
-                                        get_width() as f32 * 1.6,
-                                        get_height() as f32,
-                                    ),
-                                    Vector2::new(0.0, 0.0),
-                                    0.0,
-                                    Color::WHITE,
-                                );
-
-                                d.draw_texture_pro(
-                                    &textures.door_right,
-                                    texture_rect!(textures.door_right),
-                                    Rectangle::new(
-                                        get_margin() + -state.bg_offset_x,
-                                        state.right_door_anim_timer,
-                                        get_width() as f32 * 1.6,
-                                        get_height() as f32,
-                                    ),
-                                    Vector2::new(0.0, 0.0),
-                                    0.0,
-                                    Color::WHITE,
-                                );
+                                a!(textures.office_corners);
+                                a!(textures.door_left);
+                                a!(textures.door_right);
                                 let var_name = (1.0 + get_ratio()) as i32;
 
                                 d.draw_texture_pro(
@@ -627,19 +609,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     Color::WHITE,
                                 );
 
-                                d.draw_texture_pro(
-                                    &textures.office_part1,
-                                    texture_rect!(textures.office_part1),
-                                    Rectangle::new(
-                                        get_margin() + -state.bg_offset_x,
-                                        0.0,
-                                        get_width() as f32 * 1.6,
-                                        get_height() as f32,
-                                    ),
-                                    Vector2::new(0.0, 0.0),
-                                    0.0,
-                                    Color::WHITE,
-                                );
+                                a!(textures.office_part1);
 
                                 for mons in state.gang.in_room(Room::Office) {
                                     mons.draw(
@@ -652,46 +622,29 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     );
                                 }
 
-                                d.draw_texture_pro(
-                                    &textures.office_part2,
-                                    texture_rect!(textures.office_part2),
-                                    Rectangle::new(
-                                        get_margin() + -state.bg_offset_x,
-                                        0.0,
-                                        get_width() as f32 * 1.6,
-                                        get_height() as f32,
-                                    ),
-                                    Vector2::new(0.0, 0.0),
-                                    0.0,
-                                    Color::WHITE,
-                                );
+                                a!(textures.office_part2);
+                                a!(textures.button1);
+                                a!(textures.button2);
 
-                                d.draw_texture_pro(
-                                    &textures.button1,
-                                    texture_rect!(textures.button1),
-                                    Rectangle::new(
-                                        get_margin() + -state.bg_offset_x,
-                                        0.0,
-                                        get_width() as f32 * 1.6,
-                                        get_height() as f32,
-                                    ),
-                                    Vector2::new(0.0, 0.0),
-                                    0.0,
-                                    Color::WHITE,
-                                );
-                                d.draw_texture_pro(
-                                    &textures.button2,
-                                    texture_rect!(textures.button2),
-                                    Rectangle::new(
-                                        get_margin() + -state.bg_offset_x,
-                                        0.0,
-                                        get_width() as f32 * 1.6,
-                                        get_height() as f32,
-                                    ),
-                                    Vector2::new(0.0, 0.0),
-                                    0.0,
-                                    Color::WHITE,
-                                );
+                                if state.left_door_shut {
+                                    if !state.left_door_bypass_cooldown {
+                                        a!(textures.door_light_left_on);
+                                    } else {
+                                        a!(textures.door_light_left_off);
+                                    }
+                                } else {
+                                    a!(textures.door_light_left_off);
+                                }
+
+                                if state.right_door_shut {
+                                    if !state.right_door_bypass_cooldown {
+                                        a!(textures.door_light_right_on);
+                                    } else {
+                                        a!(textures.door_light_right_off);
+                                    }
+                                } else {
+                                    a!(textures.door_light_right_off);
+                                }
 
                                 if state.gang.wilber.active() {
                                     let texture = match state.gang.wilber.stage {
