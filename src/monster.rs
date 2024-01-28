@@ -504,7 +504,7 @@ impl GoGopher {
     }
 }
 
-const DUCT_THING: u16 = 10000;
+const DUCT_THING: u16 = 1000;
 
 impl Monster for GoGopher {
     monster_function_macro!();

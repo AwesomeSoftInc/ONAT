@@ -522,7 +522,7 @@ Wisdom........................................The Eye
                             state.gang.gogopher.activate();
                         }
                         if d_.is_key_released(KeyboardKey::KEY_FOUR) {
-                            state.gang.gogopher.activate();
+                            state.gang.gogopher.set_room(Room::Room4)
                         }
                         if d_.is_key_released(KeyboardKey::KEY_FIVE) {
                             state.gang.golden_tux.activate();
