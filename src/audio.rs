@@ -44,8 +44,10 @@ pub struct Audio {
     revenant_party: Chunk,
     brownian_channel: Option<Channel>,
     title_channel: Option<Channel>,
-    left_channel: Option<Channel>,
-    right_channel: Option<Channel>,
+    left_channel_door: Option<Channel>,
+    right_channel_door: Option<Channel>,
+    left_channel_thud: Option<Channel>,
+    right_channel_thud: Option<Channel>,
     noise_channel: Option<Channel>,
     monster_appear_channel: Option<Channel>,
     ambient_channel: Option<Channel>,
@@ -104,8 +106,11 @@ impl Audio {
             ambience_sinister,
             thread_rng: thread_rng(),
             title_channel: None,
-            left_channel: None,
-            right_channel: None,
+            left_channel_door: None,
+            right_channel_door: None,
+
+            left_channel_thud: None,
+            right_channel_thud: None,
             noise_channel: None,
             monster_appear_channel: None,
             ambient_channel: None,
@@ -200,22 +205,22 @@ impl Audio {
     }
     pub fn play_door_left(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.left_halt();
-        play!(self.left_channel, self.door);
+        play!(self.left_channel_door, self.door);
         Ok(())
     }
     pub fn play_door_right(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.right_halt();
-        play!(self.right_channel, self.door);
+        play!(self.right_channel_door, self.door);
         Ok(())
     }
     pub fn play_thud_left(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.left_halt();
-        play!(self.left_channel, self.thud);
+        play!(self.left_channel_thud, self.thud);
         Ok(())
     }
     pub fn play_thud_right(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.right_halt();
-        play!(self.right_channel, self.thud);
+        play!(self.right_channel_thud, self.thud);
         Ok(())
     }
     pub fn play_bells(&mut self) -> Result<(), Box<dyn std::error::Error>> {
@@ -240,19 +245,30 @@ impl Audio {
         }
         let left = left as u8;
         let right = right as u8;
-        if let Some(ch) = self.left_channel {
+        if let Some(ch) = self.left_channel_door {
             ch.set_panning(left, 0)?;
             if !ch.is_playing() {
-                self.left_channel = None;
+                self.left_channel_door = None;
             }
         }
-        if let Some(ch) = self.right_channel {
+        if let Some(ch) = self.right_channel_door {
             ch.set_panning(0, right)?;
             if !ch.is_playing() {
-                self.right_channel = None;
+                self.right_channel_door = None;
             }
         }
-
+        if let Some(ch) = self.left_channel_thud {
+            ch.set_panning(left, 0)?;
+            if !ch.is_playing() {
+                self.left_channel_thud = None;
+            }
+        }
+        if let Some(ch) = self.right_channel_thud {
+            ch.set_panning(0, right)?;
+            if !ch.is_playing() {
+                self.right_channel_thud = None;
+            }
+        }
         if let Some(ch) = self.noise_channel {
             ch.set_volume(100);
             if !ch.is_playing() {
@@ -307,15 +323,16 @@ impl Audio {
     }
 
     pub fn left_halt(&mut self) {
-        if let Some(ch) = self.left_channel {
+        if let Some(ch) = self.left_channel_door {
             ch.halt();
         }
     }
     pub fn right_halt(&mut self) {
-        if let Some(ch) = self.right_channel {
+        if let Some(ch) = self.right_channel_door {
             ch.halt();
         }
     }
+
     pub fn center_halt(&mut self) {
         if let Some(ch) = self.title_channel {
             ch.halt();

@@ -6,6 +6,7 @@ use rand::{thread_rng, Rng};
 #[derive(PartialEq, Debug)]
 pub enum Screen {
     TitleScreen,
+    Credits,
     Office,
     CameraRebooting,
     Camera,

@@ -921,7 +921,7 @@ impl Gang {
     }
 
     pub fn hours(&mut self, time: Duration) -> u64 {
-        time.as_secs() / 200
+        3 + (time.as_secs() / 200)
     }
     pub fn step(&mut self, time: Duration) -> bool {
         let hours = self.hours(time);
@@ -960,30 +960,30 @@ impl Gang {
         }
 
         // 1 AM
-        if hours == 1 && !self.one_am_checked {
+        if hours >= 1 && !self.one_am_checked {
             self.wilber.time_since_appeared = Some(SystemTime::now());
             self.wilber.activate();
             self.one_am_checked = true;
             self.ai_level_increase();
         }
         // 2 AM
-        if hours == 2 && !self.two_am_checked {
+        if hours >= 2 && !self.two_am_checked {
             self.gogopher.activate();
             self.two_am_checked = true;
             self.ai_level_increase();
         }
         // 3 AM
-        if hours == 3 && !self.three_am_checked {
+        if hours >= 3 && !self.three_am_checked {
             self.tux.activate();
             self.three_am_checked = true;
             self.ai_level_increase();
             self.tux.can_move = true;
         }
-        if hours == 4 && !self.four_am_checked {
+        if hours >= 4 && !self.four_am_checked {
             self.tux.can_move = true;
             self.four_am_checked = true;
         }
-        if hours == 5 && !self.five_am_checked {
+        if hours >= 5 && !self.five_am_checked {
             self.tux.can_move = true;
             self.tux.ai_level = 10;
             self.five_am_checked = true;

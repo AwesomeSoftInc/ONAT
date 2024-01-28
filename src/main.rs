@@ -106,7 +106,6 @@ pub fn get_ratio() -> f32 {
 #[error_window::main]
 fn main() -> Result<(), Box<dyn Error>> {
     set_trace_log(TraceLogLevel::LOG_ERROR);
-
     get_width();
     let (mut rl, thread) = raylib::init()
         .size(unsafe { SCREEN.width }, get_height())
@@ -115,6 +114,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         .title("ONAT")
         .build();
 
+    rl.set_window_icon(&Image::load_image_from_mem(
+        ".png",
+        &include_bytes!("../assets/icon.png").to_vec(),
+        25223,
+    )?);
     let mut audio = Audio::new()?;
 
     let textures = Textures::new(&mut rl, &thread)?;
@@ -167,7 +171,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let tex = rl.load_texture_from_image(&thread, &img)?;
                     (img, tex)
                 }
-                Screen::TitleScreen => {
+                Screen::TitleScreen | Screen::Credits => {
                     let img = Image::gen_image_white_noise(
                         get_width_unaltered() / 6,
                         get_height() / 6,
@@ -194,7 +198,20 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
             let mut d_ = rl.begin_drawing(&thread);
-
+            let mx: i32 = {
+                if d_.get_touch_x() != 0 {
+                    d_.get_touch_x()
+                } else {
+                    d_.get_mouse_x()
+                }
+            };
+            let my: i32 = {
+                if d_.get_touch_y() != 0 {
+                    d_.get_touch_y()
+                } else {
+                    d_.get_mouse_y()
+                }
+            };
             match state.screen {
                 // for some fucken reason we can't draw some of these on a texture? idfk
                 Screen::TitleScreen => {
@@ -267,12 +284,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                         0.0,
                         Color::new(255, 255, 255, alpha / 8),
                     );
+                    let cx = get_width_unaltered() - (get_width_unaltered() / 8);
+                    let cy = get_height() - 48;
+                    d_.draw_text("Credits", cx, cy, 32, Color::WHITE);
                     if d_.is_mouse_button_pressed(MouseButton::MOUSE_LEFT_BUTTON) {
-                        state.going_to_office_from_title = true;
-                        if !d_.is_key_down(KeyboardKey::KEY_LEFT_SHIFT) {
-                            state.title_clicked = SystemTime::now();
+                        if mx >= cx && my >= cy {
+                            state.screen = Screen::Credits;
                         } else {
-                            state.title_clicked = UNIX_EPOCH;
+                            state.going_to_office_from_title = true;
+                            if !d_.is_key_down(KeyboardKey::KEY_LEFT_SHIFT) {
+                                state.title_clicked = SystemTime::now();
+                            } else {
+                                state.title_clicked = UNIX_EPOCH;
+                            }
                         }
                     }
 
@@ -287,6 +311,44 @@ fn main() -> Result<(), Box<dyn Error>> {
                         state.win_time = SystemTime::now();
                         state.going_to_office_from_title = false;
                         audio.play_brownian_noise()?;
+                    }
+                }
+                Screen::Credits => {
+                    d_.clear_background(Color::BLACK);
+                    d_.draw_text_rec(
+                        &default_font,
+                        "
+Programming...................................Gavin \"ioi_xd\" Parker
+Director/Art/Play Testing.....................BigTuxFan223*
+Music.........................................Nichael Brimbleton of Burning Galaxy
+Wisdom........................................The Eye
+                        ",
+                        Rectangle::new(
+                            get_margin() + 48.0,
+                            48.0,
+                            get_width() as f32,
+                            get_height() as f32,
+                        ),
+                        30.0,
+                        6.0,
+                        true,
+                        Color::WHITE,
+                    );
+
+                    d_.draw_text(
+                        "*Uses Windows",
+                        get_margin() as i32 + 5,
+                        get_height() - 48,
+                        32,
+                        Color::new(255, 255, 255, 255),
+                    );
+                    let cx = get_width_unaltered() - (get_width_unaltered() / 4);
+                    let cy = get_height() - 48;
+                    d_.draw_text("Back to Title Screen", cx, cy, 32, Color::WHITE);
+                    if d_.is_mouse_button_pressed(MouseButton::MOUSE_LEFT_BUTTON) {
+                        if mx >= cx && my >= cy {
+                            state.screen = Screen::TitleScreen;
+                        }
                     }
                 }
                 Screen::GameOver => {
@@ -308,8 +370,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let text = match state.jumpscarer {
                         MonsterName::Penny => "TIP: When Penny leaves CAM 3, close the door immediately to avoid being tainted.",
                         MonsterName::Beastie => "TIP: When Beastie leaves CAM 5, close the door immediately to avoid being tainted.",
-                        MonsterName::Wilber =>  "TIP: Heat up the air duct to reset the gopher's progress.",
-                        MonsterName::GoGopher => "TIP: Perodically check Wilbur to prevent his attack.",
+                        MonsterName::GoGopher =>  "TIP: Heat up the air duct to reset the gopher's progress.",
+                        MonsterName::Wilber => "TIP: Perodically check Wilbur to prevent his attack.",
                         MonsterName::Nolok => nolok_text.as_str(),
                         _ => "TIP: When Tux leaves his domain, he will immediately rush one of the hallways.",
                     };
@@ -350,6 +412,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                             panic!("Segmentation fault");
                         }
                         state.screen = Screen::TitleScreen;
+                        state.going_to_office_from_title = false;
                     }
                 }
                 Screen::YouWin => {
@@ -442,7 +505,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                         Color::BLACK,
                     );
                     if state.win_time.elapsed()?.as_secs() >= 20 {
-                        state.screen = Screen::TitleScreen;
+                        state.screen = Screen::Credits;
+                        state.going_to_office_from_title = false;
                     }
                 }
                 _ => {
@@ -459,6 +523,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                         }
                         if d_.is_key_released(KeyboardKey::KEY_FOUR) {
                             state.gang.gogopher.activate();
+                        }
+                        if d_.is_key_released(KeyboardKey::KEY_FIVE) {
+                            state.gang.golden_tux.activate();
+                        }
+                        if d_.is_key_released(KeyboardKey::KEY_SIX) {
+                            state.gang.penny.set_room(Room::Room3);
+                        }
+                        if d_.is_key_released(KeyboardKey::KEY_SEVEN) {
+                            state.gang.beastie.set_room(Room::Room5);
                         }
                         if state.gang.wilber.active() && !state.wilber_snd_played {
                             audio.play_wilber()?;
@@ -486,21 +559,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                         let mut d: RaylibTextureMode<'_, RaylibDrawHandle<'_>> =
                             d_.begin_texture_mode(&thread, &mut framebuffer);
                         d.clear_background(Color::BLACK);
-
-                        let mx: i32 = {
-                            if d.get_touch_x() != 0 {
-                                d.get_touch_x()
-                            } else {
-                                d.get_mouse_x()
-                            }
-                        };
-                        let my: i32 = {
-                            if d.get_touch_y() != 0 {
-                                d.get_touch_y()
-                            } else {
-                                d.get_mouse_y()
-                            }
-                        };
 
                         match state.screen {
                             Screen::Office => {
@@ -554,8 +612,32 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 }
 
                                 a!(textures.office_corners);
-                                a!(textures.door_left);
-                                a!(textures.door_right);
+                                d.draw_texture_pro(
+                                    &textures.door_left,
+                                    texture_rect!(textures.door_left),
+                                    Rectangle::new(
+                                        get_margin() + -state.bg_offset_x,
+                                        state.left_door_anim_timer,
+                                        get_width() as f32 * 1.6,
+                                        get_height() as f32,
+                                    ),
+                                    Vector2::new(0.0, 0.0),
+                                    0.0,
+                                    Color::WHITE,
+                                );
+                                d.draw_texture_pro(
+                                    &textures.door_right,
+                                    texture_rect!(textures.door_right),
+                                    Rectangle::new(
+                                        get_margin() + -state.bg_offset_x,
+                                        state.right_door_anim_timer,
+                                        get_width() as f32 * 1.6,
+                                        get_height() as f32,
+                                    ),
+                                    Vector2::new(0.0, 0.0),
+                                    0.0,
+                                    Color::WHITE,
+                                );
                                 let var_name = (1.0 + get_ratio()) as i32;
 
                                 d.draw_texture_pro(
@@ -625,23 +707,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 a!(textures.office_part2);
                                 a!(textures.button1);
                                 a!(textures.button2);
-
-                                if state.left_door_shut {
-                                    if !state.left_door_bypass_cooldown {
-                                        a!(textures.door_light_left_on);
-                                    } else {
-                                        a!(textures.door_light_left_off);
-                                    }
+                                if !state.can_open_left_door {
+                                    a!(textures.door_light_left_on);
                                 } else {
                                     a!(textures.door_light_left_off);
                                 }
 
-                                if state.right_door_shut {
-                                    if !state.right_door_bypass_cooldown {
-                                        a!(textures.door_light_right_on);
-                                    } else {
-                                        a!(textures.door_light_right_off);
-                                    }
+                                if !state.can_open_right_door {
+                                    a!(textures.door_light_right_on);
                                 } else {
                                     a!(textures.door_light_right_off);
                                 }
@@ -1302,20 +1375,20 @@ fn main() -> Result<(), Box<dyn Error>> {
                                     let battery_bar_height = get_height() as f32 / 13.5;
                                     let battery_bar_y =
                                         get_height() as f32 - (get_height() as f32 / 5.0);
-                                    let gimp_width =
-                                        (165.0 * (state.gang.wilber.rage() / 100.0)) as i32 - 4;
+                                    let rage = state.gang.wilber.rage();
+                                    let gimp_width = (165.0 * (rage / 100.0)) as i32 - 4;
 
-                                    d.draw_rectangle(
+                                    d.draw_rectangle_gradient_h(
                                         get_margin() as i32 + 20,
-                                        battery_bar_y as i32 + (get_height() as f32 / 48.0) as i32
-                                            - 1,
+                                        battery_bar_y as i32 + 2,
                                         gimp_width,
-                                        (get_height() as f32 / 20.0) as i32,
-                                        Color::new(50 * (state.gang.wilber.stage + 1), 0, 0, 255),
+                                        (get_height() as f32 / 15.0) as i32,
+                                        Color::BLACK,
+                                        Color::new(255, 23, 62, 255),
                                     );
                                     d.draw_texture_pro(
-                                        &textures.battery,
-                                        texture_rect!(textures.battery),
+                                        &textures.rage_bar,
+                                        texture_rect!(textures.rage_bar),
                                         Rectangle::new(
                                             get_margin() + 14.0,
                                             battery_bar_y,
@@ -1450,32 +1523,45 @@ fn main() -> Result<(), Box<dyn Error>> {
                         );
 
                         if state.left_door_last_shut.elapsed()?.as_secs() >= 7 {
+                            println!(
+                                "state.left_door_bypass_cooldown {}",
+                                state.left_door_bypass_cooldown
+                            );
                             if !state.left_door_bypass_cooldown {
                                 state.can_open_left_door = false;
                                 state.left_door_bypass_cooldown = false;
+                                state.left_door_shut = false;
                             } else {
                                 audio.play_thud_left()?;
+                                state.left_door_bypass_cooldown = false;
+
                                 state.left_door_last_shut =
                                     SystemTime::now() - Duration::from_secs(14);
                             }
-                            state.left_door_shut = false;
                         }
                         if state.left_door_last_shut.elapsed()?.as_secs() >= 14 {
+                            state.left_door_shut = false;
                             state.can_open_left_door = true;
                         }
 
                         if state.right_door_last_shut.elapsed()?.as_secs() >= 7 {
+                            println!(
+                                "state.right_door_bypass_cooldown {}",
+                                state.right_door_bypass_cooldown
+                            );
                             if !state.right_door_bypass_cooldown {
                                 state.can_open_right_door = false;
+                                state.right_door_bypass_cooldown = false;
+                                state.right_door_shut = false;
                             } else {
                                 audio.play_thud_right()?;
                                 state.right_door_bypass_cooldown = false;
                                 state.right_door_last_shut =
                                     SystemTime::now() - Duration::from_secs(14);
                             }
-                            state.right_door_shut = false;
                         }
                         if state.right_door_last_shut.elapsed()?.as_secs() >= 14 {
+                            state.right_door_shut = false;
                             state.can_open_right_door = true;
                         }
 
@@ -1581,8 +1667,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                             state.right_door_bypass_cooldown = true;
                             open_right_door_back_up = false;
                         }
-                        if state.gang.wilber.stage == 4 && state.gang.wilber.rage() >= 0.2 {
+                        if state.gang.wilber.stage == 3 && state.gang.wilber.rage() >= 0.2 {
                             if state.jumpscarer == MonsterName::None {
+                                state.going_to_office = true;
                                 state.jumpscarer = MonsterName::Wilber;
                                 state.gameover_time = SystemTime::now();
                                 state.getting_jumpscared = true;
