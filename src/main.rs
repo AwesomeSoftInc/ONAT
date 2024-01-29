@@ -1635,7 +1635,7 @@ The Eye
                             Color::WHITE,
                         );
 
-                        if state.left_door_last_shut.elapsed()?.as_secs() >= 7 {
+                        if state.left_door_last_shut.elapsed()?.as_secs() >= 5 {
                             if !state.left_door_bypass_cooldown {
                                 state.can_open_left_door = false;
                                 state.left_door_bypass_cooldown = false;
@@ -1645,15 +1645,15 @@ The Eye
                                 state.left_door_bypass_cooldown = false;
 
                                 state.left_door_last_shut =
-                                    SystemTime::now() - Duration::from_secs(14);
+                                    SystemTime::now() - Duration::from_secs(10);
                             }
                         }
-                        if state.left_door_last_shut.elapsed()?.as_secs() >= 14 {
+                        if state.left_door_last_shut.elapsed()?.as_secs() >= 10 {
                             state.left_door_shut = false;
                             state.can_open_left_door = true;
                         }
 
-                        if state.right_door_last_shut.elapsed()?.as_secs() >= 7 {
+                        if state.right_door_last_shut.elapsed()?.as_secs() >= 5 {
                             if !state.right_door_bypass_cooldown {
                                 state.can_open_right_door = false;
                                 state.right_door_bypass_cooldown = false;
@@ -1662,10 +1662,10 @@ The Eye
                                 audio.play_thud_right()?;
                                 state.right_door_bypass_cooldown = false;
                                 state.right_door_last_shut =
-                                    SystemTime::now() - Duration::from_secs(14);
+                                    SystemTime::now() - Duration::from_secs(10);
                             }
                         }
-                        if state.right_door_last_shut.elapsed()?.as_secs() >= 14 {
+                        if state.right_door_last_shut.elapsed()?.as_secs() >= 10 {
                             state.right_door_shut = false;
                             state.can_open_right_door = true;
                         }
@@ -1732,7 +1732,6 @@ The Eye
                     for mons in inoffice {
                         if mons.active() {
                             let duration: &Duration = &mons.timer_until_office().elapsed()?;
-                            let mut door_open_check = false;
 
                             let is_tux = mons.id() == MonsterName::Tux
                                 || mons.id() == MonsterName::GoldenTux;
@@ -1741,17 +1740,22 @@ The Eye
                                 || duration.as_millis()
                                     >= (MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000) - 500
                             {
+                                let var_name = MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000000000;
+                                println!("{} {}", duration.as_nanos(), var_name);
+
                                 let mut do_flickering = true;
 
                                 if is_tux {
-                                    door_open_check = true;
                                     do_flickering = false;
                                 }
                                 if mons.entered_from_left() {
                                     if !state.left_door_shut {
                                         state.tainted += mons.taint_percent();
                                     } else {
-                                        mons.set_entered_from_left(false);
+                                        if duration.as_nanos() <= var_name {
+                                            open_left_door_back_up = true;
+                                        }
+                                        //mons.set_entered_from_left(false);
                                         mons.goto_room_after_office();
                                         do_flickering = false;
                                     }
@@ -1760,11 +1764,15 @@ The Eye
                                     if !state.right_door_shut {
                                         state.tainted += mons.taint_percent();
                                     } else {
-                                        mons.set_entered_from_right(false);
+                                        if duration.as_nanos() <= var_name {
+                                            open_right_door_back_up = true;
+                                        }
+                                        //mons.set_entered_from_right(false);
                                         mons.goto_room_after_office();
                                         do_flickering = false;
                                     }
                                 }
+                                println!("{}", open_right_door_back_up);
                                 // go gopher just does it regardless.
                                 if mons.id() == MonsterName::GoGopher {
                                     state.tainted += mons.taint_percent();
@@ -1778,23 +1786,7 @@ The Eye
                                         audio.play_stinger()?;
                                     }
                                 }
-                            } else {
-                                door_open_check = true;
                             }
-                            if door_open_check {
-                                if mons.entered_from_left() {
-                                    if state.left_door_shut {
-                                        open_left_door_back_up = true;
-                                        mons.goto_room_after_office();
-                                    }
-                                }
-                                if mons.entered_from_right() {
-                                    if state.right_door_shut {
-                                        open_right_door_back_up = true;
-                                        mons.goto_room_after_office();
-                                    }
-                                }
-                            };
                         }
 
                         if mons.entered_from_left()

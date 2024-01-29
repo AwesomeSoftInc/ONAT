@@ -104,7 +104,7 @@ impl Audio {
             sdl2::mixer::Chunk::from_file("./audio/sinister_ambient_3.mp3")?,
         ];
 
-        let bells = sdl2::mixer::Chunk::from_file("./audio/bells.flac")?;
+        let bells = sdl2::mixer::Chunk::from_file("./audio/bells.mp3")?;
 
         let stinger = sdl2::mixer::Chunk::from_file("./audio/stinger.mp3")?;
         let jammed = sdl2::mixer::Chunk::from_file("./audio/jammed.mp3")?;
