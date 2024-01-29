@@ -41,7 +41,18 @@ pub struct Audio {
     brownian_noise: Chunk,
     bells: Chunk,
 
+    stinger: Chunk,
+    jammed: Chunk,
+
+    camera_flip: Chunk,
+
+    wilburs: Vec<Chunk>,
+    gopher_appear: Chunk,
+
+    open_source_closed_casket: Chunk,
+
     revenant_party: Chunk,
+    ambience_unused: Chunk,
     brownian_channel: Option<Channel>,
     title_channel: Option<Channel>,
     left_channel_door: Option<Channel>,
@@ -51,51 +62,70 @@ pub struct Audio {
     noise_channel: Option<Channel>,
     monster_appear_channel: Option<Channel>,
     ambient_channel: Option<Channel>,
+    open_source_channel: Option<Channel>,
     plush_channel: Option<Channel>,
     jumpscare_channel: Option<Channel>,
     tainted_channels: Vec<Option<Channel>>,
     bells_channel: Option<Channel>,
+    stinger_channel: Option<Channel>,
+    jammed_channel: Option<Channel>,
+
+    wilber_channel: Option<Channel>,
 }
 impl Audio {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
         sdl2::mixer::open_audio(44000, AUDIO_F32, 2, 256)?;
         sdl2::mixer::allocate_channels(8);
 
-        let door = sdl2::mixer::Chunk::from_file("./assets/door.mp3")?;
-        let fuck_you_tux = sdl2::mixer::Chunk::from_file("./assets/fuck_you_tux.mp3")?;
-        let thud = sdl2::mixer::Chunk::from_file("./assets/thud.mp3")?;
-        let noise = sdl2::mixer::Chunk::from_file("./assets/noise.mp3")?;
-        let wilber_appear = sdl2::mixer::Chunk::from_file("./assets/wilber_appear.mp3")?;
-        let tux_appear = sdl2::mixer::Chunk::from_file("./assets/tux_appears.mp3")?;
-        let plush = sdl2::mixer::Chunk::from_file("./assets/plush.mp3")?;
+        let door = sdl2::mixer::Chunk::from_file("./audio/door.mp3")?;
+        let fuck_you_tux = sdl2::mixer::Chunk::from_file("./audio/fuck_you_tux.mp3")?;
+        let thud = sdl2::mixer::Chunk::from_file("./audio/thud.mp3")?;
+        let noise = sdl2::mixer::Chunk::from_file("./audio/noise.mp3")?;
+        let wilber_appear = sdl2::mixer::Chunk::from_file("./audio/wilber_appear.mp3")?;
+        let tux_appear = sdl2::mixer::Chunk::from_file("./audio/tux_appears.mp3")?;
+        let gopher_appear = sdl2::mixer::Chunk::from_file("./audio/gopher.mp3")?;
+        let open_source_closed_casket =
+            sdl2::mixer::Chunk::from_file("./audio/open_source_closed_casket.mp3")?;
+        let plush = sdl2::mixer::Chunk::from_file("./audio/plush.mp3")?;
 
-        let regular_jumpscare = sdl2::mixer::Chunk::from_file("./assets/regular_jumpscare.mp3")?;
-        let tux_jumpscare = sdl2::mixer::Chunk::from_file("./assets/tux_jumpscare.mp3")?;
-        let revenant_party = sdl2::mixer::Chunk::from_file("./assets/revenant_party.mp3")?;
-        let brownian_noise = sdl2::mixer::Chunk::from_file("./assets/brownian_noise.mp3")?;
+        let regular_jumpscare = sdl2::mixer::Chunk::from_file("./audio/regular_jumpscare.mp3")?;
+        let tux_jumpscare = sdl2::mixer::Chunk::from_file("./audio/tux_jumpscare.mp3")?;
+        let revenant_party = sdl2::mixer::Chunk::from_file("./audio/revenant_party.mp3")?;
+        let brownian_noise = sdl2::mixer::Chunk::from_file("./audio/brownian_noise.mp3")?;
         let ambience_ominous = vec![
-            sdl2::mixer::Chunk::from_file("./assets/ominous_ambient_1.mp3")?,
-            sdl2::mixer::Chunk::from_file("./assets/ominous_ambient_2.mp3")?,
-            sdl2::mixer::Chunk::from_file("./assets/ominous_ambient_3.mp3")?,
+            sdl2::mixer::Chunk::from_file("./audio/ominous_ambient_1.mp3")?,
+            sdl2::mixer::Chunk::from_file("./audio/ominous_ambient_3.mp3")?,
         ];
+        let ambience_unused = sdl2::mixer::Chunk::from_file("./audio/ominous_ambient_2.mp3")?;
 
         let ambience_sinister = vec![
-            sdl2::mixer::Chunk::from_file("./assets/sinister_ambient_1.mp3")?,
-            sdl2::mixer::Chunk::from_file("./assets/sinister_ambient_2.mp3")?,
-            sdl2::mixer::Chunk::from_file("./assets/sinister_ambient_3.mp3")?,
+            sdl2::mixer::Chunk::from_file("./audio/sinister_ambient_1.mp3")?,
+            sdl2::mixer::Chunk::from_file("./audio/sinister_ambient_2.mp3")?,
+            sdl2::mixer::Chunk::from_file("./audio/sinister_ambient_3.mp3")?,
         ];
 
-        let bells = sdl2::mixer::Chunk::from_file("./assets/bells.flac")?;
+        let bells = sdl2::mixer::Chunk::from_file("./audio/bells.flac")?;
+
+        let stinger = sdl2::mixer::Chunk::from_file("./audio/stinger.mp3")?;
+        let jammed = sdl2::mixer::Chunk::from_file("./audio/jammed.mp3")?;
+        let camera_flip = sdl2::mixer::Chunk::from_file("./audio/camera_flip.mp3")?;
+
+        let wilburs = vec![
+            sdl2::mixer::Chunk::from_file("./audio/wilbur1.mp3")?,
+            sdl2::mixer::Chunk::from_file("./audio/wilbur3.mp3")?,
+            sdl2::mixer::Chunk::from_file("./audio/wilbur2.mp3")?,
+        ];
+
         let mut tainted_notes = Vec::new();
         let mut tainted_channels = Vec::new();
         for i in 1..37 {
             tainted_notes.push(sdl2::mixer::Chunk::from_file(format!(
-                "./assets/tainted/note{}.mp3",
+                "./audio/tainted/note{}.mp3",
                 i
             ))?);
             tainted_channels.push(None);
         }
-        Ok(Self {
+        let audio = Self {
             door,
             fuck_you_tux,
             thud,
@@ -126,23 +156,41 @@ impl Audio {
             bells,
             bells_channel: None,
             revenant_party,
-        })
+            stinger,
+            stinger_channel: None,
+            jammed_channel: None,
+            jammed,
+            gopher_appear,
+            open_source_closed_casket,
+            camera_flip,
+            wilburs,
+            wilber_channel: None,
+            ambience_unused,
+            open_source_channel: None,
+        };
+        Ok(audio)
     }
 
     pub fn play_ambience(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let None = self.ambient_channel {
-            let chance_to_play = self.thread_rng.gen_range(1..1000);
-            if chance_to_play <= 1 {
-                let chance = self.thread_rng.gen_range(1..150);
-                let vec;
-                if chance <= 1 {
-                    vec = &self.ambience_ominous;
-                } else {
-                    vec = &self.ambience_sinister;
+            if let None = self.open_source_channel {
+                let chance_to_play = self.thread_rng.gen_range(1..1000);
+                if chance_to_play <= 1 {
+                    let chance = self.thread_rng.gen_range(1..2000);
+                    let vec;
+                    if chance <= 1 {
+                        vec = &self.ambience_ominous;
+                    } else {
+                        vec = &self.ambience_sinister;
+                    }
+                    let chance = self.thread_rng.gen_range(1..vec.len());
+                    let snd = vec.get(chance - 1).unwrap();
+                    if false {
+                        self.play_ambience_unused_channel()?;
+                    } else {
+                        play!(self.ambient_channel, snd);
+                    }
                 }
-                let chance = self.thread_rng.gen_range(1..vec.len());
-                let snd = vec.get(chance - 1).unwrap();
-                play!(self.ambient_channel, snd);
             }
         };
         Ok(())
@@ -157,12 +205,36 @@ impl Audio {
             let pl = sdl2::mixer::Channel::all().play(&snd, 0);
             match pl {
                 Ok(a) => self.tainted_channels[note] = Some(a),
-                Err(er) => {}
+                Err(_er) => {}
             }
         };
         Ok(())
     }
-
+    pub fn play_open_source_closed_casket(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        play!(self.open_source_channel, self.open_source_closed_casket);
+        Ok(())
+    }
+    pub fn play_wilber_channel(&mut self, nth: usize) -> Result<(), Box<dyn std::error::Error>> {
+        let wil = self.wilburs.get(nth).unwrap();
+        play!(self.wilber_channel, wil);
+        Ok(())
+    }
+    pub fn play_ambience_unused_channel(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        play!(self.ambient_channel, self.ambience_unused);
+        Ok(())
+    }
+    pub fn play_camera_flip(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        sdl2::mixer::Channel::all().play(&self.camera_flip, 0)?;
+        Ok(())
+    }
+    pub fn play_jammed(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        play!(self.jammed_channel, self.jammed);
+        Ok(())
+    }
+    pub fn play_stinger(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        play!(self.stinger_channel, self.stinger);
+        Ok(())
+    }
     pub fn play_brownian_noise(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         play!(self.brownian_channel, self.brownian_noise);
         Ok(())
@@ -187,6 +259,11 @@ impl Audio {
     }
     pub fn play_tux(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         play!(self.monster_appear_channel, self.tux_appear);
+
+        Ok(())
+    }
+    pub fn play_gopher(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        play!(self.monster_appear_channel, self.gopher_appear);
 
         Ok(())
     }
@@ -290,6 +367,21 @@ impl Audio {
                 self.ambient_channel = None;
             }
         }
+        if let Some(ch) = self.open_source_channel {
+            if !ch.is_playing() {
+                self.open_source_channel = None;
+            }
+        }
+        if let Some(ch) = self.jammed_channel {
+            if !ch.is_playing() {
+                self.jammed_channel = None;
+            }
+        }
+        if let Some(ch) = self.stinger_channel {
+            if !ch.is_playing() {
+                self.stinger_channel = None;
+            }
+        }
         if let Some(ch) = self.plush_channel {
             if !ch.is_playing() {
                 self.plush_channel = None;
@@ -300,11 +392,15 @@ impl Audio {
                 self.jumpscare_channel = None;
             }
         }
-
+        if let Some(ch) = self.wilber_channel {
+            if !ch.is_playing() {
+                self.wilber_channel = None;
+            }
+        }
         if let Some(ch) = self.title_channel {
             let mut volume = {
                 if state.going_to_office_from_title {
-                    (100.0 - (state.title_clicked.elapsed()?.as_millis() as f32 / (5000.0 / 100.0)))
+                    (100.0 - (state.title_clicked.elapsed()?.as_millis() as f32 / (4000.0 / 100.0)))
                         as i32
                 } else {
                     100
@@ -319,6 +415,7 @@ impl Audio {
                 self.title_channel = None;
             }
         }
+
         Ok(())
     }
 

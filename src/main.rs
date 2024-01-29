@@ -1,15 +1,11 @@
-use monster::{GoGopher, Monster, MonsterName};
+use monster::{Monster, MonsterName};
 use rand::{thread_rng, Rng};
-use raylib::{
-    ffi::{GetMonitorHeight, GetMonitorWidth, MeasureText},
-    prelude::*,
-};
+use raylib::prelude::*;
 
-use num_traits::{float::FloatCore, real::Real, Float, FromPrimitive};
+use num_traits::FromPrimitive;
 use state::State;
 use std::{
     error::Error,
-    ffi::CString,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -17,11 +13,7 @@ use enums::{Room, Screen};
 use once_cell::sync::Lazy;
 use textures::Textures;
 
-use crate::{
-    audio::Audio,
-    jumpscares::load_jumpscares,
-    monster::{Tux, MONSTER_TIME_OFFICE_WAIT_THING},
-};
+use crate::{audio::Audio, jumpscares::load_jumpscares, monster::MONSTER_TIME_OFFICE_WAIT_THING};
 
 mod audio;
 mod enums;
@@ -143,6 +135,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut open_left_door_back_up = false;
     let mut open_right_door_back_up = false;
+
     while !rl.window_should_close() {
         let cur_time = state.ingame_time.duration_since(UNIX_EPOCH)?;
         let num = {
@@ -205,6 +198,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     d_.get_mouse_x()
                 }
             };
+
             let my: i32 = {
                 if d_.get_touch_y() != 0 {
                     d_.get_touch_y()
@@ -212,6 +206,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     d_.get_mouse_y()
                 }
             };
+
             match state.screen {
                 // for some fucken reason we can't draw some of these on a texture? idfk
                 Screen::TitleScreen => {
@@ -276,18 +271,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                         Color::new(255, 255, 255, alpha),
                     );
 
-                    d_.draw_texture_pro(
-                        &tex,
-                        texture_rect!(tex),
-                        Rectangle::new(0.0, 0.0, get_width_unaltered() as f32, get_height() as f32),
-                        Vector2::new(0.0, 0.0),
-                        0.0,
-                        Color::new(255, 255, 255, alpha / 8),
-                    );
                     let cx = get_width_unaltered() - (get_width_unaltered() / 8);
                     let cy = get_height() - 48;
-                    d_.draw_text("Credits", cx, cy, 32, Color::WHITE);
-                    if d_.is_mouse_button_pressed(MouseButton::MOUSE_LEFT_BUTTON) {
+                    d_.draw_text("Credits", cx, cy, 32, Color::new(255, 255, 255, alpha));
+                    if d_.is_mouse_button_pressed(MouseButton::MOUSE_LEFT_BUTTON)
+                        && !state.going_to_office_from_title
+                    {
                         if mx >= cx && my >= cy {
                             state.screen = Screen::Credits;
                         } else {
@@ -299,34 +288,67 @@ fn main() -> Result<(), Box<dyn Error>> {
                             }
                         }
                     }
-
+                    d_.draw_texture_pro(
+                        &tex,
+                        texture_rect!(tex),
+                        Rectangle::new(0.0, 0.0, get_width_unaltered() as f32, get_height() as f32),
+                        Vector2::new(0.0, 0.0),
+                        0.0,
+                        Color::new(255, 255, 255, alpha / 8),
+                    );
                     if state.going_to_office_from_title
-                        && state.title_clicked.elapsed()?.as_secs() >= 5 + 1
+                        && state.title_clicked.elapsed()?.as_secs() >= 5
                     {
                         audio.halt();
+                    }
+                    if state.going_to_office_from_title
+                        && state.title_clicked.elapsed()?.as_secs() >= 6
+                    {
                         state = State::new();
                         audio = Audio::new()?;
                         state.screen = Screen::Office;
-                        state.gameover_time = SystemTime::now();
                         state.win_time = SystemTime::now();
                         state.going_to_office_from_title = false;
                         audio.play_brownian_noise()?;
                     }
                 }
                 Screen::Credits => {
+                    audio.play_title(state.has_won)?;
+
                     d_.clear_background(Color::BLACK);
                     d_.draw_text_rec(
                         &default_font,
                         "
-Programming...................................Gavin \"ioi_xd\" Parker
-Director/Art/Play Testing.....................BigTuxFan223*
-Music.........................................Nichael Brimbleton
-Wisdom........................................The Eye
+Programming
+Director/Art/Play Testing
+Music
+Art/Animator
+Wisdom
                         ",
                         Rectangle::new(
                             get_margin() + 48.0,
                             48.0,
                             get_width() as f32,
+                            get_height() as f32,
+                        ),
+                        30.0,
+                        6.0,
+                        true,
+                        Color::WHITE,
+                    );
+                    d_.draw_text_rec(
+                        &default_font,
+                        "
+Gavin \"ioi_xd\" Parker
+BigTuxFan223*
+Nichael Brimbleton
+Giovanna \"mochi\" Poggi
+The Eye
+                        ",
+                        Rectangle::new(
+                            get_width_unaltered() as f32 / 2.0,
+                            48.0,
+                            get_width() as f32 * 2.0,
                             get_height() as f32,
                         ),
                         30.0,
@@ -371,8 +393,9 @@ Wisdom........................................The Eye
                         MonsterName::Penny => "TIP: When Penny leaves CAM 3, close the door immediately to avoid being tainted.",
                         MonsterName::Beastie => "TIP: When Beastie leaves CAM 5, close the door immediately to avoid being tainted.",
                         MonsterName::GoGopher =>  "TIP: Heat up the air duct to reset the gopher's progress.",
-                        MonsterName::Wilber => "TIP: Perodically check Wilbur to prevent his attack.",
+                        MonsterName::Wilber => "TIP: Check Wilbur extremely frequently to prevent his attack.",
                         MonsterName::Nolok => nolok_text.as_str(),
+                        MonsterName::GoldenTux => "",
                         _ => "TIP: When Tux leaves his domain, he will immediately rush one of the hallways.",
                     };
                     let y = get_height() as f32 / 2.0;
@@ -413,6 +436,7 @@ Wisdom........................................The Eye
                         }
                         state.screen = Screen::TitleScreen;
                         state.going_to_office_from_title = false;
+                        audio.brownian_halt();
                     }
                 }
                 Screen::YouWin => {
@@ -511,35 +535,51 @@ Wisdom........................................The Eye
                 }
                 _ => {
                     {
-                        if d_.is_key_released(KeyboardKey::KEY_ONE) {
-                            state.gang.wilber.time_since_appeared = Some(SystemTime::now());
-                            state.gang.wilber.activate();
-                        }
-                        if d_.is_key_released(KeyboardKey::KEY_TWO) {
-                            state.gang.tux.activate();
-                        }
-                        if d_.is_key_released(KeyboardKey::KEY_THREE) {
-                            state.gang.gogopher.activate();
-                        }
-                        if d_.is_key_released(KeyboardKey::KEY_FOUR) {
-                            state.gang.gogopher.set_room(Room::Room4)
-                        }
-                        if d_.is_key_released(KeyboardKey::KEY_FIVE) {
-                            state.gang.golden_tux.activate();
-                        }
-                        if d_.is_key_released(KeyboardKey::KEY_SIX) {
-                            state.gang.penny.set_room(Room::Room3);
-                            state.gang.beastie.set_progress_to_hallway(2);
-                        }
-                        if d_.is_key_released(KeyboardKey::KEY_SEVEN) {
-                            state.gang.beastie.set_room(Room::Room5);
-                            state.gang.beastie.set_progress_to_hallway(2);
-                        }
-                        // activates as long as the eight key is held down
+                        #[cfg(debug_assertions)]
+                        {
+                            if d_.is_key_released(KeyboardKey::KEY_ONE) {
+                                // activate wilbur
+                                state.gang.wilber.time_since_appeared = Some(SystemTime::now());
+                                state.gang.wilber.activate();
+                            }
+                            if d_.is_key_released(KeyboardKey::KEY_TWO) {
+                                // activate tux
+                                state.gang.tux.activate();
+                            }
+                            if d_.is_key_released(KeyboardKey::KEY_THREE) {
+                                // activate gopher
+                                state.gang.gogopher.activate();
+                            }
+                            if d_.is_key_released(KeyboardKey::KEY_FOUR) {
+                                // put gopher in vent
+                                state.gang.gogopher.set_room(Room::Room4)
+                            }
+                            if d_.is_key_released(KeyboardKey::KEY_FIVE) {
+                                // activate golden tux
+                                state.gang.golden_tux.activate();
+                                state.gang.golden_tux.appeared = SystemTime::now();
+                            }
+                            if d_.is_key_released(KeyboardKey::KEY_SIX) {
+                                // put penny in the hallway and right at the door
+                                // (note: this will cause another bug where they aren't visible for the first few seconds. this bug is irrelevant since it's caused by this code which we'll be removing)
+                                state.gang.penny.set_room(Room::Room3);
+                                state.gang.beastie.set_progress_to_hallway(2);
+                            }
+                            if d_.is_key_released(KeyboardKey::KEY_SEVEN) {
+                                // put beastie in the hallway and right at the door
+                                // (same bug is here)
+                                state.gang.beastie.set_room(Room::Room5);
+                                state.gang.beastie.set_progress_to_hallway(2);
+                            }
+                            if d_.is_key_down(KeyboardKey::KEY_EIGHT) {
+                                // hold to drastically increase wilbur's rage meter
 
-                        if d_.is_key_down(KeyboardKey::KEY_EIGHT) {
-                            for i in 0..60 {
-                                state.gang.wilber.rage_increment();
+                                for _ in 0..60 {
+                                    state.gang.wilber.rage_increment(&mut audio);
+                                }
+                            }
+                            if d_.is_key_released(KeyboardKey::KEY_NINE) {
+                                state.gang.hour_offset += 1;
                             }
                         }
                         if state.gang.wilber.active() && !state.wilber_snd_played {
@@ -550,11 +590,16 @@ Wisdom........................................The Eye
                             audio.play_tux()?;
                             state.tux_snd_played = true;
                         }
+                        if state.gang.gogopher.active() && !state.gopher_snd_played {
+                            audio.play_gopher()?;
+                            state.gopher_snd_played = true;
+                        }
                         for mons in state.gang.in_room(Room::Office) {
                             if mons.active() {
                                 let duration: &Duration = &mons.timer_until_office().elapsed()?;
 
-                                let is_tux = mons.id() == MonsterName::Tux;
+                                let is_tux = mons.id() == MonsterName::Tux
+                                    || mons.id() == MonsterName::GoldenTux;
                                 if !is_tux
                                     && duration.as_millis()
                                         >= (MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000) - 500
@@ -594,7 +639,7 @@ Wisdom........................................The Eye
                                 }
 
                                 if state.gang.golden_tux.active() {
-                                    if state.gang.golden_tux.appeared.elapsed()?.as_secs() >= 10 {
+                                    if state.gang.golden_tux.appeared.elapsed()?.as_secs() >= 5 {
                                         if state.jumpscarer == MonsterName::None {
                                             state.gang.golden_tux.deactivate();
                                             state.jumpscarer = MonsterName::GoldenTux;
@@ -702,34 +747,6 @@ Wisdom........................................The Eye
 
                                 a!(textures.office_part1);
 
-                                if !state.getting_jumpscared {
-                                    for mons in state.gang.in_room(Room::Office) {
-                                        mons.draw(
-                                            &textures,
-                                            &mut d,
-                                            get_margin() - state.bg_offset_x,
-                                            0.0,
-                                            1.6,
-                                            1.0,
-                                        );
-                                    }
-                                }
-
-                                a!(textures.office_part2);
-                                a!(textures.button1);
-                                a!(textures.button2);
-                                if !state.can_open_left_door {
-                                    a!(textures.door_light_left_on);
-                                } else {
-                                    a!(textures.door_light_left_off);
-                                }
-
-                                if !state.can_open_right_door {
-                                    a!(textures.door_light_right_on);
-                                } else {
-                                    a!(textures.door_light_right_off);
-                                }
-
                                 if state.gang.wilber.active() {
                                     let texture = match state.gang.wilber.stage {
                                         0 => &textures.wilberPoster.poster,
@@ -762,6 +779,33 @@ Wisdom........................................The Eye
                                         Color::new(255, 255, 255, time),
                                     );
                                 }
+                                if !state.getting_jumpscared {
+                                    for mons in state.gang.in_room(Room::Office) {
+                                        mons.draw(
+                                            &textures,
+                                            &mut d,
+                                            get_margin() - state.bg_offset_x,
+                                            0.0,
+                                            1.6,
+                                            1.0,
+                                        );
+                                    }
+                                }
+
+                                a!(textures.office_part2);
+                                a!(textures.button1);
+                                a!(textures.button2);
+                                if !state.can_open_left_door {
+                                    a!(textures.door_light_left_on);
+                                } else {
+                                    a!(textures.door_light_left_off);
+                                }
+
+                                if !state.can_open_right_door {
+                                    a!(textures.door_light_right_on);
+                                } else {
+                                    a!(textures.door_light_right_off);
+                                }
 
                                 let mut i = 0;
                                 let mut hovering = false;
@@ -777,42 +821,47 @@ Wisdom........................................The Eye
                                         if d.is_mouse_button_released(
                                             MouseButton::MOUSE_LEFT_BUTTON,
                                         ) {
-                                            if i == 0
-                                                && state.can_open_left_door
-                                                && !state.left_door_shut
-                                            {
-                                                state.left_door_shut = true;
-                                                state.can_open_left_door = false;
-                                                state.left_door_last_shut = SystemTime::now();
-                                                if state.gang.tux.room() == Room::Room3 {
-                                                    state.gang.tux.set_room(Room::Room1);
-                                                    state.gang.tux.can_move = false;
-                                                    state.gang.tux.set_entered_from_left(false);
-                                                    state.gang.tux.goto_room_after_office();
-                                                    open_left_door_back_up = true;
-                                                    state.gang.tux.checked_camera = None;
-                                                    state.gang.tux.moved_to_hallway_at =
-                                                        SystemTime::now();
+                                            if i == 0 && !state.left_door_shut {
+                                                if state.can_open_left_door {
+                                                    state.left_door_shut = true;
+                                                    state.can_open_left_door = false;
+                                                    state.left_door_last_shut = SystemTime::now();
+                                                    if state.gang.tux.room() == Room::Room3 {
+                                                        state.gang.tux.set_room(Room::Room1);
+                                                        state.gang.tux.can_move = false;
+                                                        state.gang.tux.set_entered_from_left(false);
+                                                        state.gang.tux.goto_room_after_office();
+                                                        open_left_door_back_up = true;
+                                                        state.gang.tux.checked_camera = None;
+                                                        state.gang.tux.moved_to_hallway_at =
+                                                            SystemTime::now();
+                                                    }
+                                                    audio.play_door_left()?;
+                                                } else {
+                                                    audio.play_jammed()?;
                                                 }
-                                                audio.play_door_left()?;
-                                            } else if i == 1
-                                                && state.can_open_right_door
-                                                && !state.right_door_shut
-                                            {
-                                                state.right_door_shut = true;
-                                                state.can_open_right_door = false;
-                                                state.right_door_last_shut = SystemTime::now();
-                                                if state.gang.tux.room() == Room::Room5 {
-                                                    state.gang.tux.set_room(Room::Room1);
-                                                    state.gang.tux.can_move = false;
-                                                    state.gang.tux.set_entered_from_right(false);
-                                                    state.gang.tux.goto_room_after_office();
-                                                    open_right_door_back_up = true;
-                                                    state.gang.tux.checked_camera = None;
-                                                    state.gang.tux.moved_to_hallway_at =
-                                                        SystemTime::now();
+                                            } else if i == 1 && !state.right_door_shut {
+                                                if state.can_open_right_door {
+                                                    state.right_door_shut = true;
+                                                    state.can_open_right_door = false;
+                                                    state.right_door_last_shut = SystemTime::now();
+                                                    if state.gang.tux.room() == Room::Room5 {
+                                                        state.gang.tux.set_room(Room::Room1);
+                                                        state.gang.tux.can_move = false;
+                                                        state
+                                                            .gang
+                                                            .tux
+                                                            .set_entered_from_right(false);
+                                                        state.gang.tux.goto_room_after_office();
+                                                        open_right_door_back_up = true;
+                                                        state.gang.tux.checked_camera = None;
+                                                        state.gang.tux.moved_to_hallway_at =
+                                                            SystemTime::now();
+                                                    }
+                                                    audio.play_door_right()?;
+                                                } else {
+                                                    audio.play_jammed()?;
                                                 }
-                                                audio.play_door_right()?;
                                             }
                                         }
                                     }
@@ -845,7 +894,7 @@ Wisdom........................................The Eye
                                         state.right_door_anim_timer -= DOOR_ANIM_SPEED;
                                     }
                                 }
-                                state.gang.wilber.rage_increment();
+                                state.gang.wilber.rage_increment(&mut audio);
 
                                 if state.laptop_offset_y < get_height() as f64 {
                                     d.draw_texture_pro(
@@ -862,11 +911,58 @@ Wisdom........................................The Eye
                                         Color::WHITE,
                                     );
                                 }
+                                let inoffice = state.gang.in_room(Room::Office);
 
+                                for mons in inoffice {
+                                    if mons.active() {
+                                        let duration: &Duration =
+                                            &mons.timer_until_office().elapsed()?;
+                                        let mut door_open_check = false;
+
+                                        let is_tux = (mons.id() == MonsterName::Tux
+                                            || mons.id() == MonsterName::GoldenTux);
+                                        if !is_tux
+                                            && duration.as_millis()
+                                                >= (MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000)
+                                                    - 500
+                                        {
+                                            if duration.as_nanos()
+                                                <= MONSTER_TIME_OFFICE_WAIT_THING as u128
+                                                    * 1000000000
+                                            {
+                                                if duration.as_nanos() & 256 == 256
+                                                    && mons.id() != MonsterName::Tux
+                                                {
+                                                    d.draw_rectangle(
+                                                        get_margin() as i32,
+                                                        0,
+                                                        get_width(),
+                                                        get_height(),
+                                                        Color::BLACK,
+                                                    );
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if mons.entered_from_left()
+                                        || mons.entered_from_right()
+                                        || mons.id() == MonsterName::GoGopher
+                                    {
+                                        if state.tainted >= 100.0 {
+                                            if state.jumpscarer == MonsterName::None {
+                                                state.going_to_office = true;
+                                                state.jumpscarer = mons.id();
+                                                state.gameover_time = SystemTime::now();
+                                                state.getting_jumpscared = true;
+                                            }
+                                        }
+                                    }
+                                }
                                 if state.getting_jumpscared {
                                     // sound
                                     match state.jumpscarer {
-                                        MonsterName::Tux => {
+                                        MonsterName::Tux | MonsterName::GoldenTux => {
                                             audio.play_tux_jumpscare()?;
                                         }
                                         _ => {
@@ -961,7 +1057,12 @@ Wisdom........................................The Eye
                                                 );
                                             } else {
                                                 audio.brownian_halt();
-                                                state.screen = Screen::GameOver;
+
+                                                if state.jumpscarer != MonsterName::GoldenTux {
+                                                    state.screen = Screen::GameOver;
+                                                } else {
+                                                    state.screen = Screen::TitleScreen;
+                                                }
 
                                                 state.gameover_time = SystemTime::now();
                                             }
@@ -1211,7 +1312,7 @@ Wisdom........................................The Eye
                                 if state.sel_camera == Room::Room6 {
                                     state.gang.wilber.rage_decrement();
                                 } else {
-                                    state.gang.wilber.rage_increment();
+                                    state.gang.wilber.rage_increment(&mut audio);
                                 }
 
                                 let inroom = state.gang.in_room(state.sel_camera.clone());
@@ -1447,7 +1548,7 @@ Wisdom........................................The Eye
                             continue;
                         }
 
-                        let mut is_over = state.gang.step(cur_time);
+                        let mut is_over = state.gang.step(cur_time, &mut audio);
 
                         #[cfg(debug_assertions)]
                         if d.is_key_released(KeyboardKey::KEY_BACKSPACE) {
@@ -1492,6 +1593,7 @@ Wisdom........................................The Eye
                             && d.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON)
                             && !state.getting_jumpscared
                         {
+                            audio.play_camera_flip()?;
                             match state.screen {
                                 Screen::Office => {
                                     state.gang.golden_tux.deactivate();
@@ -1626,12 +1728,15 @@ Wisdom........................................The Eye
                         );
                     }
                     let inoffice = state.gang.in_room(Room::Office);
+
                     for mons in inoffice {
                         if mons.active() {
                             let duration: &Duration = &mons.timer_until_office().elapsed()?;
                             let mut door_open_check = false;
 
-                            let is_tux = mons.id() == MonsterName::Tux;
+                            let is_tux = mons.id() == MonsterName::Tux
+                                || mons.id() == MonsterName::GoldenTux;
+
                             if is_tux
                                 || duration.as_millis()
                                     >= (MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000) - 500
@@ -1663,23 +1768,14 @@ Wisdom........................................The Eye
                                 // go gopher just does it regardless.
                                 if mons.id() == MonsterName::GoGopher {
                                     state.tainted += mons.taint_percent();
+                                    do_flickering = true;
                                 }
 
                                 if do_flickering {
                                     if duration.as_nanos()
                                         <= MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000000000
                                     {
-                                        if duration.as_nanos() & 256 == 256
-                                            && mons.id() != MonsterName::Tux
-                                        {
-                                            d_.draw_rectangle(
-                                                get_margin() as i32,
-                                                0,
-                                                get_width(),
-                                                get_height(),
-                                                Color::BLACK,
-                                            );
-                                        }
+                                        audio.play_stinger()?;
                                     }
                                 }
                             } else {
@@ -1716,7 +1812,9 @@ Wisdom........................................The Eye
                         }
                     }
                     let rot = {
-                        if state.jumpscarer == MonsterName::Tux {
+                        if state.jumpscarer == MonsterName::Tux
+                            || state.jumpscarer == MonsterName::GoldenTux
+                        {
                             let r = thread_rng().gen_range(-5..5);
                             r as f32
                         } else {
@@ -1745,7 +1843,7 @@ Wisdom........................................The Eye
                         Color::WHITE,
                     );
 
-                    if state.screen != Screen::TitleScreen {
+                    if state.screen != Screen::TitleScreen && state.screen != Screen::Credits {
                         audio.play_ambience()?;
                         d_.draw_rectangle(
                             0,

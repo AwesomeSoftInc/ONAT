@@ -9,7 +9,9 @@ use std::time::{Duration, SystemTime};
 
 use rand::{thread_rng, Rng};
 
-use crate::{enums::Room, get_height, get_margin, get_width, texture_rect, textures::Textures};
+use crate::{
+    audio::Audio, enums::Room, get_height, get_margin, get_width, texture_rect, textures::Textures,
+};
 
 pub const PENNY_START: bool = true;
 pub const BEASTIE_START: bool = true;
@@ -436,13 +438,16 @@ impl Wilber {
     pub fn rage(&self) -> f32 {
         self.rage
     }
-    pub fn rage_increment(&mut self) {
+    pub fn rage_increment(&mut self, aud: &mut Audio) {
         if !self.active {
             return;
         }
         if self.rage < 100.0 {
             self.rage += 0.1;
         } else {
+            if self.stage <= 1 {
+                aud.play_wilber_channel(self.stage as usize).unwrap();
+            }
             self.stage += 1;
             self.rage = 0.0;
         }
@@ -570,6 +575,8 @@ impl Monster for GoGopher {
                 Room::Room4 => {
                     self.duct_timer += 1;
                     if self.duct_timer >= DUCT_THING {
+                        self.set_timer_until_office(SystemTime::now());
+
                         self.set_room(Room::Office);
                         self.set_last_scared_at(SystemTime::now());
                         self.appeared = SystemTime::now();
@@ -750,7 +757,7 @@ impl Monster for Tux {
 
     fn step(&mut self) {
         if let Some(c) = self.checked_camera {
-            if c.elapsed().unwrap().as_secs() >= 2 {
+            if c.elapsed().unwrap().as_secs() >= 1 {
                 self.next();
             }
         }
@@ -897,6 +904,7 @@ pub struct Gang {
     pub four_am_checked: bool,
     pub five_am_checked: bool,
     pub tux_moved: bool,
+    pub hour_offset: u64,
 }
 
 impl Gang {
@@ -917,13 +925,14 @@ impl Gang {
             four_am_checked: false,
             five_am_checked: false,
             tux_moved: false,
+            hour_offset: 0,
         }
     }
 
-    pub fn hours(&mut self, time: Duration) -> u64 {
-        3 + (time.as_secs() / 200)
+    pub fn hours(&self, time: Duration) -> u64 {
+        self.hour_offset + time.as_secs() / 200
     }
-    pub fn step(&mut self, time: Duration) -> bool {
+    pub fn step(&mut self, time: Duration, aud: &mut Audio) -> bool {
         let hours = self.hours(time);
         self.penny.step();
         self.beastie.step();
@@ -940,7 +949,11 @@ impl Gang {
             }
             if self.beastie.active {
                 if self.beastie.last_scared_at().elapsed().unwrap().as_secs() >= 30 {
-                    self.beastie.begin_move_timer();
+                    if self.beastie.room != Room::Office {
+                        self.beastie.begin_move_timer();
+                    } else {
+                        self.beastie.set_last_scared_at(SystemTime::now());
+                    }
                 } else {
                     self.beastie.try_move();
                 }
@@ -987,6 +1000,8 @@ impl Gang {
             self.tux.can_move = true;
             self.tux.ai_level = 10;
             self.five_am_checked = true;
+
+            aud.play_open_source_closed_casket().unwrap();
         }
 
         return hours == 6;
@@ -1020,13 +1035,13 @@ impl Gang {
     }
 
     fn ai_level_increase(&mut self) {
-        self.penny.ai_level += 3;
+        self.penny.ai_level += 2;
         self.beastie.ai_level += 3;
-        self.wilber.ai_level += 3;
-        self.gogopher.ai_level += 3;
-        //self.tux.ai_level += 3;       // Tux's AI level does not increase naturally, it bumps at 5AM
-        //self.nolok.ai_level += 3;     // Nolok is cut.
-        self.golden_tux.ai_level += 3;
+        // self.wilber.ai_level += 3;
+        // self.gogopher.ai_level += 3;
+        // self.tux.ai_level += 3;       // Tux's AI level does not increase naturally, it bumps at 5AM
+        // self.nolok.ai_level += 3;     // Nolok is cut.
+        // self.golden_tux.ai_level += 3;
     }
 }
 
