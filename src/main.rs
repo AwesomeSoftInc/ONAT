@@ -94,8 +94,8 @@ pub fn get_ratio() -> f32 {
 fn main() -> Result<(), Box<dyn Error>> {
     get_width();
     let (mut rl, thread) = raylib::init()
-        // .fullscreen()
-        .resizable()
+        .fullscreen()
+        // .resizable()
         .log_level(TraceLogLevel::LOG_ERROR)
         .title("ONAT")
         .build();
