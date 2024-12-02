@@ -6,6 +6,7 @@ use std::{
     error::Error,
     time::{Duration, SystemTime},
 };
+use textures::Textures;
 
 use crate::audio::Audio;
 
@@ -61,8 +62,8 @@ impl ScreenInfo {
             margin = 0.0;
         }
 
-        self.width = monitor_width / 2;
-        self.height = monitor_height / 2;
+        self.width = monitor_width;
+        self.height = monitor_height;
         self.ratio = ratio;
         self.margin = margin;
     }
@@ -104,8 +105,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         &include_bytes!("../assets/icon.png").to_vec(),
     )?);
     let audio = Box::leak(Box::new(Audio::new()?));
+    let textures = Textures::new(&mut rl, &thread)?;
 
-    let mut state = State::new(&mut rl, &thread, audio)?;
+    let mut state = State::new(&mut rl, &thread, audio, &textures)?;
 
     while !rl.window_should_close() {
         if state.timer.elapsed()?.as_millis() >= 1000 / 60 {

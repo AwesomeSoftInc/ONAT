@@ -96,17 +96,17 @@ pub struct State<'a> {
     pub jumpscarer: MonsterName,
     pub has_won: bool,
 
-    pub textures: Textures,
+    pub textures: &'a Textures,
     pub default_font: WeakFont,
     pub scroll_amount: f32,
     pub var_name: f64,
 
-    pub wilber: Vec<Texture2D>,
-    pub tux: Vec<Texture2D>,
-    pub penny: Vec<Texture2D>,
-    pub beastie: Vec<Texture2D>,
-    pub gopher: Vec<Texture2D>,
-    pub golden_tux: Vec<Texture2D>,
+    pub wilber: Vec<&'a Texture2D>,
+    pub tux: Vec<&'a Texture2D>,
+    pub penny: Vec<&'a Texture2D>,
+    pub beastie: Vec<&'a Texture2D>,
+    pub gopher: Vec<&'a Texture2D>,
+    pub golden_tux: Vec<&'a Texture2D>,
     pub framebuffer: RenderTexture2D,
 
     pub tux_texture_hold: bool,
@@ -122,6 +122,7 @@ impl<'a> State<'a> {
         rl: &mut RaylibHandle,
         thread: &RaylibThread,
         audio: &'static mut Audio,
+        textures: &'a Textures,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let screen = Screen::TitleScreen;
         let bg_offset_x = get_width() as f32 / 2.0;
@@ -228,15 +229,12 @@ impl<'a> State<'a> {
         let skinman_chance = 1000;
         let skinman_appeared = false;
 
-        let textures = Textures::new(rl, thread)?;
-        let textures2 = Textures::new(rl, thread)?; // secondary load to load the jumpscares without the borrow checker screaming at us.
-
         let default_font = rl.get_font_default();
         let scroll_amount = get_width().clone() as f32 * 0.01;
 
         let var_name = get_height() as f64 / 4.0;
 
-        let (wilber, tux, penny, beastie, gopher, golden_tux) = load_jumpscares(textures2);
+        let (wilber, tux, penny, beastie, gopher, golden_tux) = load_jumpscares(textures);
 
         let framebuffer =
             rl.load_render_texture(&thread, get_width_unaltered() as u32, get_height() as u32)?;
