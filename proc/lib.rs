@@ -295,9 +295,8 @@ fn yeah(
                         a.push(format!("pub {}: Texture2D ", n.clone()));
                         b.push(n.clone());
                         c.push(format!(
-                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec(), {size})?)?;",
+                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec())?)?;",
                             n = n,
-                            size=dir.metadata()?.size(),
                             b = format!("../assets/{name}/{n}.png",name=name,n=n)
                         ));
                         c.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
@@ -328,9 +327,8 @@ fn yeah(
                         fields.push(format!("pub {}: Texture2D", n));
                         define.push(n.clone());
                         impl_fields.push(format!(
-                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec(), {size})?)?;",
+                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec())?)?;",
                             n = n,
-                            size=ass.metadata()?.size(),
                             b = format!("../assets/{n}.png",n=n)
                         ));
                         impl_fields.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
