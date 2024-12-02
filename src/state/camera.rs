@@ -13,10 +13,14 @@ impl<'a> State<'a> {
     pub fn camera_draw(
         &mut self,
         d: &mut RaylibDrawHandle,
+        thread: &RaylibThread,
         mx: i32,
         my: i32,
         tex: Texture2D,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
+        d.clear_background(Color::BLACK);
+
         #[cfg(not(feature = "no_camera_timer"))]
         if self.camera_timer >= 0.0 {
             self.camera_timer -= CAMERA_TIME;
@@ -104,7 +108,7 @@ impl<'a> State<'a> {
 
         let inroom = self.gang.in_room(self.sel_camera.clone());
         for mons in inroom {
-            mons.draw(&self.textures, d, get_margin(), 0.0, 1.0, 1.0);
+            mons.draw(&self.textures, &mut d, get_margin(), 0.0, 1.0, 1.0);
             if mons.move_timer() >= 1 || mons.time_in_room().elapsed()?.as_millis() <= 50 {
                 self.audio.play_noise()?;
                 d.draw_texture_pro(

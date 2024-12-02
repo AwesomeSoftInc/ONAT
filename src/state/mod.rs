@@ -468,6 +468,15 @@ impl<'a> State<'a> {
                     return Ok(());
                 }
 
+                match self.screen {
+                    Screen::Office => self.office_draw(&mut d, &thread, mx, my)?,
+                    Screen::CameraRebooting => {
+                        self.camera_rebooting_draw(&mut d, &thread, mx, my)?
+                    }
+                    Screen::Camera => self.camera_draw(&mut d, &thread, mx, my, tex)?,
+                    _ => {}
+                }
+
                 let cur_time = self.ingame_time.duration_since(UNIX_EPOCH)?;
 
                 let mut is_over = self.gang.step(cur_time, &mut self.audio);
@@ -617,12 +626,6 @@ impl<'a> State<'a> {
                 }
 
                 d.clear_background(Color::BLACK);
-                match self.screen {
-                    Screen::Office => self.office_draw(&mut d, &thread, mx, my)?,
-                    Screen::CameraRebooting => self.camera_rebooting_draw(&mut d, mx, my)?,
-                    Screen::Camera => self.camera_draw(&mut d, mx, my, tex)?,
-                    _ => {}
-                }
 
                 // Bars
                 let battery_bar_y = get_height() as f32

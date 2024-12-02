@@ -10,9 +10,13 @@ impl<'a> State<'a> {
     pub fn camera_rebooting_draw(
         &mut self,
         d: &mut RaylibDrawHandle,
+        thread: &RaylibThread,
         mx: i32,
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
+        d.clear_background(Color::BLACK);
+
         if self.going_to_office {
             if self.laptop_offset_y < get_height() as f64 {
                 self.laptop_offset_y += self.var_name;
