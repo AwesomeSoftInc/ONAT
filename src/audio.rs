@@ -1,12 +1,5 @@
-use std::time::SystemTime;
-
 use rand::{rngs::ThreadRng, thread_rng, Rng};
-use sdl2::{
-    audio::AudioSpecDesired,
-    mixer::{AudioFormat, Channel, Chunk, InitFlag, Music, Sdl2MixerContext, AUDIO_F32},
-    sys::SDL_AudioFormat,
-    AudioSubsystem, Sdl,
-};
+use sdl2::mixer::{Channel, Chunk, AUDIO_F32};
 
 use crate::state::State;
 
@@ -22,55 +15,55 @@ macro_rules! play {
 }
 
 pub struct Audio {
-    door: Chunk,
-    fuck_you_tux: Chunk,
-    thud: Chunk,
-    noise: Chunk,
-    wilber_appear: Chunk,
-    tux_appear: Chunk,
-    ambience_ominous: Vec<Chunk>,
-    ambience_sinister: Vec<Chunk>,
-    tainted_notes: Vec<Chunk>,
-    plush: Chunk,
+    pub door: Chunk,
+    pub fuck_you_tux: Chunk,
+    pub thud: Chunk,
+    pub noise: Chunk,
+    pub wilber_appear: Chunk,
+    pub tux_appear: Chunk,
+    pub ambience_ominous: Vec<Chunk>,
+    pub ambience_sinister: Vec<Chunk>,
+    pub tainted_notes: Vec<Chunk>,
+    pub plush: Chunk,
 
-    thread_rng: ThreadRng,
+    pub thread_rng: ThreadRng,
 
-    regular_jumpscare: Chunk,
-    tux_jumpscare: Chunk,
+    pub regular_jumpscare: Chunk,
+    pub tux_jumpscare: Chunk,
 
-    brownian_noise: Chunk,
-    bells: Chunk,
+    pub brownian_noise: Chunk,
+    pub bells: Chunk,
 
-    stinger: Chunk,
-    jammed: Chunk,
+    pub stinger: Chunk,
+    pub jammed: Chunk,
 
-    camera_flip: Chunk,
+    pub camera_flip: Chunk,
 
-    wilburs: Vec<Chunk>,
-    gopher_appear: Chunk,
+    pub wilburs: Vec<Chunk>,
+    pub gopher_appear: Chunk,
 
-    open_source_closed_casket: Chunk,
+    pub open_source_closed_casket: Chunk,
 
-    revenant_party: Chunk,
-    ambience_unused: Chunk,
-    brownian_channel: Option<Channel>,
-    title_channel: Option<Channel>,
-    left_channel_door: Option<Channel>,
-    right_channel_door: Option<Channel>,
-    left_channel_thud: Option<Channel>,
-    right_channel_thud: Option<Channel>,
-    noise_channel: Option<Channel>,
-    monster_appear_channel: Option<Channel>,
-    ambient_channel: Option<Channel>,
-    open_source_channel: Option<Channel>,
-    plush_channel: Option<Channel>,
-    jumpscare_channel: Option<Channel>,
-    tainted_channels: Vec<Option<Channel>>,
-    bells_channel: Option<Channel>,
-    stinger_channel: Option<Channel>,
-    jammed_channel: Option<Channel>,
+    pub revenant_party: Chunk,
+    pub ambience_unused: Chunk,
+    pub brownian_channel: Option<Channel>,
+    pub title_channel: Option<Channel>,
+    pub left_channel_door: Option<Channel>,
+    pub right_channel_door: Option<Channel>,
+    pub left_channel_thud: Option<Channel>,
+    pub right_channel_thud: Option<Channel>,
+    pub noise_channel: Option<Channel>,
+    pub monster_appear_channel: Option<Channel>,
+    pub ambient_channel: Option<Channel>,
+    pub open_source_channel: Option<Channel>,
+    pub plush_channel: Option<Channel>,
+    pub jumpscare_channel: Option<Channel>,
+    pub tainted_channels: Vec<Option<Channel>>,
+    pub bells_channel: Option<Channel>,
+    pub stinger_channel: Option<Channel>,
+    pub jammed_channel: Option<Channel>,
 
-    wilber_channel: Option<Channel>,
+    pub wilber_channel: Option<Channel>,
 }
 impl Audio {
     pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
@@ -302,120 +295,6 @@ impl Audio {
     }
     pub fn play_bells(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         play!(self.bells_channel, self.bells);
-        Ok(())
-    }
-    pub fn step(&mut self, state: &State) -> Result<(), Box<dyn std::error::Error>> {
-        let var_name = state.bg_offset_x / 3.0;
-        let mut left = 191.0 - var_name;
-        if left <= 64.0 {
-            left = 64.0;
-        }
-        if left >= 191.0 {
-            left = 191.0;
-        }
-        let mut right = var_name;
-        if right <= 64.0 {
-            right = 64.0;
-        }
-        if right >= 191.0 {
-            right = 191.0;
-        }
-        let left = left as u8;
-        let right = right as u8;
-        if let Some(ch) = self.left_channel_door {
-            ch.set_panning(left, 0)?;
-            if !ch.is_playing() {
-                self.left_channel_door = None;
-            }
-        }
-        if let Some(ch) = self.right_channel_door {
-            ch.set_panning(0, right)?;
-            if !ch.is_playing() {
-                self.right_channel_door = None;
-            }
-        }
-        if let Some(ch) = self.left_channel_thud {
-            ch.set_panning(left, 0)?;
-            if !ch.is_playing() {
-                self.left_channel_thud = None;
-            }
-        }
-        if let Some(ch) = self.right_channel_thud {
-            ch.set_panning(0, right)?;
-            if !ch.is_playing() {
-                self.right_channel_thud = None;
-            }
-        }
-        if let Some(ch) = self.noise_channel {
-            ch.set_volume(100);
-            if !ch.is_playing() {
-                self.noise_channel = None;
-            }
-        }
-        if let Some(ch) = self.monster_appear_channel {
-            if !ch.is_playing() {
-                self.monster_appear_channel = None;
-            }
-        }
-        if let Some(ch) = self.bells_channel {
-            if !ch.is_playing() {
-                self.bells_channel = None;
-            }
-        }
-        if let Some(ch) = self.ambient_channel {
-            if !ch.is_playing() {
-                self.ambient_channel = None;
-            }
-        }
-        if let Some(ch) = self.open_source_channel {
-            if !ch.is_playing() {
-                self.open_source_channel = None;
-            }
-        }
-        if let Some(ch) = self.jammed_channel {
-            if !ch.is_playing() {
-                self.jammed_channel = None;
-            }
-        }
-        if let Some(ch) = self.stinger_channel {
-            if !ch.is_playing() {
-                self.stinger_channel = None;
-            }
-        }
-        if let Some(ch) = self.plush_channel {
-            if !ch.is_playing() {
-                self.plush_channel = None;
-            }
-        }
-        if let Some(ch) = self.jumpscare_channel {
-            if !ch.is_playing() {
-                self.jumpscare_channel = None;
-            }
-        }
-        if let Some(ch) = self.wilber_channel {
-            if !ch.is_playing() {
-                self.wilber_channel = None;
-            }
-        }
-        if let Some(ch) = self.title_channel {
-            let mut volume = {
-                if state.going_to_office_from_title {
-                    (100.0 - (state.title_clicked.elapsed()?.as_millis() as f32 / (4000.0 / 100.0)))
-                        as i32
-                } else {
-                    100
-                }
-            };
-            if volume >= 100 {
-                volume = 100;
-            }
-            ch.set_volume(volume);
-            if !ch.is_playing() {
-                ch.set_volume(100);
-                self.title_channel = None;
-            }
-        }
-
         Ok(())
     }
 

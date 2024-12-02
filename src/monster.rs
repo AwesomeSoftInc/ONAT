@@ -40,10 +40,10 @@ pub enum MonsterName {
 pub trait Monster {
     fn id(&self) -> MonsterName;
     fn room(&self) -> Room;
-    fn next_room(&self) -> Room;
+    // fn next_room(&self) -> Room;
     fn ai_level(&self) -> u8;
     fn set_room(&mut self, room: Room);
-    fn set_next_room(&mut self, room: Room);
+    // fn set_next_room(&mut self, room: Room);
     fn active(&self) -> bool;
     fn activate(&mut self);
     fn deactivate(&mut self);
@@ -60,7 +60,7 @@ pub trait Monster {
     fn time_in_room(&mut self) -> SystemTime;
     fn reset_time_in_room(&mut self);
 
-    fn move_after_timer(&mut self) -> bool;
+    // fn move_after_timer(&mut self) -> bool;
     fn set_move_after_timer(&mut self, val: bool);
 
     fn begin_move_timer(&mut self) {
@@ -90,7 +90,7 @@ pub trait Monster {
     fn _draw(
         &mut self,
         textures: &Textures,
-        rl: &mut RaylibTextureMode<RaylibDrawHandle>,
+        rl: &mut RaylibDrawHandle,
         x_offset: f32,
         y_offset: f32,
         width_offset: f32,
@@ -115,7 +115,7 @@ pub trait Monster {
     fn draw(
         &mut self,
         textures: &Textures,
-        rl: &mut RaylibTextureMode<RaylibDrawHandle>,
+        rl: &mut RaylibDrawHandle,
         x_offset: f32,
         y_offset: f32,
         width_offset: f32,
@@ -540,7 +540,7 @@ impl Monster for GoGopher {
     fn draw(
         &mut self,
         textures: &Textures,
-        rl: &mut RaylibTextureMode<RaylibDrawHandle>,
+        rl: &mut RaylibDrawHandle,
         x_offset: f32,
         y_offset: f32,
         width_offset: f32,
@@ -644,7 +644,7 @@ impl Monster for Tux {
     fn draw(
         &mut self,
         textures: &Textures,
-        rl: &mut RaylibTextureMode<RaylibDrawHandle>,
+        rl: &mut RaylibDrawHandle,
         x_offset: f32,
         y_offset: f32,
         width_offset: f32,

@@ -2,11 +2,7 @@ extern crate proc_macro;
 
 use std::collections::HashMap;
 use std::fs::{DirEntry, ReadDir};
-use std::io::Read;
-use std::os::unix::fs::MetadataExt;
 
-use flate2::bufread::GzEncoder;
-use flate2::Compression;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse::Parser;
@@ -73,18 +69,18 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
         fn room(&self) -> Room {
             self.room.clone()
         }
-        fn next_room(&self) -> Room {
-            self.next_room.clone()
-        }
+        //fn next_room(&self) -> Room {
+            // self.next_room.clone()
+        // }
         fn ai_level(&self) -> u8 {
             self.ai_level
         }
         fn set_room(&mut self, room: Room) {
             self.room = room;
         }
-        fn set_next_room(&mut self, room: Room) {
-            self.next_room = room;
-        }
+        // fn set_next_room(&mut self, room: Room) {
+            // self.next_room = room;
+        // }
         fn active(&self) -> bool {
             self.active
         }
@@ -140,9 +136,9 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
             self.time_in_room = SystemTime::now();
         }
 
-        fn move_after_timer(&mut self) -> bool {
-            self.move_after_timer
-        }
+        // fn move_after_timer(&mut self) -> bool {
+            // self.move_after_timer
+        // }
 
         fn set_move_after_timer(&mut self, val: bool) {
             self.move_after_timer = val;
@@ -152,7 +148,7 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn asset_fill(item: TokenStream) -> TokenStream {
+pub fn asset_fill(_item: TokenStream) -> TokenStream {
     let mut structs: HashMap<String, Vec<String>> = HashMap::new();
     let mut define_structs: HashMap<String, Vec<String>> = HashMap::new();
     let mut impl_structs: HashMap<String, Vec<String>> = HashMap::new();
@@ -212,37 +208,6 @@ pub fn asset_fill(item: TokenStream) -> TokenStream {
     }
 }
 
-fn compress(path: String) -> Result<String, anyhow::Error> {
-    let mut buffer = std::fs::read(&path)?;
-
-    #[cfg(feature = "release")]
-    {
-        println!("compressing file of {}kb", buffer.len() / 1000);
-        let b = buffer.clone();
-        let f = b.as_slice();
-        let mut gz = GzEncoder::new(f, Compression::best());
-
-        buffer = Vec::new();
-        gz.read_to_end(&mut buffer)?;
-    }
-
-    let mut cursor = 0;
-    let mut join = "".to_owned();
-    loop {
-        match buffer.get(cursor) {
-            Some(a) => {
-                join += &a.to_string();
-                join += ",";
-                cursor += 1;
-            }
-            None => {
-                break;
-            }
-        }
-    }
-    Ok(join)
-}
-
 fn yeah(
     assets: ReadDir,
     fields: &mut Vec<String>,
@@ -295,9 +260,8 @@ fn yeah(
                         a.push(format!("pub {}: Texture2D ", n.clone()));
                         b.push(n.clone());
                         c.push(format!(
-                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec(), {size})?)?;",
+                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec())?)?;",
                             n = n,
-                            size=dir.metadata()?.size(),
                             b = format!("../assets/{name}/{n}.png",name=name,n=n)
                         ));
                         c.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
@@ -328,9 +292,8 @@ fn yeah(
                         fields.push(format!("pub {}: Texture2D", n));
                         define.push(n.clone());
                         impl_fields.push(format!(
-                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec(), {size})?)?;",
+                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec())?)?;",
                             n = n,
-                            size=ass.metadata()?.size(),
                             b = format!("../assets/{n}.png",n=n)
                         ));
                         impl_fields.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
