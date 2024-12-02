@@ -17,20 +17,20 @@ impl<'a> State<'a> {
         self.audio.play_title(self.has_won)?;
         d.clear_background(Color::BLACK);
 
-        let tux_texture_title = if !self.tux_texture_hold {
+        let tux_texture_title = &*if !self.tux_texture_hold {
             let gen_range = rand::thread_rng().gen_range(0..1000);
             match gen_range {
                 0 | 1 | 2 | 3 => {
                     self.tux_texture_hold = true;
                     match gen_range {
-                        0 => &self.textures.title2,
-                        1 => &self.textures.title3,
-                        2 => &self.textures.title4,
-                        3 => &self.textures.title5,
-                        _ => &self.textures.title1,
+                        0 => self.textures.misc.title2(),
+                        1 => self.textures.misc.title3(),
+                        2 => self.textures.misc.title4(),
+                        3 => self.textures.misc.title5(),
+                        _ => self.textures.misc.title1(),
                     }
                 }
-                _ => &self.textures.title1,
+                _ => self.textures.misc.title1(),
             }
         } else {
             if self.tux_texture_hold_frames < 3 {
@@ -39,7 +39,7 @@ impl<'a> State<'a> {
                 self.tux_texture_hold_frames = 0;
                 self.tux_texture_hold = false;
             }
-            &self.textures.title1
+            self.textures.misc.title1()
         };
 
         let alpha = {

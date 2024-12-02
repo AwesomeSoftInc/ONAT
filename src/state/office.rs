@@ -7,7 +7,9 @@ use crate::{
     monster::{Monster, MonsterName, MONSTER_TIME_OFFICE_WAIT_THING},
     state::{CAMERA_TIME, DOOR_ANIM_SPEED},
     texture_rect,
+    textures::Textures,
 };
+use parking_lot::MutexGuard;
 use raylib::prelude::*;
 
 impl<'a> State<'a> {
@@ -68,118 +70,125 @@ impl<'a> State<'a> {
                                     );
                                 };
                             }
-
-        a!(self.textures.office_corners);
-        d.draw_texture_pro(
-            &self.textures.door_left,
-            texture_rect!(self.textures.door_left),
-            Rectangle::new(
-                get_margin() + -self.bg_offset_x,
-                self.left_door_anim_timer,
-                get_width() as f32 * 1.6,
-                get_height() as f32,
-            ),
-            Vector2::new(0.0, 0.0),
-            0.0,
-            Color::WHITE,
-        );
-        d.draw_texture_pro(
-            &self.textures.door_right,
-            texture_rect!(self.textures.door_right),
-            Rectangle::new(
-                get_margin() + -self.bg_offset_x,
-                self.right_door_anim_timer,
-                get_width() as f32 * 1.6,
-                get_height() as f32,
-            ),
-            Vector2::new(0.0, 0.0),
-            0.0,
-            Color::WHITE,
-        );
-        let var_name = (1.0 + get_ratio()) as i32;
-
-        d.draw_texture_pro(
-            &self.textures.wallpaper,
-            texture_rect!(self.textures.wallpaper),
-            Rectangle::new(
-                ((get_width() as f32 + get_margin() as f32) - get_width() as f32 / 3.5)
-                    - self.bg_offset_x,
-                get_height() as f32 / 1.65,
-                get_width() as f32 / 3.5,
-                get_height() as f32 / 3.5,
-            ),
-            Vector2::new(0.0, 0.0),
-            0.0,
-            Color::WHITE,
-        );
-        d.draw_rectangle(
-            (((get_width() as f32 / 1.233) + get_margin()) - self.bg_offset_x) as i32 - 50,
-            (get_height() as f32 / 1.20) as i32,
-            200,
-            32,
-            Color::new(0, 128, 0, 255),
-        );
-        d.draw_rectangle(
-            (((get_width() as f32 / 1.233) + get_margin()) - self.bg_offset_x) as i32
-                - (50 - var_name),
-            ((get_height() as f32 / 1.20) as i32) + var_name,
-            (self.tainted as i32 - 4) * (get_ratio().ceil()) as i32,
-            32 - (var_name * 2),
-            Color::GREEN,
-        );
-
-        d.draw_texture_pro(
-            &self.textures.tainted_logo,
-            texture_rect!(self.textures.tainted_logo),
-            Rectangle::new(
-                ((get_width() as f32 / 1.233) + get_margin()) - self.bg_offset_x,
-                get_height() as f32 / 1.25,
-                (get_width() as f32 + get_margin()) / 16.0,
-                get_height() as f32 / 46.0,
-            ),
-            Vector2::new(0.0, 0.0),
-            0.0,
-            Color::WHITE,
-        );
-
-        a!(self.textures.office_part1);
-
-        if self.gang.wilber.active() {
-            let texture = match self.gang.wilber.stage {
-                0 => &self.textures.wilberPoster.poster,
-                1 => &self.textures.wilberPoster.posterprogress1,
-                2 => &self.textures.wilberPoster.posterprogress2,
-                _ => &self.textures.wilberPoster.posterprogress3,
-            };
-            let time = match self.gang.wilber.time_since_appeared {
-                Some(a) => {
-                    let b = a.elapsed()?.as_millis() / 2;
-                    if b >= 255 {
-                        255
-                    } else {
-                        b as u8
-                    }
-                }
-                None => 0,
-            };
+        {
+            let office_corners = &*self.textures.misc.office_corners();
+            a!(office_corners);
+            let door_left = &*self.textures.misc.door_left();
             d.draw_texture_pro(
-                &texture,
-                texture_rect!(texture),
+                &door_left,
+                texture_rect!(door_left),
                 Rectangle::new(
                     get_margin() + -self.bg_offset_x,
-                    0.0,
+                    self.left_door_anim_timer,
                     get_width() as f32 * 1.6,
                     get_height() as f32,
                 ),
                 Vector2::new(0.0, 0.0),
                 0.0,
-                Color::new(255, 255, 255, time),
+                Color::WHITE,
             );
+            let door_right = &*self.textures.misc.door_right();
+            d.draw_texture_pro(
+                &door_right,
+                texture_rect!(door_right),
+                Rectangle::new(
+                    get_margin() + -self.bg_offset_x,
+                    self.right_door_anim_timer,
+                    get_width() as f32 * 1.6,
+                    get_height() as f32,
+                ),
+                Vector2::new(0.0, 0.0),
+                0.0,
+                Color::WHITE,
+            );
+            let var_name = (1.0 + get_ratio()) as i32;
+
+            let wallpaper = &*self.textures.misc.wallpaper();
+            d.draw_texture_pro(
+                &wallpaper,
+                texture_rect!(wallpaper),
+                Rectangle::new(
+                    ((get_width() as f32 + get_margin() as f32) - get_width() as f32 / 3.5)
+                        - self.bg_offset_x,
+                    get_height() as f32 / 1.65,
+                    get_width() as f32 / 3.5,
+                    get_height() as f32 / 3.5,
+                ),
+                Vector2::new(0.0, 0.0),
+                0.0,
+                Color::WHITE,
+            );
+            d.draw_rectangle(
+                (((get_width() as f32 / 1.233) + get_margin()) - self.bg_offset_x) as i32 - 50,
+                (get_height() as f32 / 1.20) as i32,
+                200,
+                32,
+                Color::new(0, 128, 0, 255),
+            );
+            d.draw_rectangle(
+                (((get_width() as f32 / 1.233) + get_margin()) - self.bg_offset_x) as i32
+                    - (50 - var_name),
+                ((get_height() as f32 / 1.20) as i32) + var_name,
+                (self.tainted as i32 - 4) * (get_ratio().ceil()) as i32,
+                32 - (var_name * 2),
+                Color::GREEN,
+            );
+
+            let tainted_logo = &*self.textures.misc.tainted_logo();
+            d.draw_texture_pro(
+                &tainted_logo,
+                texture_rect!(tainted_logo),
+                Rectangle::new(
+                    ((get_width() as f32 / 1.233) + get_margin()) - self.bg_offset_x,
+                    get_height() as f32 / 1.25,
+                    (get_width() as f32 + get_margin()) / 16.0,
+                    get_height() as f32 / 46.0,
+                ),
+                Vector2::new(0.0, 0.0),
+                0.0,
+                Color::WHITE,
+            );
+
+            let office_part1 = &*self.textures.misc.office_part1();
+            a!(office_part1);
+
+            if self.gang.wilber.active() {
+                let texture = &*match self.gang.wilber.stage {
+                    0 => self.textures.wilberPoster.poster(),
+                    1 => self.textures.wilberPoster.posterprogress1(),
+                    2 => self.textures.wilberPoster.posterprogress2(),
+                    _ => self.textures.wilberPoster.posterprogress3(),
+                };
+                let time = match self.gang.wilber.time_since_appeared {
+                    Some(a) => {
+                        let b = a.elapsed()?.as_millis() / 2;
+                        if b >= 255 {
+                            255
+                        } else {
+                            b as u8
+                        }
+                    }
+                    None => 0,
+                };
+                d.draw_texture_pro(
+                    texture,
+                    texture_rect!(texture),
+                    Rectangle::new(
+                        get_margin() + -self.bg_offset_x,
+                        0.0,
+                        get_width() as f32 * 1.6,
+                        get_height() as f32,
+                    ),
+                    Vector2::new(0.0, 0.0),
+                    0.0,
+                    Color::new(255, 255, 255, time),
+                );
+            }
         }
         if !self.getting_jumpscared {
             for mons in self.gang.in_room(Room::Office) {
                 mons.draw(
-                    &self.textures,
+                    self.textures,
                     &mut d,
                     get_margin() - self.bg_offset_x,
                     0.0,
@@ -189,19 +198,27 @@ impl<'a> State<'a> {
             }
         }
 
-        a!(self.textures.office_part2);
-        a!(self.textures.button1);
-        a!(self.textures.button2);
+        let office_part2 = &*self.textures.misc.office_part2();
+        let button1 = &*self.textures.misc.button1();
+        let button2 = &*self.textures.misc.button2();
+        a!(office_part2);
+        a!(button1);
+        a!(button2);
+
+        let door_light_left_on = &*self.textures.misc.door_light_left_on();
+        let door_light_left_off = &*self.textures.misc.door_light_left_off();
         if !self.can_open_left_door {
-            a!(self.textures.door_light_left_on);
+            a!(door_light_left_on);
         } else {
-            a!(self.textures.door_light_left_off);
+            a!(door_light_left_off);
         }
 
+        let door_light_right_on = &*self.textures.misc.door_light_right_on();
+        let door_light_right_off = &*self.textures.misc.door_light_right_off();
         if !self.can_open_right_door {
-            a!(self.textures.door_light_right_on);
+            a!(door_light_right_on);
         } else {
-            a!(self.textures.door_light_right_off);
+            a!(door_light_right_off);
         }
 
         let mut i = 0;
@@ -286,9 +303,10 @@ impl<'a> State<'a> {
         self.gang.wilber.rage_increment(&mut self.audio);
 
         if self.laptop_offset_y < get_height() as f64 {
+            let laptop = &*self.textures.misc.laptop();
             d.draw_texture_pro(
-                &self.textures.laptop,
-                texture_rect!(self.textures.laptop),
+                &laptop,
+                texture_rect!(laptop),
                 Rectangle::new(
                     get_margin() + 0.0,
                     self.laptop_offset_y as f32,
@@ -352,12 +370,14 @@ impl<'a> State<'a> {
 
             // animation
             self.bg_offset_x = 450.0;
+            let mons = get_jumpscare(self.jumpscarer.clone(), self.textures);
+
             match self.jumpscarer {
                 MonsterName::Penny
                 | MonsterName::Tux
                 | MonsterName::GoGopher
                 | MonsterName::GoldenTux => {
-                    let (width, height, x, y, mons, framerate) = match self.jumpscarer {
+                    let (width, height, x, y, framerate) = match self.jumpscarer {
                         MonsterName::Penny => {
                             let x_offset = {
                                 if self.gameover_time.elapsed()?.as_millis() <= 150 {
@@ -371,7 +391,6 @@ impl<'a> State<'a> {
                                 get_height() as f32 / 1.5,
                                 -get_width() as f32 + x_offset + get_margin(),
                                 get_height() as f32 - (get_height() as f32 / 1.5),
-                                &self.penny,
                                 30,
                             )
                         }
@@ -380,7 +399,6 @@ impl<'a> State<'a> {
                             get_height() as f32,
                             0.0,
                             0.0,
-                            &self.tux,
                             18,
                         ),
                         MonsterName::GoldenTux => (
@@ -388,7 +406,6 @@ impl<'a> State<'a> {
                             get_height() as f32,
                             0.0,
                             0.0,
-                            &self.golden_tux,
                             18,
                         ),
                         MonsterName::GoGopher => {
@@ -400,15 +417,15 @@ impl<'a> State<'a> {
                                 height + (height * y_offset),
                                 get_margin() - (y_offset * 750.0),
                                 (-height) + (height / 1.5),
-                                &self.gopher,
                                 15,
                             )
                         }
                         _ => todo!(),
                     };
                     if let Some(tex) = mons.get(self.jumpscare_counter / (60 / framerate)) {
+                        let tex = &*&**&*tex;
                         d.draw_texture_pro(
-                            &tex,
+                            tex,
                             texture_rect!(tex),
                             Rectangle::new(x, y, width, height),
                             Vector2::new(0.0, 0.0),
@@ -437,9 +454,9 @@ impl<'a> State<'a> {
                         8,
                     );
                     if y >= 0.0 {
-                        let tex = self.wilber.first().unwrap();
+                        let tex = &**&*mons.first().unwrap();
                         d.draw_texture_pro(
-                            &tex,
+                            tex,
                             texture_rect!(tex),
                             Rectangle::new(x, y, width, height),
                             Vector2::new(0.0, 0.0),
@@ -449,12 +466,11 @@ impl<'a> State<'a> {
                         self.jumpscare_counter += 1;
                     } else {
                         y = 0.0;
-                        if let Some(tex) = self
-                            .wilber
-                            .get((self.jumpscare_counter - 5) / (60 / framerate))
+                        if let Some(tex) = mons.get((self.jumpscare_counter - 5) / (60 / framerate))
                         {
+                            let tex = &**&*tex;
                             d.draw_texture_pro(
-                                &tex,
+                                tex,
                                 texture_rect!(tex),
                                 Rectangle::new(x, y, width, height),
                                 Vector2::new(0.0, 0.0),
@@ -464,9 +480,9 @@ impl<'a> State<'a> {
                             self.jumpscare_counter += 1;
                         } else {
                             if self.gameover_time.elapsed()?.as_millis() <= 800 {
-                                let tex = self.wilber.last().unwrap();
+                                let tex = &**&*mons.last().unwrap();
                                 d.draw_texture_pro(
-                                    &tex,
+                                    tex,
                                     texture_rect!(tex),
                                     Rectangle::new(x, y, width, height),
                                     Vector2::new(0.0, 0.0),
@@ -482,8 +498,8 @@ impl<'a> State<'a> {
                     }
                 }
                 MonsterName::Beastie => {
-                    let width = self.textures.beastie.slide.width;
-                    let height = self.textures.beastie.slide.height;
+                    let width = self.textures.beastie.slide().width;
+                    let height = self.textures.beastie.slide().height;
                     let cutoff = self.gameover_time.elapsed()?.as_millis() <= 500;
                     let x_offset = {
                         let o = self.gameover_time.elapsed()?.as_millis() as f32 * 2.0;
@@ -501,18 +517,20 @@ impl<'a> State<'a> {
                     let x = (get_width() as f32) - x_offset;
                     let y = get_height() as f32 - height as f32;
                     if cutoff {
+                        let slide = &*self.textures.beastie.slide();
                         d.draw_texture_pro(
-                            &self.textures.beastie.slide,
-                            texture_rect!(self.textures.beastie.slide),
+                            &slide,
+                            texture_rect!(slide),
                             Rectangle::new(x, y, width as f32, height as f32),
                             Vector2::new(0.0, 0.0),
                             0.0,
                             Color::WHITE,
                         );
                     } else {
-                        if let Some(tex) = self.beastie.get(self.jumpscare_counter / (60 / 24)) {
+                        if let Some(tex) = mons.get(self.jumpscare_counter / (60 / 24)) {
+                            let tex = &**&*tex;
                             d.draw_texture_pro(
-                                &tex,
+                                tex,
                                 texture_rect!(tex),
                                 Rectangle::new(
                                     x - get_margin(),
@@ -535,5 +553,96 @@ impl<'a> State<'a> {
             }
         }
         Ok(())
+    }
+}
+
+/// (Wilber, Tux, Penny, Beastie, Gopher)
+pub fn get_jumpscare(id: MonsterName, textures: &Textures) -> Vec<MutexGuard<Texture2D>> {
+    match id {
+        MonsterName::Penny => vec![
+            textures.penny_jumpscare.frame1(),
+            textures.penny_jumpscare.frame2(),
+            textures.penny_jumpscare.frame3(),
+            textures.penny_jumpscare.frame4(),
+            textures.penny_jumpscare.frame5(),
+            textures.penny_jumpscare.frame6(),
+            textures.penny_jumpscare.frame7(),
+            textures.penny_jumpscare.frame8(),
+            textures.penny_jumpscare.frame9(),
+            textures.penny_jumpscare.frame10(),
+            textures.penny_jumpscare.frame11(),
+            textures.penny_jumpscare.frame12(),
+            textures.penny_jumpscare.frame13(),
+            textures.penny_jumpscare.frame14(),
+            textures.penny_jumpscare.frame15(),
+            textures.penny_jumpscare.frame16(),
+            textures.penny_jumpscare.frame17(),
+            textures.penny_jumpscare.frame18(),
+            textures.penny_jumpscare.frame19(),
+        ],
+        MonsterName::Beastie => vec![
+            textures.beastie_jumpscare.frame1(),
+            textures.beastie_jumpscare.frame2(),
+            textures.beastie_jumpscare.frame3(),
+            textures.beastie_jumpscare.frame4(),
+            textures.beastie_jumpscare.frame5(),
+            textures.beastie_jumpscare.frame6(),
+            textures.beastie_jumpscare.frame7(),
+            textures.beastie_jumpscare.frame8(),
+            textures.beastie_jumpscare.frame9(),
+            textures.beastie_jumpscare.frame10(),
+            textures.beastie_jumpscare.frame11(),
+            textures.beastie_jumpscare.frame12(),
+            textures.beastie_jumpscare.frame13(),
+            textures.beastie_jumpscare.frame14(),
+        ],
+        MonsterName::Wilber => vec![
+            textures.wilber_jumpscare.frame1(),
+            textures.wilber_jumpscare.frame2(),
+            textures.wilber_jumpscare.frame3(),
+            textures.wilber_jumpscare.frame4(),
+        ],
+        MonsterName::GoGopher => vec![
+            textures.gopher_jumpscare.frame1(),
+            textures.gopher_jumpscare.frame2(),
+            textures.gopher_jumpscare.frame3(),
+            textures.gopher_jumpscare.frame4(),
+            textures.gopher_jumpscare.frame5(),
+            textures.gopher_jumpscare.frame6(),
+            textures.gopher_jumpscare.frame7(),
+            textures.gopher_jumpscare.frame8(),
+            textures.gopher_jumpscare.frame9(),
+            textures.gopher_jumpscare.frame10(),
+        ],
+        MonsterName::Tux => vec![
+            textures.tux_jumpscare_direct.frame1(),
+            textures.tux_jumpscare_direct.frame2(),
+            textures.tux_jumpscare_direct.frame3(),
+            textures.tux_jumpscare_direct.frame4(),
+            textures.tux_jumpscare_direct.frame5(),
+            textures.tux_jumpscare_direct.frame6(),
+            textures.tux_jumpscare_direct.frame7(),
+            textures.tux_jumpscare_direct.frame8(),
+            textures.tux_jumpscare_direct.frame9(),
+            textures.tux_jumpscare_direct.frame10(),
+            textures.tux_jumpscare_direct.frame11(),
+            textures.tux_jumpscare_direct.frame12(),
+        ],
+        MonsterName::Nolok => vec![],
+        MonsterName::GoldenTux => vec![
+            textures.golden_tux_jumpscare_direct.frame1(),
+            textures.golden_tux_jumpscare_direct.frame2(),
+            textures.golden_tux_jumpscare_direct.frame3(),
+            textures.golden_tux_jumpscare_direct.frame4(),
+            textures.golden_tux_jumpscare_direct.frame5(),
+            textures.golden_tux_jumpscare_direct.frame6(),
+            textures.golden_tux_jumpscare_direct.frame7(),
+            textures.golden_tux_jumpscare_direct.frame8(),
+            textures.golden_tux_jumpscare_direct.frame9(),
+            textures.golden_tux_jumpscare_direct.frame10(),
+            textures.golden_tux_jumpscare_direct.frame11(),
+            textures.golden_tux_jumpscare_direct.frame12(),
+        ],
+        MonsterName::None => vec![],
     }
 }

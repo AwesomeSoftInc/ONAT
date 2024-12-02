@@ -8,6 +8,7 @@ mod you_win;
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use parking_lot::MutexGuard;
 use rand::{rngs::ThreadRng, thread_rng, Rng};
 use raylib::prelude::*;
 
@@ -18,7 +19,6 @@ use crate::{
     audio::Audio,
     enums::Room,
     get_height, get_margin, get_ratio, get_width, get_width_unaltered,
-    jumpscares::load_jumpscares,
     monster::{Gang, Monster, MonsterName, MONSTER_TIME_OFFICE_WAIT_THING},
     texture_rect,
     textures::Textures,
@@ -96,17 +96,10 @@ pub struct State<'a> {
     pub jumpscarer: MonsterName,
     pub has_won: bool,
 
-    pub textures: &'a Textures,
+    pub textures: &'a mut Textures,
     pub default_font: WeakFont,
     pub scroll_amount: f32,
     pub var_name: f64,
-
-    pub wilber: Vec<&'a Texture2D>,
-    pub tux: Vec<&'a Texture2D>,
-    pub penny: Vec<&'a Texture2D>,
-    pub beastie: Vec<&'a Texture2D>,
-    pub gopher: Vec<&'a Texture2D>,
-    pub golden_tux: Vec<&'a Texture2D>,
     pub framebuffer: RenderTexture2D,
 
     pub tux_texture_hold: bool,
@@ -122,7 +115,7 @@ impl<'a> State<'a> {
         rl: &mut RaylibHandle,
         thread: &RaylibThread,
         audio: &'static mut Audio,
-        textures: &'a Textures,
+        textures: &'a mut Textures,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let screen = Screen::TitleScreen;
         let bg_offset_x = get_width() as f32 / 2.0;
@@ -234,7 +227,7 @@ impl<'a> State<'a> {
 
         let var_name = get_height() as f64 / 4.0;
 
-        let (wilber, tux, penny, beastie, gopher, golden_tux) = load_jumpscares(textures);
+        // let (wilber, tux, penny, beastie, gopher, golden_tux) = load_jumpscares(textures);
 
         let framebuffer =
             rl.load_render_texture(&thread, get_width_unaltered() as u32, get_height() as u32)?;
@@ -302,12 +295,6 @@ impl<'a> State<'a> {
             default_font,
             scroll_amount,
             var_name,
-            wilber,
-            tux,
-            penny,
-            beastie,
-            gopher,
-            golden_tux,
             framebuffer,
             tux_texture_hold,
             tux_texture_hold_frames,
@@ -504,9 +491,10 @@ impl<'a> State<'a> {
                     }
                 }
 
+                let arrow = &*self.textures.misc.arrow();
                 d.draw_texture_pro(
-                    &self.textures.arrow,
-                    texture_rect!(self.textures.arrow),
+                    &arrow,
+                    texture_rect!(arrow),
                     Rectangle::new(
                         (get_width() as f32 / 4.0) + get_margin(),
                         get_height() as f32 - (get_height() as f32 / 16.0),
@@ -641,9 +629,10 @@ impl<'a> State<'a> {
                     Color::RED,
                     Color::new(255 - color_width as u8, color_width as u8, 0, 255),
                 );
+                let battery = &*self.textures.misc.battery();
                 d.draw_texture_pro(
-                    &self.textures.battery,
-                    texture_rect!(self.textures.battery),
+                    &battery,
+                    texture_rect!(battery),
                     Rectangle::new(
                         get_margin() + 14.0,
                         battery_bar_y,

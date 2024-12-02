@@ -12,7 +12,6 @@ use crate::audio::Audio;
 
 mod audio;
 mod enums;
-mod jumpscares;
 mod macros;
 mod monster;
 mod state;
@@ -102,20 +101,24 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     rl.set_window_icon(&Image::load_image_from_mem(
         ".png",
-        &include_bytes!("../assets/icon.png").to_vec(),
+        &include_bytes!("../assets/misc/icon.png").to_vec(),
     )?);
     let audio = Box::leak(Box::new(Audio::new()?));
-    let textures = Textures::new(&mut rl, &thread)?;
+    let mut textures = Textures::new()?;
 
-    let mut state = State::new(&mut rl, &thread, audio, &textures)?;
+    let mut state = State::new(&mut rl, &thread, audio, &mut textures)?;
 
     while !rl.window_should_close() {
+        if rl.is_key_released(KeyboardKey::KEY_F11) {
+            rl.toggle_fullscreen();
+        }
+
+        if rl.is_key_released(KeyboardKey::KEY_ESCAPE) {
+            break;
+        }
+
         if state.timer.elapsed()?.as_millis() >= 1000 / 60 {
             state.timer = SystemTime::now();
-
-            if rl.is_key_released(KeyboardKey::KEY_F11) {
-                rl.toggle_fullscreen();
-            }
 
             // Due to a fatal bug with KDE(/X11?), we can't make the window non-resizable and fullscreen. So we force it to be whatever it was originally.
             // rl.set_window_size(get_width_unaltered(), get_height());
@@ -133,9 +136,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
             state.step(&mut rl, &thread)?;
-        }
 
-        unsafe { SCREEN.update(&mut rl) };
+            unsafe { SCREEN.update(&mut rl) };
+        }
     }
 
     Ok(())

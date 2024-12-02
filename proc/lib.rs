@@ -153,6 +153,7 @@ pub fn asset_fill(_item: TokenStream) -> TokenStream {
     let mut define_structs: HashMap<String, Vec<String>> = HashMap::new();
     let mut impl_structs: HashMap<String, Vec<String>> = HashMap::new();
     let mut fields = vec![];
+    let mut functions: HashMap<String, Vec<String>> = HashMap::new();
     let mut impl_fields = vec![];
     let mut define = vec![];
 
@@ -161,6 +162,7 @@ pub fn asset_fill(_item: TokenStream) -> TokenStream {
         yeah(
             assets,
             &mut fields,
+            &mut functions,
             &mut impl_fields,
             &mut define,
             &mut structs,
@@ -177,32 +179,44 @@ pub fn asset_fill(_item: TokenStream) -> TokenStream {
         }
         .into();
     } else {
-        let fuck = fields.join(",");
-        let mut you = format!("pub struct Textures {{{}}}\n", fuck);
+        let mut you = format!(
+            "pub struct Textures {{
+        {}}}\n",
+            fields.join(",")
+        );
         let fuck1 = impl_fields.join("\n");
         let you1 = define.join(",\n");
-        you += &format!("impl Textures {{
-                pub fn new(rl: &mut RaylibHandle, thread: &RaylibThread) -> Result<Self, Box<dyn Error>> {{
+        you += &format!(
+            "impl Textures {{
+                pub fn new() -> Result<Self, Box<dyn Error>> {{
                     {}
                     Ok(Self {{
                         {}
                     }})
                 }}
-            }}", fuck1,you1);
+            }}",
+            fuck1, you1
+        );
         for (k, v) in structs {
             let fuck = v.join(",");
             you += &format!("pub struct {} {{{}}}\n", k, fuck);
 
-            let fuck1 = impl_structs.get(&k).unwrap().join("\n");
-            let you1 = define_structs.get(&k).unwrap().join(",\n");
-            you += &format!("impl {} {{
-                pub fn new(rl: &mut RaylibHandle, thread: &RaylibThread) -> Result<Self, Box<dyn Error>> {{
+            let thisimpl = impl_structs.get(&k).unwrap().join("\n");
+            let thisdefine = define_structs.get(&k).unwrap().join(",\n");
+            let thisfuncs = functions.get(&k).unwrap().join("\n");
+            you += &format!(
+                "impl {} {{
+                pub fn new() -> Result<Self, Box<dyn Error>> {{
                     {}
                     Ok(Self {{
                         {}
                     }})
                 }}
-            }}", k,fuck1,you1);
+
+                {}
+            }}",
+                k, thisimpl, thisdefine, thisfuncs
+            );
         }
         return you.parse().unwrap();
     }
@@ -211,6 +225,7 @@ pub fn asset_fill(_item: TokenStream) -> TokenStream {
 fn yeah(
     assets: ReadDir,
     fields: &mut Vec<String>,
+    functions: &mut HashMap<String, Vec<String>>,
     impl_fields: &mut Vec<String>,
     define: &mut Vec<String>,
     structs: &mut HashMap<String, Vec<String>>,
@@ -244,9 +259,13 @@ fn yeah(
                 if let None = impl_structs.get(&tex) {
                     impl_structs.insert(tex.clone(), Vec::new());
                 }
+                if let None = functions.get(&tex) {
+                    functions.insert(tex.clone(), Vec::new());
+                }
                 let a = structs.get_mut(&tex).unwrap();
                 let b = define_structs.get_mut(&tex).unwrap();
                 let c = impl_structs.get_mut(&tex).unwrap();
+                let d = functions.get_mut(&tex).unwrap();
 
                 let subdir = std::fs::read_dir(asset.path().to_str().unwrap().to_string())?;
                 for dir in subdir {
@@ -257,26 +276,44 @@ fn yeah(
                             .replace(".png", "")
                             .replace("\"", "")
                             .replace(" ", "_");
-                        a.push(format!("pub {}: Texture2D ", n.clone()));
-                        b.push(n.clone());
-                        c.push(format!(
-                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec())?)?;",
-                            n = n,
-                            b = format!("../assets/{name}/{n}.png",name=name,n=n)
+                        a.push(format!("_{}: Mutex<Texture2D> ", n.clone()));
+                        a.push(format!("_set_{}: Mutex<bool> ", n.clone()));
+                        b.push(format!(
+                            "_{}: Mutex::new(unsafe {{std::mem::zeroed()}})",
+                            n.clone()
                         ));
-                        c.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
+                        b.push(format!("_set_{}: Mutex::new(false)", n.clone()));
+
+                        d.push(format!(
+                            "pub fn {n}(&self) -> MutexGuard<Texture2D> {{
+                                let set_{n} = *self._set_{n}.lock();
+                                if !set_{n} {{
+                                    let {n} = unsafe {{
+                                        Texture2D::from_raw(ffi::LoadTextureFromImage(*Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec()).unwrap()))
+                                    }};
+                                    // {n}.set_texture_filter(&self.thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
+                                    *self._{n}.lock() = {n};
+                                    *self._set_{n}.lock() = true;
+                                }};
+                                return self._{n}.lock();
+                            }}",
+                            n = n,
+                            b = format!("../assets/{name}/{n}.png", n=n),
+                        ));
                     }
                 }
+
                 define.push(name.clone());
                 impl_fields.push(format!(
-                    "let {n} = {t}::new(rl, &thread)?;",
+                    "let {n} = {t}::new()?;",
                     n = name,
-                    t = tex
+                    t = tex.replace("", "")
                 ));
 
                 yeah(
                     std::fs::read_dir(asset.path().to_str().unwrap().to_string())?,
                     fields,
+                    functions,
                     impl_fields,
                     define,
                     structs,
@@ -289,14 +326,13 @@ fn yeah(
                     if name.ends_with(".png") {
                         let n: String =
                             name.replace(".png", "").replace("\"", "").replace(" ", "_");
-                        fields.push(format!("pub {}: Texture2D", n));
-                        define.push(n.clone());
-                        impl_fields.push(format!(
-                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec())?)?;",
-                            n = n,
-                            b = format!("../assets/{n}.png",n=n)
+                        fields.push(format!("_{}: Mutex<Texture2D>", n));
+                        fields.push(format!("_set_{}: Mutex<bool>", n));
+                        define.push(format!(
+                            "_{}: Mutex::new(unsafe {{std::mem::zeroed()}})",
+                            n.clone()
                         ));
-                        impl_fields.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
+                        define.push(format!("_set_{}: Mutex::new(false)", n.clone()));
                     }
                 }
             }

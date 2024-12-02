@@ -41,9 +41,10 @@ impl<'a> State<'a> {
             _ => "TIP: When Tux leaves his domain, he will immediately rush one of the hallways.",
         };
         let y = get_height() as f32 / 2.0;
+        let damnyoudied = &*self.textures.misc.damnyoudied();
         d.draw_texture_pro(
-            &self.textures.damnyoudied,
-            texture_rect!(self.textures.damnyoudied),
+            damnyoudied,
+            texture_rect!(damnyoudied),
             Rectangle::new(get_margin(), 0.0, get_width() as f32, get_height() as f32),
             Vector2::new(0.0, 0.0),
             0.0,

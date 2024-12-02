@@ -1,3 +1,4 @@
+use parking_lot::MutexGuard;
 use proc::{monster_derive, monster_function_macro};
 use raylib::{
     color::Color,
@@ -84,12 +85,12 @@ pub trait Monster {
     }
     fn progress_to_hallway(&mut self) -> i8;
 
-    fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
+    fn get_texture<'a>(&'a self, textures: &'a mut Textures) -> Option<MutexGuard<Texture2D>> {
         None
     }
     fn _draw(
         &mut self,
-        textures: &Textures,
+        textures: &mut Textures,
         rl: &mut RaylibDrawHandle,
         x_offset: f32,
         y_offset: f32,
@@ -98,7 +99,7 @@ pub trait Monster {
     ) {
         if let Some(t) = self.get_texture(textures) {
             rl.draw_texture_pro(
-                &t,
+                &*t,
                 texture_rect!(t),
                 Rectangle::new(
                     x_offset,
@@ -114,7 +115,7 @@ pub trait Monster {
     }
     fn draw(
         &mut self,
-        textures: &Textures,
+        textures: &mut Textures,
         rl: &mut RaylibDrawHandle,
         x_offset: f32,
         y_offset: f32,
@@ -269,24 +270,24 @@ impl Penny {
 
 impl Monster for Penny {
     monster_function_macro!();
-    fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&Texture2D> {
+    fn get_texture<'a>(&'a self, textures: &'a mut Textures) -> Option<MutexGuard<Texture2D>> {
         if self.active {
             match self.room {
                 Room::Room2 => match self.progress_to_hallway {
-                    0 => Some(&textures.penny.cam2stage1),
-                    1 => Some(&textures.penny.cam2stage2),
+                    0 => Some(textures.penny.cam2stage1()),
+                    1 => Some(textures.penny.cam2stage2()),
                     _ => None,
                 },
                 Room::Room3 => match self.progress_to_hallway {
-                    0 => Some(&textures.penny.cam3stage1),
-                    1 => Some(&textures.penny.cam3stage2),
+                    0 => Some(textures.penny.cam3stage1()),
+                    1 => Some(textures.penny.cam3stage2()),
                     _ => None,
                 },
                 Room::Office => {
                     if self.timer_until_office().elapsed().unwrap().as_secs()
                         >= MONSTER_TIME_OFFICE_WAIT_THING
                     {
-                        Some(&textures.penny.pennydoor)
+                        Some(textures.penny.pennydoor())
                     } else {
                         None
                     }
@@ -353,24 +354,24 @@ impl Beastie {
 impl Monster for Beastie {
     monster_function_macro!();
 
-    fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
+    fn get_texture<'a>(&'a self, textures: &'a mut Textures) -> Option<MutexGuard<Texture2D>> {
         if self.active {
             match self.room {
                 Room::Room2 => match self.progress_to_hallway {
-                    0 => Some(&textures.beastie.cam2stage1),
-                    1 => Some(&textures.beastie.cam2stage2),
+                    0 => Some(textures.beastie.cam2stage1()),
+                    1 => Some(textures.beastie.cam2stage2()),
                     _ => None,
                 },
                 Room::Room5 => match self.progress_to_hallway {
-                    0 => Some(&textures.beastie.cam5stage1),
-                    1 => Some(&textures.beastie.cam5stage2),
+                    0 => Some(textures.beastie.cam5stage1()),
+                    1 => Some(textures.beastie.cam5stage2()),
                     _ => None,
                 },
                 Room::Office => {
                     if self.timer_until_office().elapsed().unwrap().as_secs()
                         >= MONSTER_TIME_OFFICE_WAIT_THING
                     {
-                        Some(&textures.beastie.bsdatdoor)
+                        Some(textures.beastie.bsdatdoor())
                     } else {
                         None
                     }
@@ -464,16 +465,16 @@ impl Wilber {
 
 impl Monster for Wilber {
     monster_function_macro!();
-    fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
+    fn get_texture<'a>(&'a self, textures: &'a mut Textures) -> Option<MutexGuard<Texture2D>> {
         if self.active {
             match self.stage {
-                0 => Some(&textures.wilber.progress1),
-                1 => Some(&textures.wilber.progress2),
-                2 => Some(&textures.wilber.progress3),
+                0 => Some(textures.wilber.progress1()),
+                1 => Some(textures.wilber.progress2()),
+                2 => Some(textures.wilber.progress3()),
                 _ => None,
             }
         } else {
-            Some(&textures.wilber.inactive)
+            Some(textures.wilber.inactive())
         }
     }
 }
@@ -514,13 +515,13 @@ const DUCT_THING: u16 = 1000;
 impl Monster for GoGopher {
     monster_function_macro!();
 
-    fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
+    fn get_texture<'a>(&'a self, textures: &'a mut Textures) -> Option<MutexGuard<Texture2D>> {
         match self.room {
             Room::Room4 => {
                 if self.duct_timer > 1 && self.duct_timer <= (DUCT_THING / 2) {
-                    Some(&textures.gopher.gopher1)
+                    Some(textures.gopher.gopher1())
                 } else if self.duct_timer <= DUCT_THING {
-                    Some(&textures.gopher.gopher2)
+                    Some(textures.gopher.gopher2())
                 } else {
                     None
                 }
@@ -529,7 +530,7 @@ impl Monster for GoGopher {
                 if self.timer_until_office().elapsed().unwrap().as_secs()
                     >= MONSTER_TIME_OFFICE_WAIT_THING
                 {
-                    Some(&textures.gopher.gopheroffice)
+                    Some(textures.gopher.gopheroffice())
                 } else {
                     None
                 }
@@ -539,7 +540,7 @@ impl Monster for GoGopher {
     }
     fn draw(
         &mut self,
-        textures: &Textures,
+        textures: &mut Textures,
         rl: &mut RaylibDrawHandle,
         x_offset: f32,
         y_offset: f32,
@@ -547,10 +548,10 @@ impl Monster for GoGopher {
         height_offset: f32,
     ) {
         if self.room == Room::Office {
-            self._draw(&textures, rl, x_offset + 75.0, -200.0, 1.6, 1.6);
+            self._draw(textures, rl, x_offset + 75.0, -200.0, 1.6, 1.6);
         } else {
             self._draw(
-                &textures,
+                textures,
                 rl,
                 x_offset,
                 y_offset,
@@ -643,7 +644,7 @@ impl Monster for Tux {
 
     fn draw(
         &mut self,
-        textures: &Textures,
+        textures: &mut Textures,
         rl: &mut RaylibDrawHandle,
         x_offset: f32,
         y_offset: f32,
@@ -659,7 +660,7 @@ impl Monster for Tux {
                     let checked_camera = self.checked_camera.unwrap();
                     let mo = checked_camera.elapsed().unwrap().as_secs_f32();
                     rl.draw_texture_pro(
-                        &t,
+                        &*t,
                         texture_rect!(t),
                         Rectangle::new(
                             (get_margin() + (get_width() / 2) as f32) - (mo * 2400.0),
@@ -676,7 +677,7 @@ impl Monster for Tux {
             _ => {
                 if let Some(t) = self.get_texture(textures) {
                     rl.draw_texture_pro(
-                        &t,
+                        &*t,
                         texture_rect!(t),
                         Rectangle::new(
                             x_offset,
@@ -692,16 +693,16 @@ impl Monster for Tux {
             }
         }
     }
-    fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
+    fn get_texture<'a>(&'a self, textures: &'a mut Textures) -> Option<MutexGuard<Texture2D>> {
         match self.room {
             Room::Room1 => {
                 if self.active {
-                    Some(&textures.tux.awake)
+                    Some(textures.tux.awake())
                 } else {
-                    Some(&textures.tux.inactive)
+                    Some(textures.tux.inactive())
                 }
             }
-            Room::Room3 | Room::Room5 => Some(&textures.tux.slide),
+            Room::Room3 | Room::Room5 => Some(textures.tux.slide()),
             _ => None,
         }
     }
@@ -878,9 +879,9 @@ impl Monster for GoldenTux {
         0.0
     }
 
-    fn get_texture<'a>(&'a self, textures: &'a Textures) -> Option<&'a Texture2D> {
+    fn get_texture<'a>(&'a self, textures: &'a mut Textures) -> Option<MutexGuard<Texture2D>> {
         if self.active {
-            Some(&textures.golden_tux)
+            Some(textures.misc.golden_tux())
         } else {
             None
         }

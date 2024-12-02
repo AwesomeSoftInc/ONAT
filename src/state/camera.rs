@@ -43,72 +43,76 @@ impl<'a> State<'a> {
             return Ok(());
         }
 
-        let texture = match self.sel_camera {
-            Room::Room1 => &self.textures.cam1,
-            Room::Room2 => &self.textures.cam2,
-            Room::Room3 => {
-                if !self.skinman_appeared {
-                    if self.skinman_chance <= 1 {
-                        if self.camera_last_changed.elapsed()?.as_millis() <= 250 {
-                            &self.textures.cam3_happyskinman
+        {
+            let textures = &self.textures.misc;
+
+            let texture = &*match self.sel_camera {
+                Room::Room1 => textures.cam1(),
+                Room::Room2 => textures.cam2(),
+                Room::Room3 => {
+                    if !self.skinman_appeared {
+                        if self.skinman_chance <= 1 {
+                            if self.camera_last_changed.elapsed()?.as_millis() <= 250 {
+                                textures.cam3_happyskinman()
+                            } else {
+                                self.skinman_appeared = true;
+                                textures.cam3()
+                            }
                         } else {
-                            self.skinman_appeared = true;
-                            &self.textures.cam3
+                            textures.cam3()
                         }
                     } else {
-                        &self.textures.cam3
+                        textures.cam3()
                     }
-                } else {
-                    &self.textures.cam3
                 }
-            }
-            Room::Room4 => &self.textures.cam4,
-            Room::Room5 => &self.textures.cam5,
-            Room::Room6 => &self.textures.cam6,
-            _ => {
-                panic!("tried to draw unsupported room {:?}", self.sel_camera)
-            }
-        };
+                Room::Room4 => textures.cam4(),
+                Room::Room5 => textures.cam5(),
+                Room::Room6 => textures.cam6(),
+                _ => {
+                    panic!("tried to draw unsupported room {:?}", self.sel_camera)
+                }
+            };
 
-        if self.sel_camera == Room::Room4 {
-            let red = self.gang.gogopher.duct_heat_timer as u8;
-            d.draw_texture_pro(
-                texture,
-                texture_rect!(texture),
-                Rectangle::new(
-                    get_margin() + 0.0,
+            if self.sel_camera == Room::Room4 {
+                let red = self.gang.gogopher.duct_heat_timer as u8;
+                d.draw_texture_pro(
+                    texture,
+                    texture_rect!(texture),
+                    Rectangle::new(
+                        get_margin() + 0.0,
+                        0.0,
+                        get_width() as f32,
+                        get_height() as f32,
+                    ),
+                    Vector2::new(0.0, 0.0),
                     0.0,
-                    get_width() as f32,
-                    get_height() as f32,
-                ),
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::new(255, 255 - red, 255 - red, 255),
-            );
-        } else {
-            d.draw_texture_pro(
-                texture,
-                texture_rect!(texture),
-                Rectangle::new(
-                    get_margin() + 0.0,
+                    Color::new(255, 255 - red, 255 - red, 255),
+                );
+            } else {
+                d.draw_texture_pro(
+                    texture,
+                    texture_rect!(texture),
+                    Rectangle::new(
+                        get_margin() + 0.0,
+                        0.0,
+                        get_width() as f32,
+                        get_height() as f32,
+                    ),
+                    Vector2::new(0.0, 0.0),
                     0.0,
-                    get_width() as f32,
-                    get_height() as f32,
-                ),
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::WHITE,
-            );
-        }
-        if self.sel_camera == Room::Room6 {
-            self.gang.wilber.rage_decrement();
-        } else {
-            self.gang.wilber.rage_increment(&mut self.audio);
+                    Color::WHITE,
+                );
+            }
+            if self.sel_camera == Room::Room6 {
+                self.gang.wilber.rage_decrement();
+            } else {
+                self.gang.wilber.rage_increment(&mut self.audio);
+            }
         }
 
         let inroom = self.gang.in_room(self.sel_camera.clone());
         for mons in inroom {
-            mons.draw(&self.textures, &mut d, get_margin(), 0.0, 1.0, 1.0);
+            mons.draw(self.textures, &mut d, get_margin(), 0.0, 1.0, 1.0);
             if mons.move_timer() >= 1 || mons.time_in_room().elapsed()?.as_millis() <= 50 {
                 self.audio.play_noise()?;
                 d.draw_texture_pro(
@@ -141,9 +145,10 @@ impl<'a> State<'a> {
             0.0,
             Color::new(255, 255, 255, 48),
         );
+        let camera = &*self.textures.misc.camera();
         d.draw_texture_pro(
-            &self.textures.camera,
-            texture_rect!(self.textures.camera),
+            camera,
+            texture_rect!(camera),
             Rectangle::new(
                 ((get_width() as f32 / 2.0) * (get_ratio().ceil() * 1.075)) - get_margin(),
                 get_height() as f32 * 0.42,
@@ -212,9 +217,10 @@ impl<'a> State<'a> {
         );
 
         if self.laptop_offset_y > 0.0 {
+            let laptop = &*self.textures.misc.laptop();
             d.draw_texture_pro(
-                &self.textures.laptop,
-                texture_rect!(self.textures.laptop),
+                &laptop,
+                texture_rect!(laptop),
                 Rectangle::new(
                     get_margin() + 0.0,
                     self.laptop_offset_y as f32,
@@ -267,9 +273,10 @@ impl<'a> State<'a> {
                 Color::BLACK,
                 Color::new(255, 23, 62, 255),
             );
+            let rage_bar = &*self.textures.misc.rage_bar();
             d.draw_texture_pro(
-                &self.textures.rage_bar,
-                texture_rect!(self.textures.rage_bar),
+                &rage_bar,
+                texture_rect!(rage_bar),
                 Rectangle::new(
                     get_margin() + 14.0,
                     battery_bar_y,
