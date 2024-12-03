@@ -48,24 +48,6 @@ impl ScreenInfo {
             margin: margin,
         }
     }
-
-    pub fn update(&mut self, rl: &mut RaylibHandle) {
-        let monitor_width = rl.get_screen_width();
-        let monitor_height = rl.get_screen_height();
-        let default_ratio = monitor_width as f32 / monitor_height as f32;
-        let desired_ratio = 4.0 / 3.0;
-        let ratio = 1.0 + (default_ratio - desired_ratio);
-
-        let mut margin = monitor_width as f32 - ((monitor_width as f32) / ratio);
-        if margin < 0.0 {
-            margin = 0.0;
-        }
-
-        self.width = monitor_width;
-        self.height = monitor_height;
-        self.ratio = ratio;
-        self.margin = margin;
-    }
 }
 
 pub static mut SCREEN: Lazy<ScreenInfo> = Lazy::new(|| ScreenInfo::new());
@@ -91,10 +73,10 @@ pub fn get_ratio() -> f32 {
 
 #[error_window::main]
 fn main() -> Result<(), Box<dyn Error>> {
-    get_width();
+    get_width(); // initializes the SCREEN variable.
+
     let (mut rl, thread) = raylib::init()
         .fullscreen()
-        // .resizable()
         .log_level(TraceLogLevel::LOG_ERROR)
         .title("ONAT")
         .build();
@@ -120,8 +102,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         if state.timer.elapsed()?.as_millis() >= 1000 / 60 {
             state.timer = SystemTime::now();
 
-            // Due to a fatal bug with KDE(/X11?), we can't make the window non-resizable and fullscreen. So we force it to be whatever it was originally.
-            // rl.set_window_size(get_width_unaltered(), get_height());
+            // Due to- I don't even know what this bug is but we have to force the window size to
+            // whatever the screen size is.
+            if rl.is_window_fullscreen() {
+                rl.set_window_size(get_width_unaltered(), get_height());
+            }
 
             state.ingame_time += Duration::from_millis(36);
 
@@ -136,8 +121,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
             state.step(&mut rl, &thread)?;
-
-            unsafe { SCREEN.update(&mut rl) };
         }
     }
 

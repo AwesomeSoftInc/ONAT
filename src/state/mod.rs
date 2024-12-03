@@ -432,11 +432,6 @@ impl<'a> State<'a> {
             }
         };
 
-        d.clear_background(Color::BLACK);
-        // let mut d: RaylibTextureMode<'_, RaylibDrawHandle<'_>> =
-        // d.begin_texture_mode(&thread, &mut self.framebuffer);
-        // d.clear_background(Color::BLACK);
-
         match self.screen {
             Screen::TitleScreen => self.title_screen_draw(&mut d, mx, my, tex)?,
             Screen::Credits => self.credits_draw(&mut d, mx, my)?,
