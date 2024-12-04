@@ -8,11 +8,14 @@ impl<'a> State<'a> {
     pub fn gameover_draw(
         &mut self,
         d: &mut RaylibDrawHandle,
+        thread: &RaylibThread,
         _mx: i32,
         _my: i32,
         tex: Texture2D,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        d.clear_background(Color::BLACK);
+        let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
+
+        
         let gameover_time = self.gameover_time.elapsed()?;
         let alpha = {
             if gameover_time.as_secs() < 1 {

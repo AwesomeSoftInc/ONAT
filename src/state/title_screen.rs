@@ -10,10 +10,13 @@ impl<'a> State<'a> {
     pub fn title_screen_draw(
         &mut self,
         d: &mut RaylibDrawHandle,
+        thread: &RaylibThread,
         mx: i32,
         my: i32,
         tex: Texture2D,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
+
         self.audio.play_title(self.has_won)?;
         d.clear_background(Color::BLACK);
 

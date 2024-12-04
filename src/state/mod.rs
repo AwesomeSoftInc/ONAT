@@ -310,7 +310,6 @@ impl<'a> State<'a> {
         rl: &mut RaylibHandle,
         thread: &RaylibThread,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        self.draw_step(rl, thread)?;
         #[cfg(debug_assertions)]
         {
             if rl.is_key_released(KeyboardKey::KEY_ONE) {
@@ -433,9 +432,9 @@ impl<'a> State<'a> {
         };
 
         match self.screen {
-            Screen::TitleScreen => self.title_screen_draw(&mut d, mx, my, tex)?,
+            Screen::TitleScreen => self.title_screen_draw(&mut d,&thread, mx, my, tex)?,
             Screen::Credits => self.credits_draw(&mut d, mx, my)?,
-            Screen::GameOver => self.gameover_draw(&mut d, mx, my, tex)?,
+            Screen::GameOver => self.gameover_draw(&mut d, &thread, mx, my, tex)?,
             Screen::YouWin => self.win_draw(&mut d, mx, my)?,
             _ => {
                 if let Screen::TitleScreen = self.screen {
