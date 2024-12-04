@@ -1,3 +1,4 @@
 [submodule "raylib-rs"]
 	path = raylib-rs
-	url = https://github.com/raylib-rs/raylib-rs/
+	url = https://github.com/IoIxD/raylib-rs/
+	branch = "imgui"

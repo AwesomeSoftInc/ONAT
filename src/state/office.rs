@@ -3,12 +3,13 @@ use std::time::{Duration, SystemTime};
 use super::{Screen, State};
 use crate::{
     enums::Room,
-    get_height, get_margin, get_ratio, get_width,
     monster::{Monster, MonsterName, MONSTER_TIME_OFFICE_WAIT_THING},
     state::{CAMERA_TIME, DOOR_ANIM_SPEED},
     texture_rect,
     textures::Textures,
 };
+use crate::config::config;
+
 use parking_lot::MutexGuard;
 use raylib::prelude::*;
 
@@ -23,8 +24,8 @@ impl<'a> State<'a> {
         let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
         d.clear_background(Color::BLACK);
 
-        let cx = (get_margin() - self.bg_offset_x) as i32 + ((get_width() / 3) as f32 * 1.6) as i32;
-        let cy = (get_height() / 4) + (get_height() / 2);
+        let cx = (config().margin() - self.bg_offset_x) as i32 + ((config().width() / 3) as f32 * 1.6) as i32;
+        let cy = (config().height() / 4) + (config().height() / 2);
         if mx >= cx && mx <= cx + 200 && my >= cy && my <= cy + 200 {
             d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
             if d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
@@ -59,10 +60,10 @@ impl<'a> State<'a> {
                                         &$($val).*,
                                         texture_rect!($($val).*),
                                         Rectangle::new(
-                                            get_margin() + -self.bg_offset_x,
+                                            config().margin() + -self.bg_offset_x,
                                             0.0,
-                                            get_width() as f32 * 1.6,
-                                            get_height() as f32,
+                                            config().width() as f32 * 1.6,
+                                            config().height() as f32,
                                         ),
                                         Vector2::new(0.0, 0.0),
                                         0.0,
@@ -78,10 +79,10 @@ impl<'a> State<'a> {
                 &door_left,
                 texture_rect!(door_left),
                 Rectangle::new(
-                    get_margin() + -self.bg_offset_x,
+                    config().margin() + -self.bg_offset_x,
                     self.left_door_anim_timer,
-                    get_width() as f32 * 1.6,
-                    get_height() as f32,
+                    config().width() as f32 * 1.6,
+                    config().height() as f32,
                 ),
                 Vector2::new(0.0, 0.0),
                 0.0,
@@ -92,44 +93,44 @@ impl<'a> State<'a> {
                 &door_right,
                 texture_rect!(door_right),
                 Rectangle::new(
-                    get_margin() + -self.bg_offset_x,
+                    config().margin() + -self.bg_offset_x,
                     self.right_door_anim_timer,
-                    get_width() as f32 * 1.6,
-                    get_height() as f32,
+                    config().width() as f32 * 1.6,
+                    config().height() as f32,
                 ),
                 Vector2::new(0.0, 0.0),
                 0.0,
                 Color::WHITE,
             );
-            let var_name = (1.0 + get_ratio()) as i32;
+            let var_name = (1.0 + config().ratio()) as i32;
 
             let wallpaper = &*self.textures.misc.wallpaper();
             d.draw_texture_pro(
                 &wallpaper,
                 texture_rect!(wallpaper),
                 Rectangle::new(
-                    ((get_width() as f32 + get_margin() as f32) - get_width() as f32 / 3.5)
+                    ((config().width() as f32 + config().margin() as f32) - config().width() as f32 / 3.5)
                         - self.bg_offset_x,
-                    get_height() as f32 / 1.65,
-                    get_width() as f32 / 3.5,
-                    get_height() as f32 / 3.5,
+                    config().height() as f32 / 1.65,
+                    config().width() as f32 / 3.5,
+                    config().height() as f32 / 3.5,
                 ),
                 Vector2::new(0.0, 0.0),
                 0.0,
                 Color::WHITE,
             );
             d.draw_rectangle(
-                (((get_width() as f32 / 1.233) + get_margin()) - self.bg_offset_x) as i32 - 50,
-                (get_height() as f32 / 1.20) as i32,
+                (((config().width() as f32 / 1.233) + config().margin()) - self.bg_offset_x) as i32 - 50,
+                (config().height() as f32 / 1.20) as i32,
                 200,
                 32,
                 Color::new(0, 128, 0, 255),
             );
             d.draw_rectangle(
-                (((get_width() as f32 / 1.233) + get_margin()) - self.bg_offset_x) as i32
+                (((config().width() as f32 / 1.233) + config().margin()) - self.bg_offset_x) as i32
                     - (50 - var_name),
-                ((get_height() as f32 / 1.20) as i32) + var_name,
-                (self.tainted as i32 - 4) * (get_ratio().ceil()) as i32,
+                ((config().height() as f32 / 1.20) as i32) + var_name,
+                (self.tainted as i32 - 4) * (config().ratio().ceil()) as i32,
                 32 - (var_name * 2),
                 Color::GREEN,
             );
@@ -139,10 +140,10 @@ impl<'a> State<'a> {
                 &tainted_logo,
                 texture_rect!(tainted_logo),
                 Rectangle::new(
-                    ((get_width() as f32 / 1.233) + get_margin()) - self.bg_offset_x,
-                    get_height() as f32 / 1.25,
-                    (get_width() as f32 + get_margin()) / 16.0,
-                    get_height() as f32 / 46.0,
+                    ((config().width() as f32 / 1.233) + config().margin()) - self.bg_offset_x,
+                    config().height() as f32 / 1.25,
+                    (config().width() as f32 + config().margin()) / 16.0,
+                    config().height() as f32 / 46.0,
                 ),
                 Vector2::new(0.0, 0.0),
                 0.0,
@@ -174,10 +175,10 @@ impl<'a> State<'a> {
                     texture,
                     texture_rect!(texture),
                     Rectangle::new(
-                        get_margin() + -self.bg_offset_x,
+                        config().margin() + -self.bg_offset_x,
                         0.0,
-                        get_width() as f32 * 1.6,
-                        get_height() as f32,
+                        config().width() as f32 * 1.6,
+                        config().height() as f32,
                     ),
                     Vector2::new(0.0, 0.0),
                     0.0,
@@ -190,7 +191,7 @@ impl<'a> State<'a> {
                 mons.draw(
                     self.textures,
                     &mut d,
-                    get_margin() - self.bg_offset_x,
+                    config().margin() - self.bg_offset_x,
                     0.0,
                     1.6,
                     1.0,
@@ -285,7 +286,7 @@ impl<'a> State<'a> {
                 self.left_door_anim_timer += DOOR_ANIM_SPEED;
             }
         } else {
-            if self.left_door_anim_timer >= -(get_height() as f32) {
+            if self.left_door_anim_timer >= -(config().height() as f32) {
                 self.left_door_anim_timer -= DOOR_ANIM_SPEED;
             }
         }
@@ -296,22 +297,22 @@ impl<'a> State<'a> {
                 self.right_door_anim_timer += DOOR_ANIM_SPEED;
             }
         } else {
-            if self.right_door_anim_timer >= -(get_height() as f32) {
+            if self.right_door_anim_timer >= -(config().height() as f32) {
                 self.right_door_anim_timer -= DOOR_ANIM_SPEED;
             }
         }
         self.gang.wilber.rage_increment(&mut self.audio);
 
-        if self.laptop_offset_y < get_height() as f64 {
+        if self.laptop_offset_y < config().height() as f64 {
             let laptop = &*self.textures.misc.laptop();
             d.draw_texture_pro(
                 &laptop,
                 texture_rect!(laptop),
                 Rectangle::new(
-                    get_margin() + 0.0,
+                    config().margin() + 0.0,
                     self.laptop_offset_y as f32,
-                    get_width() as f32,
-                    get_height() as f32,
+                    config().width() as f32,
+                    config().height() as f32,
                 ),
                 Vector2::new(0.0, 0.0),
                 0.0,
@@ -332,10 +333,10 @@ impl<'a> State<'a> {
                     if duration.as_nanos() <= MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000000000 {
                         if duration.as_nanos() & 256 == 256 && mons.id() != MonsterName::Tux {
                             d.draw_rectangle(
-                                get_margin() as i32,
+                                config().margin() as i32,
                                 0,
-                                get_width(),
-                                get_height(),
+                                config().width(),
+                                config().height(),
                                 Color::BLACK,
                             );
                         }
@@ -387,35 +388,35 @@ impl<'a> State<'a> {
                                 }
                             };
                             (
-                                (get_width() as f32),
-                                get_height() as f32 / 1.5,
-                                -get_width() as f32 + x_offset + get_margin(),
-                                get_height() as f32 - (get_height() as f32 / 1.5),
+                                (config().width() as f32),
+                                config().height() as f32 / 1.5,
+                                -config().width() as f32 + x_offset + config().margin(),
+                                config().height() as f32 - (config().height() as f32 / 1.5),
                                 30,
                             )
                         }
                         MonsterName::Tux => (
-                            get_width() as f32 + (get_margin() + get_margin()),
-                            get_height() as f32,
+                            config().width() as f32 + (config().margin() + config().margin()),
+                            config().height() as f32,
                             0.0,
                             0.0,
                             18,
                         ),
                         MonsterName::GoldenTux => (
-                            get_width() as f32 + (get_margin() + get_margin()),
-                            get_height() as f32,
+                            config().width() as f32 + (config().margin() + config().margin()),
+                            config().height() as f32,
                             0.0,
                             0.0,
                             18,
                         ),
                         MonsterName::GoGopher => {
-                            let height = get_height() as f32 / 1.3;
+                            let height = config().height() as f32 / 1.3;
                             let y_offset =
                                 (height as f32 * (self.jumpscare_counter as f32 / 15.0)) / 750.0;
                             (
-                                get_width() as f32 + (get_width() as f32 * y_offset),
+                                config().width() as f32 + (config().width() as f32 * y_offset),
                                 height + (height * y_offset),
-                                get_margin() - (y_offset * 750.0),
+                                config().margin() - (y_offset * 750.0),
                                 (-height) + (height / 1.5),
                                 15,
                             )
@@ -447,10 +448,10 @@ impl<'a> State<'a> {
                 }
                 MonsterName::Wilber => {
                     let (width, height, x, mut y, framerate) = (
-                        get_width() as f32,
-                        get_height() as f32,
-                        get_margin(),
-                        get_height() as f32 - (self.jumpscare_counter * 115) as f32,
+                        config().width() as f32,
+                        config().height() as f32,
+                        config().margin(),
+                        config().height() as f32 - (self.jumpscare_counter * 115) as f32,
                         8,
                     );
                     if y >= 0.0 {
@@ -503,7 +504,7 @@ impl<'a> State<'a> {
                     let cutoff = self.gameover_time.elapsed()?.as_millis() <= 500;
                     let x_offset = {
                         let o = self.gameover_time.elapsed()?.as_millis() as f32 * 2.0;
-                        let w = get_width() as f32 + get_margin();
+                        let w = config().width() as f32 + config().margin();
                         if o <= w / 4.0 {
                             o
                         } else {
@@ -514,8 +515,8 @@ impl<'a> State<'a> {
                             }
                         }
                     };
-                    let x = (get_width() as f32) - x_offset;
-                    let y = get_height() as f32 - height as f32;
+                    let x = (config().width() as f32) - x_offset;
+                    let y = config().height() as f32 - height as f32;
                     if cutoff {
                         let slide = &*self.textures.beastie.slide();
                         d.draw_texture_pro(
@@ -533,7 +534,7 @@ impl<'a> State<'a> {
                                 tex,
                                 texture_rect!(tex),
                                 Rectangle::new(
-                                    x - get_margin(),
+                                    x - config().margin(),
                                     y,
                                     tex.width as f32 * 2.5,
                                     tex.height as f32 * 2.5,

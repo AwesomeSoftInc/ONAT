@@ -1,6 +1,6 @@
 use raylib::prelude::*;
 
-use crate::{get_height, get_margin, get_width, get_width_unaltered, texture_rect};
+use crate::config::config;
 
 use super::{Screen, State};
 
@@ -21,9 +21,9 @@ impl<'a> State<'a> {
             }
         } as u8;
 
-        let font_size = get_width() / 7;
-        let x = get_width() / 2;
-        let y = (get_height() / 2) - (font_size / 2);
+        let font_size = config().width() / 7;
+        let x = config().width() / 2;
+        let y = (config().height() / 2) - (font_size / 2);
         let y_ = {
             if self.win_time.elapsed()?.as_secs() < 1 {
                 y as f32
@@ -60,14 +60,14 @@ impl<'a> State<'a> {
         d.draw_rectangle(
             0,
             (y - font_size) + 16,
-            get_width_unaltered(),
+            config().width_raw(),
             font_size,
             Color::BLACK,
         );
         d.draw_rectangle(
             0,
             (y + font_size) - 32,
-            get_width_unaltered(),
+            config().width_raw(),
             font_size,
             Color::BLACK,
         );
@@ -92,12 +92,12 @@ impl<'a> State<'a> {
             180.0,
             Color::new(255, 255, 255, fb_a),
         );
-        d.draw_rectangle(0, 0, get_margin() as i32, get_height() as i32, Color::BLACK);
+        d.draw_rectangle(0, 0, config().margin() as i32, config().height() as i32, Color::BLACK);
         d.draw_rectangle(
-            get_width() + get_margin() as i32 + 1,
+            config().width() + config().margin() as i32 + 1,
             0,
-            get_margin() as i32,
-            get_height() as i32,
+            config().margin() as i32,
+            config().height() as i32,
             Color::BLACK,
         );
         if self.win_time.elapsed()?.as_secs() >= 20 {

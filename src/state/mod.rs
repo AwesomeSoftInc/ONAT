@@ -8,6 +8,7 @@ mod you_win;
 
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use num::Float;
 use parking_lot::MutexGuard;
 use rand::{rngs::ThreadRng, thread_rng, Rng};
 use raylib::prelude::*;
@@ -18,11 +19,11 @@ pub const DOOR_ANIM_SPEED: f32 = 100.0;
 use crate::{
     audio::Audio,
     enums::Room,
-    get_height, get_margin, get_ratio, get_width, get_width_unaltered,
     monster::{Gang, Monster, MonsterName, MONSTER_TIME_OFFICE_WAIT_THING},
     texture_rect,
     textures::Textures,
 };
+use crate::config::config;
 
 #[derive(PartialEq, Debug)]
 pub enum Screen {
@@ -118,75 +119,75 @@ impl<'a> State<'a> {
         textures: &'a mut Textures,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let screen = Screen::TitleScreen;
-        let bg_offset_x = get_width() as f32 / 2.0;
-        let laptop_offset_y = get_height() as f64;
+        let bg_offset_x = config().width() as f32 / 2.0;
+        let laptop_offset_y = config().height() as f64;
 
-        let modifier = get_ratio().floor() * 0.1;
+        let modifier = config().ratio().floor() * 0.1;
         let camera_clickables = vec![
             Rectangle::new(
-                get_margin() + get_width() as f32 * (0.685 + modifier),
-                get_height() as f32 * 0.44,
-                get_width() as f32 * 0.05,
-                get_height() as f32 * 0.04,
+                config().margin() + config().width() as f32 * (0.685 + modifier),
+                config().height() as f32 * 0.44,
+                config().width() as f32 * 0.05,
+                config().height() as f32 * 0.04,
             ), // Room1
             Rectangle::new(
-                get_margin() + get_width() as f32 * (0.685 + modifier),
-                get_height() as f32 * 0.65,
-                get_width() as f32 * 0.05,
-                get_height() as f32 * 0.04,
+                config().margin() + config().width() as f32 * (0.685 + modifier),
+                config().height() as f32 * 0.65,
+                config().width() as f32 * 0.05,
+                config().height() as f32 * 0.04,
             ), // Room2
             Rectangle::new(
-                get_margin() + get_width() as f32 * (0.55 + modifier),
-                get_height() as f32 * 0.865,
-                get_width() as f32 * 0.05,
-                get_height() as f32 * 0.04,
+                config().margin() + config().width() as f32 * (0.55 + modifier),
+                config().height() as f32 * 0.865,
+                config().width() as f32 * 0.05,
+                config().height() as f32 * 0.04,
             ), // Room3
             Rectangle::new(
-                get_margin() + get_width() as f32 * (0.82 + modifier),
-                get_height() as f32 * 0.865,
-                get_width() as f32 * 0.05,
-                get_height() as f32 * 0.04,
+                config().margin() + config().width() as f32 * (0.82 + modifier),
+                config().height() as f32 * 0.865,
+                config().width() as f32 * 0.05,
+                config().height() as f32 * 0.04,
             ), // Room4
             Rectangle::new(
-                get_margin() + get_width() as f32 * (0.685 + modifier),
-                get_height() as f32 * 0.79,
-                get_width() as f32 * 0.05,
-                get_height() as f32 * 0.04,
+                config().margin() + config().width() as f32 * (0.685 + modifier),
+                config().height() as f32 * 0.79,
+                config().width() as f32 * 0.05,
+                config().height() as f32 * 0.04,
             ), // Room5
             Rectangle::new(
-                get_margin() + get_width() as f32 * (0.55 + modifier),
-                get_height() as f32 * 0.44,
-                get_width() as f32 * 0.05,
-                get_height() as f32 * 0.04,
+                config().margin() + config().width() as f32 * (0.55 + modifier),
+                config().height() as f32 * 0.44,
+                config().width() as f32 * 0.05,
+                config().height() as f32 * 0.04,
             ), // Room6
         ];
 
         let plush_clickable = Rectangle::new(
-            ((get_width() / 3) as f32 * 1.6),
-            (get_height() / 4) as f32 + (get_height() / 2) as f32,
+            ((config().width() / 3) as f32 * 1.6),
+            (config().height() / 4) as f32 + (config().height() / 2) as f32,
             200.0,
             200.0,
         );
         let door_buttons = vec![
             Rectangle::new(
-                get_margin() + get_width() as f32 * 0.36,
-                get_height() as f32 * 0.42,
-                get_width() as f32 * 0.10,
-                get_width() as f32 * 0.10,
+                config().margin() + config().width() as f32 * 0.36,
+                config().height() as f32 * 0.42,
+                config().width() as f32 * 0.10,
+                config().width() as f32 * 0.10,
             ),
             Rectangle::new(
-                get_margin() + get_width() as f32 * 1.13,
-                get_height() as f32 * 0.42,
-                get_width() as f32 * 0.10,
-                get_width() as f32 * 0.10,
+                config().margin() + config().width() as f32 * 1.13,
+                config().height() as f32 * 0.42,
+                config().width() as f32 * 0.10,
+                config().width() as f32 * 0.10,
             ),
         ];
 
         let duct_button = Rectangle::new(
-            get_margin() + get_width() as f32 * 0.01,
-            get_height() as f32 * 0.80,
-            get_width() as f32 * 0.20,
-            get_height() as f32 * 0.10,
+            config().margin() + config().width() as f32 * 0.01,
+            config().height() as f32 * 0.80,
+            config().width() as f32 * 0.20,
+            config().height() as f32 * 0.10,
         );
 
         let sel_camera = Room::Room1;
@@ -223,14 +224,14 @@ impl<'a> State<'a> {
         let skinman_appeared = false;
 
         let default_font = rl.get_font_default();
-        let scroll_amount = get_width().clone() as f32 * 0.01;
+        let scroll_amount = config().width().clone() as f32 * 0.01;
 
-        let var_name = get_height() as f64 / 4.0;
+        let var_name = config().height() as f64 / 4.0;
 
         // let (wilber, tux, penny, beastie, gopher, golden_tux) = load_jumpscares(textures);
 
         let framebuffer =
-            rl.load_render_texture(&thread, get_width_unaltered() as u32, get_height() as u32)?;
+            rl.load_render_texture(&thread, config().width() as u32, config().height() as u32)?;
         let tux_texture_hold = false;
         let tux_texture_hold_frames = 0;
 
@@ -274,8 +275,8 @@ impl<'a> State<'a> {
             left_door_last_shut,
             right_door_last_shut,
             duct_heat_timer,
-            left_door_anim_timer: -(get_height() as f32 * 0.09),
-            right_door_anim_timer: -(get_height() as f32 * 0.09),
+            left_door_anim_timer: -(config().height() as f32 * 0.09),
+            right_door_anim_timer: -(config().height() as f32 * 0.09),
             rand,
             skinman_chance,
             skinman_appeared,
@@ -402,7 +403,7 @@ impl<'a> State<'a> {
             }
             Screen::TitleScreen | Screen::Credits => {
                 let img =
-                    Image::gen_image_white_noise(get_width_unaltered() / 6, get_height() / 6, 0.1);
+                    Image::gen_image_white_noise(config().width_raw() / 6, config().height() / 6, 0.1);
                 let tex = rl.load_texture_from_image(&thread, &img)?;
                 (img, tex)
             }
@@ -473,14 +474,14 @@ impl<'a> State<'a> {
                     return Ok(());
                 }
 
-                let sc = (self.scroll_amount + (mx - get_width_unaltered() / 2) as f32) / 24.0;
-                if mx <= (get_width_unaltered() / 2) {
+                let sc = (self.scroll_amount + (mx - config().width_raw() / 2) as f32) / 24.0;
+                if mx <= (config().width_raw() / 2) {
                     if self.bg_offset_x > 0.0 {
                         self.bg_offset_x += sc;
                     }
                 }
-                if mx >= get_width_unaltered() - (get_width_unaltered() / 2) {
-                    if self.bg_offset_x < (get_width() as f32) / 1.75 {
+                if mx >= config().width_raw() - (config().width_raw() / 2) {
+                    if self.bg_offset_x < (config().width() as f32) / 1.75 {
                         self.bg_offset_x += sc;
                     }
                 }
@@ -490,17 +491,17 @@ impl<'a> State<'a> {
                     &arrow,
                     texture_rect!(arrow),
                     Rectangle::new(
-                        (get_width() as f32 / 4.0) + get_margin(),
-                        get_height() as f32 - (get_height() as f32 / 16.0),
-                        get_width() as f32 / 2.0,
-                        get_height() as f32 / 16.0,
+                        (config().width() as f32 / 4.0) + config().margin(),
+                        config().height() as f32 - (config().height() as f32 / 16.0),
+                        config().width() as f32 / 2.0,
+                        config().height() as f32 / 16.0,
                     ),
                     Vector2::new(0.0, 0.0),
                     0.0,
                     Color::new(255, 255, 255, 128),
                 );
 
-                if my >= get_height() - (get_height() / 16)
+                if my >= config().height() - (config().height() / 16)
                     && d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT)
                     && !self.getting_jumpscared
                 {
@@ -533,7 +534,7 @@ impl<'a> State<'a> {
                 let time = format!("{}:00AM", self.time()?);
                 d.draw_text(
                     time.as_str(),
-                    get_margin() as i32 + get_width()
+                    config().margin() as i32 + config().width()
                         - (time.len() as f32 * {
                             if self.gang.hours(cur_time) == 0 {
                                 50.0
@@ -542,7 +543,7 @@ impl<'a> State<'a> {
                             }
                         }) as i32,
                     0,
-                    (64.0 * get_ratio()) as i32,
+                    (64.0 * config().ratio()) as i32,
                     Color::WHITE,
                 );
 
@@ -608,18 +609,18 @@ impl<'a> State<'a> {
                 d.clear_background(Color::BLACK);
 
                 // Bars
-                let battery_bar_y = get_height() as f32
-                    - (get_height() as f32 / 13.5)
-                    - (get_height() as f32 / 64.0);
-                let battery_bar_height = get_height() as f32 / 13.5;
-                let width = ((get_width() as f32 / 7.8) * (self.camera_timer / 100.0)) as i32 - 4;
+                let battery_bar_y = config().height() as f32
+                    - (config().height() as f32 / 13.5)
+                    - (config().height() as f32 / 64.0);
+                let battery_bar_height = config().height() as f32 / 13.5;
+                let width = ((config().width() as f32 / 7.8) * (self.camera_timer / 100.0)) as i32 - 4;
                 let color_width = (200.0 * (self.camera_timer / 100.0)) as u8;
 
                 d.draw_rectangle_gradient_h(
-                    get_margin() as i32 + 20,
-                    battery_bar_y as i32 + (get_height() as f32 / 48.0) as i32,
+                    config().margin() as i32 + 20,
+                    battery_bar_y as i32 + (config().height() as f32 / 48.0) as i32,
                     width,
-                    (get_height() as f32 / 20.0) as i32,
+                    (config().height() as f32 / 20.0) as i32,
                     Color::RED,
                     Color::new(255 - color_width as u8, color_width as u8, 0, 255),
                 );
@@ -628,9 +629,9 @@ impl<'a> State<'a> {
                     &battery,
                     texture_rect!(battery),
                     Rectangle::new(
-                        get_margin() + 14.0,
+                        config().margin() + 14.0,
                         battery_bar_y,
-                        get_width() as f32 / 7.5,
+                        config().width() as f32 / 7.5,
                         battery_bar_height,
                     ),
                     Vector2::new(0.0, 0.0),
@@ -657,7 +658,6 @@ impl<'a> State<'a> {
                     || duration.as_millis() >= (MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000) - 500
                 {
                     let var_name = MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000000000;
-                    println!("{} {}", duration.as_nanos(), var_name);
 
                     let mut do_flickering = true;
 
@@ -726,23 +726,25 @@ impl<'a> State<'a> {
                 0.0
             }
         };
+        let corrected_width = (self.framebuffer.width() as f32 * (config().real_width_raw() as f32 / self.framebuffer.width() as f32)).ceil();
+        let corrected_height = (self.framebuffer.height() as f32 * (config().real_height() as f32 / self.framebuffer.height() as f32)).ceil();
         d.draw_texture_pro(
             &self.framebuffer,
             Rectangle::new(
-                self.framebuffer.width() as f32,
+                config().width() as f32,
                 0.0,
-                -self.framebuffer.width() as f32,
-                self.framebuffer.height() as f32,
+                -config().width() as f32,
+                config().height() as f32,
             ),
             Rectangle::new(
-                (self.framebuffer.width() as f32 / 2.0) + rot,
-                (self.framebuffer.height() as f32 / 2.0) + rot,
-                self.framebuffer.width() as f32,
-                self.framebuffer.height() as f32,
+                (corrected_width / 2.0) + rot,
+                (corrected_height / 2.0) + rot,
+                corrected_width,
+                corrected_height,
             ),
             Vector2::new(
-                self.framebuffer.width() as f32 / 2.0,
-                self.framebuffer.height() as f32 / 2.0,
+                corrected_width / 2.0,
+                corrected_height / 2.0,
             ),
             180.0 + rot,
             Color::WHITE,
@@ -750,12 +752,12 @@ impl<'a> State<'a> {
 
         if self.screen != Screen::TitleScreen && self.screen != Screen::Credits {
             self.audio.play_ambience()?;
-            d.draw_rectangle(0, 0, get_margin() as i32, get_height() as i32, Color::BLACK);
+            d.draw_rectangle(0, 0, config().margin() as i32, config().height() as i32, Color::BLACK);
             d.draw_rectangle(
-                get_width() + get_margin() as i32 + 1,
+                config().width() + config().margin() as i32 + 1,
                 0,
-                get_margin() as i32,
-                get_height() as i32,
+                config().margin() as i32,
+                config().height() as i32,
                 Color::BLACK,
             );
         }

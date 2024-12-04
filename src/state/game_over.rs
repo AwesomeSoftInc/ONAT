@@ -1,6 +1,7 @@
 use raylib::prelude::*;
 
-use crate::{get_height, get_margin, get_width, monster::MonsterName, texture_rect};
+use crate::{ monster::MonsterName, texture_rect};
+use crate::config::config;
 
 use super::{Screen, State};
 
@@ -43,12 +44,12 @@ impl<'a> State<'a> {
             MonsterName::GoldenTux => "",
             _ => "TIP: When Tux leaves his domain, he will immediately rush one of the hallways.",
         };
-        let y = get_height() as f32 / 2.0;
+        let y = config().height() as f32 / 2.0;
         let damnyoudied = &*self.textures.misc.damnyoudied();
         d.draw_texture_pro(
             damnyoudied,
             texture_rect!(damnyoudied),
-            Rectangle::new(get_margin(), 0.0, get_width() as f32, get_height() as f32),
+            Rectangle::new(config().margin(), 0.0, config().width() as f32, config().height() as f32),
             Vector2::new(0.0, 0.0),
             0.0,
             Color::WHITE,
@@ -56,7 +57,7 @@ impl<'a> State<'a> {
         d.draw_text_ex(
             &self.default_font,
             text,
-            Vector2::new(get_margin() + 48.0, y),
+            Vector2::new(config().margin() + 48.0, y),
             50.0,
             3.0,
             Color::RED,
@@ -64,7 +65,7 @@ impl<'a> State<'a> {
         d.draw_texture_pro(
             &tex,
             texture_rect!(tex),
-            Rectangle::new(get_margin(), 0.0, get_width() as f32, get_height() as f32),
+            Rectangle::new(config().margin(), 0.0, config().width() as f32, config().height() as f32),
             Vector2::new(0.0, 0.0),
             0.0,
             Color::new(255, 255, 255, alpha as u8),

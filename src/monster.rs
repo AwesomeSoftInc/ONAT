@@ -11,7 +11,7 @@ use std::time::{Duration, SystemTime};
 use rand::{thread_rng, Rng};
 
 use crate::{
-    audio::Audio, enums::Room, get_height, get_margin, get_width, texture_rect, textures::Textures,
+    audio::Audio, config::config, enums::Room,texture_rect, textures::Textures
 };
 
 pub const PENNY_START: bool = true;
@@ -104,8 +104,8 @@ pub trait Monster {
                 Rectangle::new(
                     x_offset,
                     y_offset,
-                    get_width() as f32 * width_offset,
-                    get_height() as f32 * height_offset,
+                    config().width() as f32 * width_offset,
+                    config().height() as f32 * height_offset,
                 ),
                 Vector2::new(0.0, 0.0),
                 0.0,
@@ -663,10 +663,10 @@ impl Monster for Tux {
                         &*t,
                         texture_rect!(t),
                         Rectangle::new(
-                            (get_margin() + (get_width() / 2) as f32) - (mo * 2400.0),
-                            (get_height() / 2) as f32 - (mo * 2000.0),
-                            t.width as f32 + get_width() as f32 * width_offset * (mo * 4.0),
-                            t.height as f32 + get_height() as f32 * height_offset * (mo * 4.0),
+                            (config().margin() + (config().width() / 2) as f32) - (mo * 2400.0),
+                            (config().height() / 2) as f32 - (mo * 2000.0),
+                            t.width as f32 + config().width() as f32 * width_offset * (mo * 4.0),
+                            t.height as f32 + config().height() as f32 * height_offset * (mo * 4.0),
                         ),
                         Vector2::new(t.width as f32 / 2.0, t.height as f32 / 2.0),
                         0.0,
@@ -682,8 +682,8 @@ impl Monster for Tux {
                         Rectangle::new(
                             x_offset,
                             y_offset,
-                            get_width() as f32 * width_offset,
-                            get_height() as f32 * height_offset,
+                            config().width() as f32 * width_offset,
+                            config().height() as f32 * height_offset,
                         ),
                         Vector2::new(0.0, 0.0),
                         0.0,

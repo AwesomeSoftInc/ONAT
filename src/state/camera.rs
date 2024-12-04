@@ -2,9 +2,11 @@ use std::time::SystemTime;
 
 use super::{Screen, State};
 use crate::{
-    enums::Room, get_height, get_margin, get_ratio, get_width, monster::Monster,
+    enums::Room, monster::Monster,
     state::CAMERA_TIME, texture_rect,
 };
+use crate::config::config;
+
 use num_traits::FromPrimitive;
 use rand::Rng;
 use raylib::prelude::*;
@@ -30,7 +32,7 @@ impl<'a> State<'a> {
             self.screen = Screen::Office;
         }
         if self.going_to_office {
-            if self.laptop_offset_y < get_height() as f64 {
+            if self.laptop_offset_y < config().height() as f64 {
                 self.laptop_offset_y += self.var_name;
             } else {
                 self.screen = Screen::Office;
@@ -79,10 +81,10 @@ impl<'a> State<'a> {
                     texture,
                     texture_rect!(texture),
                     Rectangle::new(
-                        get_margin() + 0.0,
+                        config().margin() + 0.0,
                         0.0,
-                        get_width() as f32,
-                        get_height() as f32,
+                        config().width() as f32,
+                        config().height() as f32,
                     ),
                     Vector2::new(0.0, 0.0),
                     0.0,
@@ -93,10 +95,10 @@ impl<'a> State<'a> {
                     texture,
                     texture_rect!(texture),
                     Rectangle::new(
-                        get_margin() + 0.0,
+                        config().margin() + 0.0,
                         0.0,
-                        get_width() as f32,
-                        get_height() as f32,
+                        config().width() as f32,
+                        config().height() as f32,
                     ),
                     Vector2::new(0.0, 0.0),
                     0.0,
@@ -112,17 +114,17 @@ impl<'a> State<'a> {
 
         let inroom = self.gang.in_room(self.sel_camera.clone());
         for mons in inroom {
-            mons.draw(self.textures, &mut d, get_margin(), 0.0, 1.0, 1.0);
+            mons.draw(self.textures, &mut d, config().margin(), 0.0, 1.0, 1.0);
             if mons.move_timer() >= 1 || mons.time_in_room().elapsed()?.as_millis() <= 50 {
                 self.audio.play_noise()?;
                 d.draw_texture_pro(
                     &tex,
                     texture_rect!(tex),
                     Rectangle::new(
-                        get_margin() + 0.0,
+                        config().margin() + 0.0,
                         0.0,
-                        get_width() as f32,
-                        get_height() as f32,
+                        config().width() as f32,
+                        config().height() as f32,
                     ),
                     Vector2::new(0.0, 0.0),
                     0.0,
@@ -136,10 +138,10 @@ impl<'a> State<'a> {
             &tex,
             texture_rect!(tex),
             Rectangle::new(
-                get_margin() + 0.0,
+                config().margin() + 0.0,
                 0.0,
-                get_width() as f32,
-                get_height() as f32,
+                config().width() as f32,
+                config().height() as f32,
             ),
             Vector2::new(0.0, 0.0),
             0.0,
@@ -150,10 +152,10 @@ impl<'a> State<'a> {
             camera,
             texture_rect!(camera),
             Rectangle::new(
-                ((get_width() as f32 / 2.0) * (get_ratio().ceil() * 1.075)) - get_margin(),
-                get_height() as f32 * 0.42,
-                get_width() as f32 / (2.82 + ((get_ratio().floor() * 1.075) / 10.0).round()),
-                get_height() as f32 / 1.97,
+                ((config().width() as f32 / 2.0) * (config().ratio().ceil() * 1.075)) - config().margin(),
+                config().height() as f32 * 0.42,
+                config().width() as f32 / (2.82 + ((config().ratio().floor() * 1.075) / 10.0).round()),
+                config().height() as f32 / 1.97,
             ),
             Vector2::new(0.0, 0.0),
             0.0,
@@ -210,8 +212,8 @@ impl<'a> State<'a> {
         }
         d.draw_text(
             "OFFICE",
-            (get_margin() + get_width() as f32 * (0.68 + get_ratio().floor() * 0.1)) as i32,
-            (get_height() as f32 * 0.87) as i32,
+            (config().margin() + config().width() as f32 * (0.68 + config().ratio().floor() * 0.1)) as i32,
+            (config().height() as f32 * 0.87) as i32,
             20,
             Color::WHITE,
         );
@@ -222,10 +224,10 @@ impl<'a> State<'a> {
                 &laptop,
                 texture_rect!(laptop),
                 Rectangle::new(
-                    get_margin() + 0.0,
+                    config().margin() + 0.0,
                     self.laptop_offset_y as f32,
-                    get_width() as f32,
-                    get_height() as f32,
+                    config().width() as f32,
+                    config().height() as f32,
                 ),
                 Vector2::new(0.0, 0.0),
                 0.0,
@@ -260,16 +262,16 @@ impl<'a> State<'a> {
             }
         }
         if self.sel_camera == Room::Room6 && self.gang.wilber.active() {
-            let battery_bar_height = get_height() as f32 / 13.5;
-            let battery_bar_y = get_height() as f32 - (get_height() as f32 / 5.0);
+            let battery_bar_height = config().height() as f32 / 13.5;
+            let battery_bar_y = config().height() as f32 - (config().height() as f32 / 5.0);
             let rage = self.gang.wilber.rage();
             let gimp_width = (165.0 * (rage / 100.0)) as i32 - 4;
 
             d.draw_rectangle_gradient_h(
-                get_margin() as i32 + 20,
+                config().margin() as i32 + 20,
                 battery_bar_y as i32 + 2,
                 gimp_width,
-                (get_height() as f32 / 15.0) as i32,
+                (config().height() as f32 / 15.0) as i32,
                 Color::BLACK,
                 Color::new(255, 23, 62, 255),
             );
@@ -278,9 +280,9 @@ impl<'a> State<'a> {
                 &rage_bar,
                 texture_rect!(rage_bar),
                 Rectangle::new(
-                    get_margin() + 14.0,
+                    config().margin() + 14.0,
                     battery_bar_y,
-                    get_width() as f32 / 7.5,
+                    config().width() as f32 / 7.5,
                     battery_bar_height,
                 ),
                 Vector2::new(0.0, 0.0),
@@ -296,10 +298,10 @@ impl<'a> State<'a> {
                 &tex,
                 texture_rect!(tex),
                 Rectangle::new(
-                    get_margin() + 0.0,
+                    config().margin() + 0.0,
                     0.0,
-                    get_width() as f32,
-                    get_height() as f32,
+                    config().width() as f32,
+                    config().height() as f32,
                 ),
                 Vector2::new(0.0, 0.0),
                 0.0,

@@ -1,10 +1,12 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::{get_height, get_margin, get_width, get_width_unaltered, texture_rect};
+use crate::texture_rect;
 
 use super::{Screen, State};
 use rand::Rng;
 use raylib::prelude::*;
+use ::imgui::Condition;
+use crate::config::config;
 
 impl<'a> State<'a> {
     pub fn title_screen_draw(
@@ -56,11 +58,19 @@ impl<'a> State<'a> {
         d.draw_texture_pro(
             tux_texture_title,
             texture_rect!(tux_texture_title),
-            Rectangle::new(get_margin(), 0.0, get_width() as f32, get_height() as f32),
+            Rectangle::new(config().margin(), 0.0, config().width() as f32, config().height() as f32),
             Vector2::new(0.0, 0.0),
             0.0,
             Color::new(255, 255, 255, alpha),
         );
+
+        d.start_imgui(|ui| {
+            ui.window("A Moderately Uncomfortable Night with Tux").position([5.0,5.0], Condition::FirstUseEver).size([config().width() as f32 / 4.0, config().height() as f32 / 4.0], Condition::Always).resizable(false).build(|| {
+                ui.menu_item("Start game");
+                ui.menu_item("Options");
+                ui.menu_item("Credits");
+            });
+        });
 
         d.draw_text(
             "A Moderately\nUncomfortable\nNight\nwith Tux",
@@ -72,13 +82,13 @@ impl<'a> State<'a> {
         d.draw_text(
             "Click anywhere to start",
             5,
-            get_height() - 48,
+            config().height() - 48,
             32,
             Color::new(255, 255, 255, alpha),
         );
 
-        let cx = get_width_unaltered() - (get_width_unaltered() / 8);
-        let cy = get_height() - 48;
+        let cx = config().width_raw() - (config().width_raw() / 8);
+        let cy = config().height() - 48;
         d.draw_text("Credits", cx, cy, 32, Color::new(255, 255, 255, alpha));
         if d.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT)
             && !self.going_to_office_from_title
@@ -97,7 +107,7 @@ impl<'a> State<'a> {
         d.draw_texture_pro(
             &tex,
             texture_rect!(tex),
-            Rectangle::new(0.0, 0.0, get_width_unaltered() as f32, get_height() as f32),
+            Rectangle::new(0.0, 0.0, config().width_raw() as f32, config().height() as f32),
             Vector2::new(0.0, 0.0),
             0.0,
             Color::new(255, 255, 255, alpha / 8),

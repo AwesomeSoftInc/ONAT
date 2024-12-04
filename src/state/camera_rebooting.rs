@@ -1,6 +1,7 @@
 use raylib::prelude::*;
 
-use crate::{get_height, get_margin, get_ratio, get_width, state::CAMERA_TIME};
+use crate::{state::CAMERA_TIME};
+use crate::config::config;
 
 use super::{Screen, State};
 
@@ -18,7 +19,7 @@ impl<'a> State<'a> {
         d.clear_background(Color::BLACK);
 
         if self.going_to_office {
-            if self.laptop_offset_y < get_height() as f64 {
+            if self.laptop_offset_y < config().height() as f64 {
                 self.laptop_offset_y += self.var_name;
             } else {
                 self.screen = Screen::Office;
@@ -29,8 +30,8 @@ impl<'a> State<'a> {
         #[cfg(not(feature = "no_camera_timer"))]
         if self.camera_timer <= 100.0 {
             self.camera_timer += CAMERA_TIME;
-            let x = ((get_width() as i32 / 2) as f32) - (TEXT_WIDTH / 2) as f32;
-            let y = get_height() / 2;
+            let x = ((config().width() as i32 / 2) as f32) - (TEXT_WIDTH / 2) as f32;
+            let y = config().height() / 2;
 
             d.draw_text_ex(
                 &self.default_font,
