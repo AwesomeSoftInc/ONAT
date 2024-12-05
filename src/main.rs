@@ -4,7 +4,9 @@ use raylib::prelude::*;
 use state::State;
 use std::{
     error::Error,
-    time::{Duration, SystemTime},
+    os::raw::c_void,
+    process::exit,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use textures::Textures;
 
@@ -26,8 +28,24 @@ pub struct ScreenInfo {
     margin: f32,
 }
 
+unsafe extern "C" fn handler(signum: libc::c_int) {
+    let bt = std::backtrace::Backtrace::force_capture();
+    dialog::Message::new(format!(
+        "Signal {} received. Backtrace:\n{}",
+        signum,
+        bt.to_string()
+    ))
+    .show()
+    .unwrap();
+    exit(0);
+}
+
 #[error_window::main]
 fn main() -> Result<(), Box<dyn Error>> {
+    unsafe {
+        let f = handler as *const fn(libc::c_int);
+        libc::signal(libc::SIGSEGV, f as libc::size_t);
+    }
     config(); // initializes the CONFIG variable.
 
     let (mut rl, thread) = raylib::init()
@@ -42,9 +60,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         &include_bytes!("../assets/misc/icon.png").to_vec(),
     )?);
     let audio = Box::leak(Box::new(Audio::new()?));
-    let mut textures = Textures::new()?;
+    let textures = Box::leak(Box::new(Textures::new()?));
 
-    let mut state = State::new(&mut rl, &thread, audio, &mut textures)?;
+    let mut state = State::new(&mut rl, &thread, audio, textures)?;
 
     let mut fullscreened = false;
     let mut remembered_x = rl.get_window_position().x;
@@ -53,6 +71,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut remembered_height = rl.get_screen_height();
 
     while !rl.window_should_close() {
+        if state.reset_and_goto_title {
+            state = State::new(&mut rl, &thread, state.audio, state.textures)?;
+
+            if !state.going_to_office_from_title {
+                state.going_to_office_from_title = true;
+                if !rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT) {
+                    state.title_clicked = SystemTime::now();
+                } else {
+                    state.title_clicked = UNIX_EPOCH;
+                }
+            }
+        }
+
         if rl.is_key_pressed(KeyboardKey::KEY_F11) && !fullscreened {
             rl.toggle_fullscreen();
             fullscreened = true;

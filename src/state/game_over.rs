@@ -29,19 +29,19 @@ impl<'a> State<'a> {
             }
         };
 
-        let nolok_text = format!("TIP: Awakening Nolok from the depths of unused content hell is not advised. The game will crash in {} seconds.",15 - gameover_time.as_secs());
+        let nolok_text = format!("TIP: Awakening Nolok\nfrom the\ndepths of\nunused content\nhell is not\nadvised. The\ngame will\ncrash in\n{} seconds.",15 - gameover_time.as_secs());
         let text = match self.jumpscarer {
             MonsterName::Penny => {
-                "TIP: When Penny leaves CAM 3, close the door immediately to avoid being tainted."
+                "TIP: When Penny\nleaves CAM 3,\nclose the door\nimmediately to\navoid being\ntainted."
             }
             MonsterName::Beastie => {
-                "TIP: When Beastie leaves CAM 5, close the door immediately to avoid being tainted."
+                "TIP: When Beastie\nleaves CAM 5,\nclose the\ndoor immediately\nto avoid\nbeing tainted."
             }
-            MonsterName::GoGopher => "TIP: Heat up the air duct to reset the gopher's progress.",
-            MonsterName::Wilber => "TIP: Check Wilbur extremely frequently to prevent his attack.",
+            MonsterName::GoGopher => "TIP: Heat up\nthe air\nduct to\nreset the\ngopher's progress.",
+            MonsterName::Wilber => "TIP: Check Wilbur\nextremely frequently\nto prevent\nhis attack.",
             MonsterName::Nolok => nolok_text.as_str(),
             MonsterName::GoldenTux => "",
-            _ => "TIP: When Tux leaves his domain, he will immediately rush one of the hallways.",
+            _ => "TIP: When Tux\nleaves his\ndomain, he\nwill immediately\nrush one\nof the\nhallways.",
         };
         let y = config().height() as f32 / 2.0;
         let damnyoudied = &*self.textures.misc.damnyoudied();
@@ -82,7 +82,8 @@ impl<'a> State<'a> {
 
         if gameover_time.as_secs() >= 15 {
             if self.jumpscarer == MonsterName::Nolok {
-                panic!("Segmentation fault");
+                let go_go_gadget_segfault: i32 = unsafe { *std::ptr::null_mut() };
+                println!("{}", go_go_gadget_segfault);
             }
             self.screen = Screen::TitleScreen;
             self.going_to_office_from_title = false;

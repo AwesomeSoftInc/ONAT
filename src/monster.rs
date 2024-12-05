@@ -437,6 +437,9 @@ impl Wilber {
     pub fn rage(&self) -> f32 {
         self.rage
     }
+    pub fn set_rage(&mut self, val: f32) {
+        self.rage = val;
+    }
     pub fn rage_increment(&mut self, aud: &mut Audio) {
         if !self.active {
             return;

@@ -1,6 +1,7 @@
 use std::time::{Duration, SystemTime};
 
 use super::{Screen, State};
+use crate::config::config;
 use crate::{
     enums::Room,
     monster::{Monster, MonsterName, MONSTER_TIME_OFFICE_WAIT_THING},
@@ -8,7 +9,6 @@ use crate::{
     texture_rect,
     textures::Textures,
 };
-use crate::config::config;
 
 use parking_lot::MutexGuard;
 use raylib::prelude::*;
@@ -24,7 +24,8 @@ impl<'a> State<'a> {
         let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
         d.clear_background(Color::BLACK);
 
-        let cx = (config().margin() - self.bg_offset_x) as i32 + ((config().width() / 3) as f32 * 1.6) as i32;
+        let cx = (config().margin() - self.bg_offset_x) as i32
+            + ((config().width() / 3) as f32 * 1.6) as i32;
         let cy = (config().height() / 4) + (config().height() / 2);
         if mx >= cx && mx <= cx + 200 && my >= cy && my <= cy + 200 {
             d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
@@ -109,7 +110,8 @@ impl<'a> State<'a> {
                 &wallpaper,
                 texture_rect!(wallpaper),
                 Rectangle::new(
-                    ((config().width() as f32 + config().margin() as f32) - config().width() as f32 / 3.5)
+                    ((config().width() as f32 + config().margin() as f32)
+                        - config().width() as f32 / 3.5)
                         - self.bg_offset_x,
                     config().height() as f32 / 1.65,
                     config().width() as f32 / 3.5,
@@ -120,7 +122,8 @@ impl<'a> State<'a> {
                 Color::WHITE,
             );
             d.draw_rectangle(
-                (((config().width() as f32 / 1.233) + config().margin()) - self.bg_offset_x) as i32 - 50,
+                (((config().width() as f32 / 1.233) + config().margin()) - self.bg_offset_x) as i32
+                    - 50,
                 (config().height() as f32 / 1.20) as i32,
                 200,
                 32,
@@ -550,7 +553,10 @@ impl<'a> State<'a> {
                         self.jumpscare_counter += 1;
                     }
                 }
-                _ => {}
+                _ => {
+                    self.screen = Screen::GameOver;
+                    self.gameover_time = SystemTime::now();
+                }
             }
         }
         Ok(())

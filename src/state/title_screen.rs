@@ -155,14 +155,8 @@ impl<'a> State<'a> {
         });
 
         if *goto_title.get_mut() {
-            if !self.going_to_office_from_title {
-                self.going_to_office_from_title = true;
-                if !d.is_key_down(KeyboardKey::KEY_LEFT_SHIFT) {
-                    self.title_clicked = SystemTime::now();
-                } else {
-                    self.title_clicked = UNIX_EPOCH;
-                }
-            }
+            self.reset_and_goto_title = true;
+            return Ok(());
         }
 
         if *goto_credits.get_mut() {

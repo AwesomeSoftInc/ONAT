@@ -1,5 +1,6 @@
 mod camera;
 mod credits;
+mod debug;
 mod game_over;
 mod office;
 mod title_screen;
@@ -109,6 +110,8 @@ pub struct State<'a> {
     pub camera: Camera2D,
 
     pub font: Font,
+
+    pub reset_and_goto_title: bool,
 }
 
 impl<'a> State<'a> {
@@ -306,6 +309,7 @@ impl<'a> State<'a> {
             open_right_door_back_up,
             camera: camera,
             font: font,
+            reset_and_goto_title: false,
         };
         Ok(state)
     }
@@ -587,20 +591,23 @@ impl<'a> State<'a> {
         );
 
         // A few screens have imgui windows that need to be drawn after the fact.
-        match self.screen {
-            Screen::TitleScreen => {
-                self.title_screen_menu(&mut d)?;
+        if d.is_key_down(KeyboardKey::KEY_LEFT_ALT) {
+            self.debug_draw(&mut d)?;
+        } else {
+            match self.screen {
+                Screen::TitleScreen => {
+                    self.title_screen_menu(&mut d)?;
+                }
+                Screen::Camera => {
+                    self.camera_ui_draw(&mut d, &thread, mx, my)?;
+                }
+                Screen::Office | Screen::CameraRebooting => {}
+                _ => {}
             }
-            Screen::Camera => {
-                self.camera_ui_draw(&mut d, &thread, mx, my)?;
+            if self.screen != Screen::TitleScreen && self.screen != Screen::GameOver {
                 self.draw_ui(&mut d, &thread, mx, my)?;
             }
-            Screen::Office | Screen::CameraRebooting => {
-                self.draw_ui(&mut d, &thread, mx, my)?;
-            }
-            _ => {}
         }
-
         Ok(())
     }
 
@@ -612,38 +619,11 @@ impl<'a> State<'a> {
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let time = self.time()?;
-        {
+        'mouse_actions: {
             let mut d = d.begin_texture_mode(&thread, &mut self.ui_framebuffer);
             d.clear_background(Color::BLANK);
 
             let cur_time = self.ingame_time.duration_since(UNIX_EPOCH)?;
-
-            let mut is_over = self.gang.step(cur_time, &mut self.audio);
-
-            #[cfg(debug_assertions)]
-            if d.is_key_released(KeyboardKey::KEY_BACKSPACE) {
-                is_over = true;
-            }
-
-            if is_over && self.screen != Screen::YouWin {
-                self.audio.brownian_halt();
-                self.has_won = true;
-                self.screen = Screen::YouWin;
-                self.win_time = SystemTime::now();
-                return Ok(());
-            }
-
-            let sc = (self.scroll_amount + (mx - config().width_raw() / 2) as f32) / 24.0;
-            if mx <= (config().width_raw() / 2) {
-                if self.bg_offset_x > 0.0 {
-                    self.bg_offset_x += sc;
-                }
-            }
-            if mx >= config().width_raw() - (config().width_raw() / 2) {
-                if self.bg_offset_x < (config().width() as f32) / 1.75 {
-                    self.bg_offset_x += sc;
-                }
-            }
 
             let arrow = &*self.textures.misc.arrow();
             d.draw_texture_pro(
@@ -659,6 +639,72 @@ impl<'a> State<'a> {
                 0.0,
                 Color::new(255, 255, 255, 128),
             );
+
+            let time = format!("{}:00AM", time);
+            d.draw_text_ex(
+                &self.font,
+                time.as_str(),
+                Vector2::new(
+                    config().margin() + config().width() as f32
+                        - (time.len() as f32 * {
+                            if self.gang.hours(cur_time) == 0 {
+                                50.0
+                            } else {
+                                56.0
+                            }
+                        }) as f32,
+                    50.0,
+                ),
+                64.0 * config().ratio(),
+                6.0,
+                Color::WHITE,
+            );
+
+            let battery_bar_y = config().height() as f32
+                - (config().height() as f32 / 13.5)
+                - (config().height() as f32 / 64.0);
+            let battery_bar_height = config().height() as f32 / 13.5;
+            let width = ((config().width() as f32 / 7.8) * (self.camera_timer / 100.0)) as i32 - 4;
+            let color_width = (200.0 * (self.camera_timer / 100.0)) as u8;
+
+            d.draw_rectangle_gradient_h(
+                config().margin() as i32 + 20,
+                battery_bar_y as i32 + (config().height() as f32 / 48.0) as i32,
+                width,
+                (config().height() as f32 / 20.0) as i32,
+                Color::RED,
+                Color::new(255 - color_width as u8, color_width as u8, 0, 255),
+            );
+
+            let battery = &*self.textures.misc.battery();
+            d.draw_texture_pro(
+                &battery,
+                texture_rect!(battery),
+                Rectangle::new(
+                    config().margin() + 14.0,
+                    battery_bar_y,
+                    config().width() as f32 / 7.5,
+                    battery_bar_height,
+                ),
+                Vector2::new(0.0, 0.0),
+                0.0,
+                Color::WHITE,
+            );
+
+            let is_over = self.gang.step(cur_time, &mut self.audio);
+
+            if is_over && self.screen != Screen::YouWin {
+                self.audio.brownian_halt();
+                self.has_won = true;
+                self.screen = Screen::YouWin;
+                self.win_time = SystemTime::now();
+                return Ok(());
+            }
+
+            // What follows this is mouse actions that should be disabled if one is using the debug menu.
+            if d.is_key_down(KeyboardKey::KEY_LEFT_ALT) {
+                break 'mouse_actions;
+            }
 
             if my >= config().height() - (config().height() / 16)
                 && d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT)
@@ -690,25 +736,18 @@ impl<'a> State<'a> {
                     self.camera_booting_timer = 0.0;
                 }
             }
-            let time = format!("{}:00AM", time);
-            d.draw_text_ex(
-                &self.font,
-                time.as_str(),
-                Vector2::new(
-                    config().margin() + config().width() as f32
-                        - (time.len() as f32 * {
-                            if self.gang.hours(cur_time) == 0 {
-                                50.0
-                            } else {
-                                56.0
-                            }
-                        }) as f32,
-                    50.0,
-                ),
-                64.0 * config().ratio(),
-                6.0,
-                Color::WHITE,
-            );
+
+            let sc = (self.scroll_amount + (mx - config().width_raw() / 2) as f32) / 24.0;
+            if mx <= (config().width_raw() / 2) {
+                if self.bg_offset_x > 0.0 {
+                    self.bg_offset_x += sc;
+                }
+            }
+            if mx >= config().width_raw() - (config().width_raw() / 2) {
+                if self.bg_offset_x < (config().width() as f32) / 1.75 {
+                    self.bg_offset_x += sc;
+                }
+            }
 
             if self.left_door_last_shut.elapsed()?.as_secs() >= 5 {
                 if !self.left_door_bypass_cooldown {
@@ -756,7 +795,7 @@ impl<'a> State<'a> {
                 self.right_door_bypass_cooldown = true;
                 self.open_right_door_back_up = false;
             }
-            if self.gang.wilber.stage == 3 && self.gang.wilber.rage() >= 0.2 {
+            if self.gang.wilber.stage >= 3 && self.gang.wilber.rage() >= 0.2 {
                 if self.jumpscarer == MonsterName::None {
                     self.going_to_office = true;
                     self.jumpscarer = MonsterName::Wilber;
@@ -768,37 +807,6 @@ impl<'a> State<'a> {
             if self.gang.gogopher.duct_heat_timer > 0 {
                 self.gang.gogopher.duct_heat_timer -= 1;
             }
-
-            // Bars
-            let battery_bar_y = config().height() as f32
-                - (config().height() as f32 / 13.5)
-                - (config().height() as f32 / 64.0);
-            let battery_bar_height = config().height() as f32 / 13.5;
-            let width = ((config().width() as f32 / 7.8) * (self.camera_timer / 100.0)) as i32 - 4;
-            let color_width = (200.0 * (self.camera_timer / 100.0)) as u8;
-
-            d.draw_rectangle_gradient_h(
-                config().margin() as i32 + 20,
-                battery_bar_y as i32 + (config().height() as f32 / 48.0) as i32,
-                width,
-                (config().height() as f32 / 20.0) as i32,
-                Color::RED,
-                Color::new(255 - color_width as u8, color_width as u8, 0, 255),
-            );
-            let battery = &*self.textures.misc.battery();
-            d.draw_texture_pro(
-                &battery,
-                texture_rect!(battery),
-                Rectangle::new(
-                    config().margin() + 14.0,
-                    battery_bar_y,
-                    config().width() as f32 / 7.5,
-                    battery_bar_height,
-                ),
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::WHITE,
-            );
         }
 
         let mut corrected_width = (self.ui_framebuffer.width() as f32
