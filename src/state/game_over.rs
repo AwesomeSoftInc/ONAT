@@ -1,7 +1,7 @@
 use raylib::prelude::*;
 
-use crate::{ monster::MonsterName, texture_rect};
 use crate::config::config;
+use crate::{monster::MonsterName, texture_rect};
 
 use super::{Screen, State};
 
@@ -16,7 +16,6 @@ impl<'a> State<'a> {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
 
-        
         let gameover_time = self.gameover_time.elapsed()?;
         let alpha = {
             if gameover_time.as_secs() < 1 {
@@ -49,23 +48,33 @@ impl<'a> State<'a> {
         d.draw_texture_pro(
             damnyoudied,
             texture_rect!(damnyoudied),
-            Rectangle::new(config().margin(), 0.0, config().width() as f32, config().height() as f32),
+            Rectangle::new(
+                config().margin(),
+                0.0,
+                config().width() as f32,
+                config().height() as f32,
+            ),
             Vector2::new(0.0, 0.0),
             0.0,
             Color::WHITE,
         );
         d.draw_text_ex(
-            &self.default_font,
+            &self.font,
             text,
             Vector2::new(config().margin() + 48.0, y),
             50.0,
-            3.0,
+            6.0,
             Color::RED,
         );
         d.draw_texture_pro(
             &tex,
             texture_rect!(tex),
-            Rectangle::new(config().margin(), 0.0, config().width() as f32, config().height() as f32),
+            Rectangle::new(
+                config().margin(),
+                0.0,
+                config().width() as f32,
+                config().height() as f32,
+            ),
             Vector2::new(0.0, 0.0),
             0.0,
             Color::new(255, 255, 255, alpha as u8),

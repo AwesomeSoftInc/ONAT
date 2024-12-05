@@ -10,9 +10,7 @@ use std::time::{Duration, SystemTime};
 
 use rand::{thread_rng, Rng};
 
-use crate::{
-    audio::Audio, config::config, enums::Room,texture_rect, textures::Textures
-};
+use crate::{audio::Audio, config::config, enums::Room, texture_rect, textures::Textures};
 
 pub const PENNY_START: bool = true;
 pub const BEASTIE_START: bool = true;

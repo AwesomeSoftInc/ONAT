@@ -40,23 +40,30 @@ impl<'a> State<'a> {
         let num = self.time()?;
 
         d.draw_text_ex(
-            &self.default_font,
+            &self.font,
             format!("{}", num - 1).as_str(),
             Vector2::new(x as f32 - (8.0 * 5.0), y_),
             font_size as f32,
-            3.0,
+            6.0,
             Color::WHITE,
         );
         d.draw_text_ex(
-            &self.default_font,
+            &self.font,
             format!("{}", num).as_str(),
             Vector2::new(x as f32 - (8.0 * 5.0), y_ + (font_size as f32 * 1.0)),
             font_size as f32,
-            3.0,
+            6.0,
             Color::WHITE,
         );
 
-        d.draw_text(" :00AM", x, y, font_size, Color::WHITE);
+        d.draw_text_ex(
+            &self.font,
+            " :00AM",
+            Vector2::new(x as f32, y as f32),
+            font_size as f32,
+            6.0,
+            Color::WHITE,
+        );
         d.draw_rectangle(
             0,
             (y - font_size) + 16,
@@ -92,7 +99,13 @@ impl<'a> State<'a> {
             180.0,
             Color::new(255, 255, 255, fb_a),
         );
-        d.draw_rectangle(0, 0, config().margin() as i32, config().height() as i32, Color::BLACK);
+        d.draw_rectangle(
+            0,
+            0,
+            config().margin() as i32,
+            config().height() as i32,
+            Color::BLACK,
+        );
         d.draw_rectangle(
             config().width() + config().margin() as i32 + 1,
             0,

@@ -20,6 +20,7 @@ error-window = "1.0.0"
 flate2 = "1.0.28"
 sdl2 = { version = "0.37.0", features = ["mixer"] }
 imgui = "0.12.0"
+imgui-sys = "0.12.0"
 
 [features]
 default = []

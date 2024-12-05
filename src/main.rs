@@ -11,12 +11,12 @@ use textures::Textures;
 use crate::audio::Audio;
 
 mod audio;
+mod config;
 mod enums;
 mod macros;
 mod monster;
 mod state;
 mod textures;
-mod config;
 
 use config::config;
 pub struct ScreenInfo {
@@ -32,6 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (mut rl, thread) = raylib::init()
         .fullscreen()
+        .resizable()
         .log_level(TraceLogLevel::LOG_ERROR)
         .title("ONAT")
         .build();
@@ -45,13 +46,28 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut state = State::new(&mut rl, &thread, audio, &mut textures)?;
 
-    while !rl.window_should_close() {
-        if rl.is_key_released(KeyboardKey::KEY_F11) {
-            rl.toggle_fullscreen();
-        }
+    let mut fullscreened = false;
+    let mut remembered_x = rl.get_window_position().x;
+    let mut remembered_y = rl.get_window_position().y;
+    let mut remembered_width = rl.get_screen_width();
+    let mut remembered_height = rl.get_screen_height();
 
-        if rl.is_key_released(KeyboardKey::KEY_ESCAPE) {
-            break;
+    while !rl.window_should_close() {
+        if rl.is_key_pressed(KeyboardKey::KEY_F11) && !fullscreened {
+            rl.toggle_fullscreen();
+            fullscreened = true;
+            if !rl.is_window_fullscreen() {
+                rl.set_window_position(remembered_x as i32, remembered_y as i32);
+                rl.set_window_size(remembered_width, remembered_height);
+            } else {
+                remembered_x = rl.get_window_position().x;
+                remembered_y = rl.get_window_position().y;
+                remembered_width = rl.get_screen_width();
+                remembered_height = rl.get_screen_height();
+            }
+        }
+        if rl.is_key_released(KeyboardKey::KEY_F11) {
+            fullscreened = false;
         }
 
         if state.timer.elapsed()?.as_millis() >= 1000 / 60 {

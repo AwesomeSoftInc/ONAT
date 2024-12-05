@@ -9,7 +9,7 @@ pub struct Dimensions {
     margin: f32,
 }
 
-pub struct Config {    
+pub struct Config {
     // The framebuffer the user can set for the game. Mutable
     emulated_dimensions: Dimensions,
 
@@ -36,9 +36,18 @@ impl Config {
 
         drop(rl);
 
-
-        let emulated_dimensions = Dimensions {width: 1440.0, height: 1080.0, margin: 0.0, ratio: 4.0 / 3.0};
-        let real_dimensions = Dimensions { width: monitor_width as f32, height: monitor_height as f32, margin: margin, ratio: ratio };
+        let emulated_dimensions = Dimensions {
+            width: 1440.0,
+            height: 1080.0,
+            margin: 0.0,
+            ratio: 1.0,
+        };
+        let real_dimensions = Dimensions {
+            width: monitor_width as f32,
+            height: monitor_height as f32,
+            margin: margin,
+            ratio: ratio,
+        };
 
         Self {
             emulated_dimensions,
@@ -78,7 +87,6 @@ impl Config {
         self.real_dimensions.ratio
     }
 }
-
 
 static mut CONFIG: OnceLock<Config> = OnceLock::new();
 
