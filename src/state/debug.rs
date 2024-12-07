@@ -9,7 +9,7 @@ use crate::{
     monster::{Monster, MonsterName},
 };
 
-use super::State;
+use super::{Screen, State};
 
 impl State<'_> {
     pub fn debug_draw(
@@ -28,6 +28,7 @@ impl State<'_> {
                     let mut se = s.lock();
                     ui.menu("Monsters", || {
                         ui.menu("Penny", || {
+                            ui.set_window_font_scale(2.0);
                             ui.menu("Place in Hallway", || {
                                 if ui.button("Stage 1") {
                                     se.gang.penny.set_room(Room::Room3);
@@ -143,6 +144,14 @@ impl State<'_> {
                             }
                         });
                     });
+
+                    ui.slider("Battery", 0.0, 100.0, &mut se.camera_timer);
+                    ui.slider("Tainted", 0.0, 100.0, &mut se.tainted);
+                    if se.camera_timer == 0.0 {
+                        se.camera_booting = true;
+                        se.sel_camera = Room::Room1;
+                        se.screen = Screen::Office;
+                    }
                 });
         });
         Ok(())

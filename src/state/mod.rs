@@ -2,13 +2,14 @@ mod camera;
 mod credits;
 mod debug;
 mod game_over;
+mod general_ui;
 mod office;
 mod title_screen;
 mod you_win;
 
+use ::core::f32;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use ::imgui::{ColorStackToken, StyleColor, Ui};
 use rand::{rngs::ThreadRng, thread_rng, Rng};
 use raylib::prelude::*;
 
@@ -20,7 +21,6 @@ use crate::{
     audio::Audio,
     enums::Room,
     monster::{Gang, Monster, MonsterName, MONSTER_TIME_OFFICE_WAIT_THING},
-    texture_rect,
     textures::Textures,
 };
 
@@ -100,7 +100,9 @@ pub struct State<'a> {
     pub scroll_amount: f32,
     pub var_name: f64,
     pub framebuffer: RenderTexture2D,
-    pub ui_framebuffer: RenderTexture2D,
+
+    pub wallpaper_shader: Shader,
+    pub wallpaper_framebuffer: RenderTexture2D,
 
     pub tux_texture_hold: bool,
     pub tux_texture_hold_frames: i32,
@@ -234,8 +236,11 @@ impl<'a> State<'a> {
 
         let framebuffer =
             rl.load_render_texture(&thread, config().width() as u32, config().height() as u32)?;
-        let ui_framebuffer =
-            rl.load_render_texture(&thread, config().width() as u32, config().height() as u32)?;
+        let wallpaper_framebuffer = rl.load_render_texture(&thread, 1280, 960)?;
+
+        let wallpaper_shader =
+            rl.load_shader_from_memory(&thread, None, Some(include_str!("../shader/crt.fs")));
+
         let tux_texture_hold = false;
         let tux_texture_hold_frames = 0;
 
@@ -302,7 +307,8 @@ impl<'a> State<'a> {
             scroll_amount,
             var_name,
             framebuffer,
-            ui_framebuffer,
+            wallpaper_shader,
+            wallpaper_framebuffer,
             tux_texture_hold,
             tux_texture_hold_frames,
             open_left_door_back_up,
@@ -318,6 +324,8 @@ impl<'a> State<'a> {
         &mut self,
         rl: &mut RaylibHandle,
         thread: &RaylibThread,
+        mx: i32,
+        my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(debug_assertions)]
         {
@@ -389,6 +397,120 @@ impl<'a> State<'a> {
                     let note: usize = (self.tainted * 0.36) as usize;
                     self.audio.play_tainted(note).unwrap();
                 }
+            }
+        }
+
+        if self.camera_booting {
+            self.camera_booting_timer += 0.01;
+            if self.camera_booting_timer >= 250.0 {
+                self.camera_booting = false;
+                self.camera_booting_timer = 0.0;
+            }
+        }
+
+        let sc = (self.scroll_amount + (mx - config().width_raw() / 2) as f32) / 24.0;
+        if mx <= (config().width_raw() / 2) {
+            if self.bg_offset_x > 0.0 {
+                self.bg_offset_x += sc;
+            }
+        }
+        if mx >= config().width_raw() - (config().width_raw() / 2) {
+            if self.bg_offset_x < (config().width() as f32) / 1.75 {
+                self.bg_offset_x += sc;
+            }
+        }
+
+        if self.left_door_last_shut.elapsed()?.as_secs() >= 5 {
+            if !self.left_door_bypass_cooldown {
+                self.can_open_left_door = false;
+                self.left_door_bypass_cooldown = false;
+                self.left_door_shut = false;
+            } else {
+                self.audio.play_thud_left()?;
+                self.left_door_bypass_cooldown = false;
+
+                self.left_door_last_shut = SystemTime::now() - Duration::from_secs(10);
+            }
+        }
+        if self.left_door_last_shut.elapsed()?.as_secs() >= 10 {
+            self.left_door_shut = false;
+            self.can_open_left_door = true;
+        }
+
+        if self.right_door_last_shut.elapsed()?.as_secs() >= 5 {
+            if !self.right_door_bypass_cooldown {
+                self.can_open_right_door = false;
+                self.right_door_bypass_cooldown = false;
+                self.right_door_shut = false;
+            } else {
+                self.audio.play_thud_right()?;
+                self.right_door_bypass_cooldown = false;
+                self.right_door_last_shut = SystemTime::now() - Duration::from_secs(10);
+            }
+        }
+        if self.right_door_last_shut.elapsed()?.as_secs() >= 10 {
+            self.right_door_shut = false;
+            self.can_open_right_door = true;
+        }
+
+        if self.open_left_door_back_up {
+            self.left_door_last_shut = SystemTime::now() - Duration::from_secs(4);
+
+            //audio.play_sound_multi(&metal_left);
+            self.left_door_bypass_cooldown = true;
+            self.open_left_door_back_up = false;
+        }
+        if self.open_right_door_back_up {
+            self.right_door_last_shut = SystemTime::now() - Duration::from_secs(4);
+            //audio.play_sound_multi(&metal_right);
+            self.right_door_bypass_cooldown = true;
+            self.open_right_door_back_up = false;
+        }
+        if self.gang.wilber.stage >= 3 && self.gang.wilber.rage() >= 0.2 {
+            if self.jumpscarer == MonsterName::None {
+                self.going_to_office = true;
+                self.jumpscarer = MonsterName::Wilber;
+                self.gameover_time = SystemTime::now();
+                self.getting_jumpscared = true;
+            }
+        }
+
+        if self.gang.gogopher.duct_heat_timer > 0 {
+            self.gang.gogopher.duct_heat_timer -= 1;
+        }
+
+        let cur_time = self.ingame_time.duration_since(UNIX_EPOCH)?;
+
+        let is_over = self.gang.step(cur_time, &mut self.audio);
+
+        if is_over && self.screen != Screen::YouWin {
+            self.audio.brownian_halt();
+            self.has_won = true;
+            self.screen = Screen::YouWin;
+            self.win_time = SystemTime::now();
+            return Ok(());
+        }
+
+        if my >= config().height() - (config().height() / 16)
+            && rl.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT)
+            && !self.getting_jumpscared
+        {
+            self.audio.play_camera_flip()?;
+            match self.screen {
+                Screen::Office => {
+                    self.gang.golden_tux.deactivate();
+                    self.going_to_camera = true
+                }
+                Screen::CameraRebooting | Screen::Camera => {
+                    if self.gang.hours(cur_time) >= 5 {
+                        if thread_rng().gen_range(1..100) == 1 {
+                            self.gang.golden_tux.activate();
+                            self.gang.golden_tux.appeared = SystemTime::now();
+                        }
+                    }
+                    self.going_to_office = true
+                }
+                _ => (),
             }
         }
 
@@ -595,254 +717,23 @@ impl<'a> State<'a> {
             self.debug_draw(&mut d)?;
         } else {
             match self.screen {
-                Screen::TitleScreen => {
+                Screen::TitleScreen | Screen::Credits | Screen::GameOver | Screen::YouWin => {
                     self.title_screen_menu(&mut d)?;
                 }
                 Screen::Camera => {
                     self.camera_ui_draw(&mut d, &thread, mx, my)?;
                 }
-                Screen::Office | Screen::CameraRebooting => {}
-                _ => {}
-            }
-            if self.screen != Screen::TitleScreen && self.screen != Screen::GameOver {
-                self.draw_ui(&mut d, &thread, mx, my)?;
+                Screen::CameraRebooting => {}
+                Screen::Office => {
+                    self.general_ui_draw(&mut d)?;
+                }
             }
         }
+
+        d.draw_fps(10, 10);
         Ok(())
     }
 
-    pub fn draw_ui(
-        &mut self,
-        d: &mut RaylibDrawHandle,
-        thread: &RaylibThread,
-        mx: i32,
-        my: i32,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let time = self.time()?;
-        'mouse_actions: {
-            let mut d = d.begin_texture_mode(&thread, &mut self.ui_framebuffer);
-            d.clear_background(Color::BLANK);
-
-            let cur_time = self.ingame_time.duration_since(UNIX_EPOCH)?;
-
-            let arrow = &*self.textures.misc.arrow();
-            d.draw_texture_pro(
-                &arrow,
-                texture_rect!(arrow),
-                Rectangle::new(
-                    (config().width() as f32 / 4.0) + config().margin(),
-                    config().height() as f32 - (config().height() as f32 / 16.0),
-                    config().width() as f32 / 2.0,
-                    config().height() as f32 / 16.0,
-                ),
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::new(255, 255, 255, 128),
-            );
-
-            let time = format!("{}:00AM", time);
-            d.draw_text_ex(
-                &self.font,
-                time.as_str(),
-                Vector2::new(
-                    config().margin() + config().width() as f32
-                        - (time.len() as f32 * {
-                            if self.gang.hours(cur_time) == 0 {
-                                50.0
-                            } else {
-                                56.0
-                            }
-                        }) as f32,
-                    50.0,
-                ),
-                64.0 * config().ratio(),
-                6.0,
-                Color::WHITE,
-            );
-
-            let battery_bar_y = config().height() as f32
-                - (config().height() as f32 / 13.5)
-                - (config().height() as f32 / 64.0);
-            let battery_bar_height = config().height() as f32 / 13.5;
-            let width = ((config().width() as f32 / 7.8) * (self.camera_timer / 100.0)) as i32 - 4;
-            let color_width = (200.0 * (self.camera_timer / 100.0)) as u8;
-
-            d.draw_rectangle_gradient_h(
-                config().margin() as i32 + 20,
-                battery_bar_y as i32 + (config().height() as f32 / 48.0) as i32,
-                width,
-                (config().height() as f32 / 20.0) as i32,
-                Color::RED,
-                Color::new(255 - color_width as u8, color_width as u8, 0, 255),
-            );
-
-            let battery = &*self.textures.misc.battery();
-            d.draw_texture_pro(
-                &battery,
-                texture_rect!(battery),
-                Rectangle::new(
-                    config().margin() + 14.0,
-                    battery_bar_y,
-                    config().width() as f32 / 7.5,
-                    battery_bar_height,
-                ),
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::WHITE,
-            );
-
-            let is_over = self.gang.step(cur_time, &mut self.audio);
-
-            if is_over && self.screen != Screen::YouWin {
-                self.audio.brownian_halt();
-                self.has_won = true;
-                self.screen = Screen::YouWin;
-                self.win_time = SystemTime::now();
-                return Ok(());
-            }
-
-            // What follows this is mouse actions that should be disabled if one is using the debug menu.
-            if d.is_key_down(KeyboardKey::KEY_LEFT_ALT) {
-                break 'mouse_actions;
-            }
-
-            if my >= config().height() - (config().height() / 16)
-                && d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT)
-                && !self.getting_jumpscared
-            {
-                self.audio.play_camera_flip()?;
-                match self.screen {
-                    Screen::Office => {
-                        self.gang.golden_tux.deactivate();
-                        self.going_to_camera = true
-                    }
-                    Screen::CameraRebooting | Screen::Camera => {
-                        if self.gang.hours(cur_time) >= 5 {
-                            if thread_rng().gen_range(1..100) == 1 {
-                                self.gang.golden_tux.activate();
-                                self.gang.golden_tux.appeared = SystemTime::now();
-                            }
-                        }
-                        self.going_to_office = true
-                    }
-                    _ => (),
-                }
-            }
-
-            if self.camera_booting {
-                self.camera_booting_timer += 0.01;
-                if self.camera_booting_timer >= 250.0 {
-                    self.camera_booting = false;
-                    self.camera_booting_timer = 0.0;
-                }
-            }
-
-            let sc = (self.scroll_amount + (mx - config().width_raw() / 2) as f32) / 24.0;
-            if mx <= (config().width_raw() / 2) {
-                if self.bg_offset_x > 0.0 {
-                    self.bg_offset_x += sc;
-                }
-            }
-            if mx >= config().width_raw() - (config().width_raw() / 2) {
-                if self.bg_offset_x < (config().width() as f32) / 1.75 {
-                    self.bg_offset_x += sc;
-                }
-            }
-
-            if self.left_door_last_shut.elapsed()?.as_secs() >= 5 {
-                if !self.left_door_bypass_cooldown {
-                    self.can_open_left_door = false;
-                    self.left_door_bypass_cooldown = false;
-                    self.left_door_shut = false;
-                } else {
-                    self.audio.play_thud_left()?;
-                    self.left_door_bypass_cooldown = false;
-
-                    self.left_door_last_shut = SystemTime::now() - Duration::from_secs(10);
-                }
-            }
-            if self.left_door_last_shut.elapsed()?.as_secs() >= 10 {
-                self.left_door_shut = false;
-                self.can_open_left_door = true;
-            }
-
-            if self.right_door_last_shut.elapsed()?.as_secs() >= 5 {
-                if !self.right_door_bypass_cooldown {
-                    self.can_open_right_door = false;
-                    self.right_door_bypass_cooldown = false;
-                    self.right_door_shut = false;
-                } else {
-                    self.audio.play_thud_right()?;
-                    self.right_door_bypass_cooldown = false;
-                    self.right_door_last_shut = SystemTime::now() - Duration::from_secs(10);
-                }
-            }
-            if self.right_door_last_shut.elapsed()?.as_secs() >= 10 {
-                self.right_door_shut = false;
-                self.can_open_right_door = true;
-            }
-
-            if self.open_left_door_back_up {
-                self.left_door_last_shut = SystemTime::now() - Duration::from_secs(4);
-
-                //audio.play_sound_multi(&metal_left);
-                self.left_door_bypass_cooldown = true;
-                self.open_left_door_back_up = false;
-            }
-            if self.open_right_door_back_up {
-                self.right_door_last_shut = SystemTime::now() - Duration::from_secs(4);
-                //audio.play_sound_multi(&metal_right);
-                self.right_door_bypass_cooldown = true;
-                self.open_right_door_back_up = false;
-            }
-            if self.gang.wilber.stage >= 3 && self.gang.wilber.rage() >= 0.2 {
-                if self.jumpscarer == MonsterName::None {
-                    self.going_to_office = true;
-                    self.jumpscarer = MonsterName::Wilber;
-                    self.gameover_time = SystemTime::now();
-                    self.getting_jumpscared = true;
-                }
-            }
-
-            if self.gang.gogopher.duct_heat_timer > 0 {
-                self.gang.gogopher.duct_heat_timer -= 1;
-            }
-        }
-
-        let mut corrected_width = (self.ui_framebuffer.width() as f32
-            * (d.get_render_width() as f32 / self.ui_framebuffer.width() as f32))
-            .ceil();
-        let mut corrected_height = (self.ui_framebuffer.height() as f32
-            * (d.get_render_height() as f32 / self.ui_framebuffer.height() as f32))
-            .ceil();
-
-        if corrected_height <= corrected_width {
-            corrected_width = corrected_height / 0.75;
-        } else {
-            corrected_height = corrected_width * 0.75;
-        }
-
-        d.draw_texture_pro(
-            &self.ui_framebuffer,
-            Rectangle::new(
-                config().width() as f32,
-                0.0,
-                -config().width() as f32,
-                config().height() as f32,
-            ),
-            Rectangle::new(
-                d.get_render_width() as f32 / 2.0,
-                d.get_render_height() as f32 / 2.0,
-                corrected_width,
-                corrected_height,
-            ),
-            Vector2::new(corrected_width / 2.0, corrected_height / 2.0),
-            180.0,
-            Color::WHITE,
-        );
-
-        Ok(())
-    }
     pub fn audio_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let panner = self.bg_offset_x / 3.0;
         let mut left = 191.0 - panner;

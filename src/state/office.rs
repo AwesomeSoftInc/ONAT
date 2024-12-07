@@ -21,6 +21,8 @@ impl<'a> State<'a> {
         mx: i32,
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        self.wallpaper_draw(d, &thread);
+
         let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
         d.clear_background(Color::BLACK);
 
@@ -73,6 +75,23 @@ impl<'a> State<'a> {
                                 };
                             }
         {
+            {
+                let mut d = d.begin_shader_mode(&mut self.wallpaper_shader);
+                let tex = self.wallpaper_framebuffer.texture;
+                d.draw_texture_pro(
+                    &self.wallpaper_framebuffer,
+                    Rectangle::new(tex.width as f32, 0.0, -tex.width as f32, tex.height as f32),
+                    Rectangle::new(
+                        790.0 - self.bg_offset_x,
+                        720.0,
+                        config().width() as f32 / 3.5,
+                        config().height() as f32 / 3.5,
+                    ),
+                    Vector2::new(640.0, 240.0),
+                    180.0,
+                    Color::WHITE,
+                );
+            }
             let office_corners = &*self.textures.misc.office_corners();
             a!(office_corners);
             let door_left = &*self.textures.misc.door_left();
@@ -98,55 +117,6 @@ impl<'a> State<'a> {
                     self.right_door_anim_timer,
                     config().width() as f32 * 1.6,
                     config().height() as f32,
-                ),
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::WHITE,
-            );
-            let var_name = (1.0 + config().ratio()) as i32;
-
-            let wallpaper = &*self.textures.misc.wallpaper();
-            d.draw_texture_pro(
-                &wallpaper,
-                texture_rect!(wallpaper),
-                Rectangle::new(
-                    ((config().width() as f32 + config().margin() as f32)
-                        - config().width() as f32 / 3.5)
-                        - self.bg_offset_x,
-                    config().height() as f32 / 1.65,
-                    config().width() as f32 / 3.5,
-                    config().height() as f32 / 3.5,
-                ),
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::WHITE,
-            );
-            d.draw_rectangle(
-                (((config().width() as f32 / 1.233) + config().margin()) - self.bg_offset_x) as i32
-                    - 50,
-                (config().height() as f32 / 1.20) as i32,
-                200,
-                32,
-                Color::new(0, 128, 0, 255),
-            );
-            d.draw_rectangle(
-                (((config().width() as f32 / 1.233) + config().margin()) - self.bg_offset_x) as i32
-                    - (50 - var_name),
-                ((config().height() as f32 / 1.20) as i32) + var_name,
-                (self.tainted as i32 - 4) * (config().ratio().ceil()) as i32,
-                32 - (var_name * 2),
-                Color::GREEN,
-            );
-
-            let tainted_logo = &*self.textures.misc.tainted_logo();
-            d.draw_texture_pro(
-                &tainted_logo,
-                texture_rect!(tainted_logo),
-                Rectangle::new(
-                    ((config().width() as f32 / 1.233) + config().margin()) - self.bg_offset_x,
-                    config().height() as f32 / 1.25,
-                    (config().width() as f32 + config().margin()) / 16.0,
-                    config().height() as f32 / 46.0,
                 ),
                 Vector2::new(0.0, 0.0),
                 0.0,
@@ -560,6 +530,71 @@ impl<'a> State<'a> {
             }
         }
         Ok(())
+    }
+
+    pub fn wallpaper_draw(&mut self, d: &mut RaylibDrawHandle, thread: &RaylibThread) {
+        let mut d = d.begin_texture_mode(&thread, &mut self.wallpaper_framebuffer);
+
+        let wallpaper = &*self.textures.misc.wallpaper();
+
+        let center = Vector2::new((wallpaper.width / 2) as f32, (wallpaper.height / 2) as f32);
+
+        d.draw_texture(&wallpaper, 0, 0, Color::WHITE);
+
+        d.draw_rectangle(
+            center.x as i32 - 260,
+            center.y as i32 - 140,
+            520,
+            200,
+            Color::BLACK,
+        );
+        d.draw_rectangle(
+            center.x as i32 - 260,
+            center.y as i32 - 140,
+            510,
+            190,
+            Color::WHITE,
+        );
+
+        d.draw_rectangle(
+            center.x as i32 - 240,
+            center.y as i32 - 130,
+            500,
+            180,
+            Color::new(191, 191, 191, 255),
+        );
+
+        d.draw_rectangle(
+            center.x as i32 - 260,
+            center.y as i32 - 210,
+            520,
+            60,
+            Color::BLACK,
+        );
+
+        d.draw_rectangle_gradient_h(
+            center.x as i32 - 240,
+            center.y as i32 - 200,
+            490,
+            50,
+            Color::RED,
+            Color::DARKRED,
+        );
+
+        d.draw_rectangle(
+            center.x as i32 - 100,
+            center.y as i32 - 25,
+            200,
+            50,
+            Color::BLACK,
+        );
+        d.draw_rectangle(
+            center.x as i32 - 95,
+            center.y as i32 - 19,
+            (self.tainted as i32 * 2) - 10,
+            40,
+            Color::GREEN,
+        );
     }
 }
 

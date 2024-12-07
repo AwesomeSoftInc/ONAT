@@ -1,11 +1,11 @@
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::SystemTime;
 
 use super::{Screen, State};
 use crate::config::config;
 use crate::{enums::Room, monster::Monster, state::CAMERA_TIME, texture_rect};
 
 use ::imgui::{Condition, StyleColor};
+use parking_lot::Mutex;
 use raylib::prelude::*;
 
 const TEXT_WIDTH: i32 = ("Laptop Rebooting".len() as i32) * 24;
@@ -298,7 +298,11 @@ impl<'a> State<'a> {
         let mut goto_cam5 = AtomicBool::new(false);
         let mut goto_cam6 = AtomicBool::new(false);
 
+        let s = Mutex::new(&self);
+
         d.start_imgui(|ui| {
+            let se = s.lock();
+
             ui.window("Rooms")
                 .title_bar(false)
                 .position([20.0, 20.0], Condition::Always)
@@ -332,6 +336,25 @@ impl<'a> State<'a> {
                     for style in styles {
                         style.pop();
                     }
+                });
+
+            // We need to draw the ui here as well because we're another imgui element and can't have two frames at once.
+            ui.window("ui")
+                .resizable(false)
+                .movable(false)
+                .title_bar(false)
+                .bg_alpha(0.0)
+                .position([config().margin(), 0.0], ::imgui::Condition::Always)
+                .size(
+                    [config().real_width() as f32, config().real_height() as f32],
+                    ::imgui::Condition::Always,
+                )
+                .build(|| {
+                    ui.set_window_font_scale(4.0);
+
+                    se.draw_battery(ui.get_window_draw_list()).unwrap();
+                    se.draw_arrow(ui.get_window_draw_list()).unwrap();
+                    se.draw_time(ui.get_window_draw_list()).unwrap();
                 });
         });
 

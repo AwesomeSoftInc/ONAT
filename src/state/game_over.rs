@@ -82,6 +82,7 @@ impl<'a> State<'a> {
 
         if gameover_time.as_secs() >= 15 {
             if self.jumpscarer == MonsterName::Nolok {
+                #[allow(deref_nullptr)]
                 let go_go_gadget_segfault: i32 = unsafe { *std::ptr::null_mut() };
                 println!("{}", go_go_gadget_segfault);
             }

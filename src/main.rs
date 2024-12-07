@@ -1,10 +1,8 @@
-use once_cell::sync::Lazy;
 use raylib::prelude::*;
 
 use state::State;
 use std::{
     error::Error,
-    os::raw::c_void,
     process::exit,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -51,7 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (mut rl, thread) = raylib::init()
         .fullscreen()
         .resizable()
-        .log_level(TraceLogLevel::LOG_ERROR)
+        .log_level(TraceLogLevel::LOG_WARNING)
         .title("ONAT")
         .build();
 
@@ -122,7 +120,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                 rl.show_cursor();
             }
 
-            state.step(&mut rl, &thread)?;
+            let (mx, my) = (rl.get_mouse_x(), rl.get_mouse_y());
+            state.step(&mut rl, &thread, mx, my)?;
         }
     }
 
