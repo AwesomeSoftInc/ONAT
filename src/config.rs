@@ -10,11 +10,14 @@ pub struct Dimensions {
 }
 
 pub struct Config {
-    // The framebuffer the user can set for the game. Mutable
+    // The framebuffer the user can set for the game.
     emulated_dimensions: Dimensions,
 
-    // The real dimensions of the user's screen. Immutable.
+    // The real dimensions of the user's screen.
     real_dimensions: Dimensions,
+
+    // The UI scale.
+    ui_scale: f32,
 }
 
 impl Config {
@@ -52,6 +55,7 @@ impl Config {
         Self {
             emulated_dimensions,
             real_dimensions,
+            ui_scale: (monitor_width as f32 / 1024.0).ceil(),
         }
     }
 
@@ -64,9 +68,9 @@ impl Config {
     pub fn height(&self) -> i32 {
         self.emulated_dimensions.height as i32
     }
-    pub fn margin(&self) -> f32 {
-        self.emulated_dimensions.margin
-    }
+    // pub fn margin(&self) -> f32 {
+    //     self.emulated_dimensions.margin
+    // }
     pub fn ratio(&self) -> f32 {
         self.emulated_dimensions.ratio
     }
@@ -85,6 +89,10 @@ impl Config {
     }
     pub fn real_ratio(&self) -> f32 {
         self.real_dimensions.ratio
+    }
+
+    pub fn ui_scale(&self) -> f32 {
+        self.ui_scale
     }
 }
 

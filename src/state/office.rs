@@ -26,8 +26,7 @@ impl<'a> State<'a> {
         let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
         d.clear_background(Color::BLACK);
 
-        let cx = (config().margin() - self.bg_offset_x) as i32
-            + ((config().width() / 3) as f32 * 1.6) as i32;
+        let cx = (0.0 - self.bg_offset_x) as i32 + ((config().width() / 3) as f32 * 1.6) as i32;
         let cy = (config().height() / 4) + (config().height() / 2);
         if mx >= cx && mx <= cx + 200 && my >= cy && my <= cy + 200 {
             d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
@@ -63,7 +62,7 @@ impl<'a> State<'a> {
                                         &$($val).*,
                                         texture_rect!($($val).*),
                                         Rectangle::new(
-                                            config().margin() + -self.bg_offset_x,
+                                            0.0 + -self.bg_offset_x,
                                             0.0,
                                             config().width() as f32 * 1.6,
                                             config().height() as f32,
@@ -99,7 +98,7 @@ impl<'a> State<'a> {
                 &door_left,
                 texture_rect!(door_left),
                 Rectangle::new(
-                    config().margin() + -self.bg_offset_x,
+                    0.0 + -self.bg_offset_x,
                     self.left_door_anim_timer,
                     config().width() as f32 * 1.6,
                     config().height() as f32,
@@ -113,7 +112,7 @@ impl<'a> State<'a> {
                 &door_right,
                 texture_rect!(door_right),
                 Rectangle::new(
-                    config().margin() + -self.bg_offset_x,
+                    0.0 + -self.bg_offset_x,
                     self.right_door_anim_timer,
                     config().width() as f32 * 1.6,
                     config().height() as f32,
@@ -148,7 +147,7 @@ impl<'a> State<'a> {
                     texture,
                     texture_rect!(texture),
                     Rectangle::new(
-                        config().margin() + -self.bg_offset_x,
+                        0.0 + -self.bg_offset_x,
                         0.0,
                         config().width() as f32 * 1.6,
                         config().height() as f32,
@@ -161,14 +160,7 @@ impl<'a> State<'a> {
         }
         if !self.getting_jumpscared {
             for mons in self.gang.in_room(Room::Office) {
-                mons.draw(
-                    self.textures,
-                    &mut d,
-                    config().margin() - self.bg_offset_x,
-                    0.0,
-                    1.6,
-                    1.0,
-                );
+                mons.draw(self.textures, &mut d, 0.0 - self.bg_offset_x, 0.0, 1.6, 1.0);
             }
         }
 
@@ -282,7 +274,7 @@ impl<'a> State<'a> {
                 &laptop,
                 texture_rect!(laptop),
                 Rectangle::new(
-                    config().margin() + 0.0,
+                    0.0 + 0.0,
                     self.laptop_offset_y as f32,
                     config().width() as f32,
                     config().height() as f32,
@@ -306,7 +298,7 @@ impl<'a> State<'a> {
                     if duration.as_nanos() <= MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000000000 {
                         if duration.as_nanos() & 256 == 256 && mons.id() != MonsterName::Tux {
                             d.draw_rectangle(
-                                config().margin() as i32,
+                                0.0 as i32,
                                 0,
                                 config().width(),
                                 config().height(),
@@ -363,20 +355,20 @@ impl<'a> State<'a> {
                             (
                                 (config().width() as f32),
                                 config().height() as f32 / 1.5,
-                                -config().width() as f32 + x_offset + config().margin(),
+                                -config().width() as f32 + x_offset + 0.0,
                                 config().height() as f32 - (config().height() as f32 / 1.5),
                                 30,
                             )
                         }
                         MonsterName::Tux => (
-                            config().width() as f32 + (config().margin() + config().margin()),
+                            config().width() as f32 + (0.0 + 0.0),
                             config().height() as f32,
                             0.0,
                             0.0,
                             18,
                         ),
                         MonsterName::GoldenTux => (
-                            config().width() as f32 + (config().margin() + config().margin()),
+                            config().width() as f32 + (0.0 + 0.0),
                             config().height() as f32,
                             0.0,
                             0.0,
@@ -389,7 +381,7 @@ impl<'a> State<'a> {
                             (
                                 config().width() as f32 + (config().width() as f32 * y_offset),
                                 height + (height * y_offset),
-                                config().margin() - (y_offset * 750.0),
+                                0.0 - (y_offset * 750.0),
                                 (-height) + (height / 1.5),
                                 15,
                             )
@@ -423,7 +415,7 @@ impl<'a> State<'a> {
                     let (width, height, x, mut y, framerate) = (
                         config().width() as f32,
                         config().height() as f32,
-                        config().margin(),
+                        0.0,
                         config().height() as f32 - (self.jumpscare_counter * 115) as f32,
                         8,
                     );
@@ -477,7 +469,7 @@ impl<'a> State<'a> {
                     let cutoff = self.gameover_time.elapsed()?.as_millis() <= 500;
                     let x_offset = {
                         let o = self.gameover_time.elapsed()?.as_millis() as f32 * 2.0;
-                        let w = config().width() as f32 + config().margin();
+                        let w = config().width() as f32 + 0.0;
                         if o <= w / 4.0 {
                             o
                         } else {
@@ -507,7 +499,7 @@ impl<'a> State<'a> {
                                 tex,
                                 texture_rect!(tex),
                                 Rectangle::new(
-                                    x - config().margin(),
+                                    x - 0.0,
                                     y,
                                     tex.width as f32 * 2.5,
                                     tex.height as f32 * 2.5,

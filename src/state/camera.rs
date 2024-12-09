@@ -80,7 +80,7 @@ impl<'a> State<'a> {
                     texture,
                     texture_rect!(texture),
                     Rectangle::new(
-                        config().margin() + 0.0,
+                        0.0 + 0.0,
                         0.0,
                         config().width() as f32,
                         config().height() as f32,
@@ -94,7 +94,7 @@ impl<'a> State<'a> {
                     texture,
                     texture_rect!(texture),
                     Rectangle::new(
-                        config().margin() + 0.0,
+                        0.0 + 0.0,
                         0.0,
                         config().width() as f32,
                         config().height() as f32,
@@ -113,14 +113,14 @@ impl<'a> State<'a> {
 
         let inroom = self.gang.in_room(self.sel_camera.clone());
         for mons in inroom {
-            mons.draw(self.textures, &mut d, config().margin(), 0.0, 1.0, 1.0);
+            mons.draw(self.textures, &mut d, 0.0, 0.0, 1.0, 1.0);
             if mons.move_timer() >= 1 || mons.time_in_room().elapsed()?.as_millis() <= 50 {
                 self.audio.play_noise()?;
                 d.draw_texture_pro(
                     &tex,
                     texture_rect!(tex),
                     Rectangle::new(
-                        config().margin() + 0.0,
+                        0.0 + 0.0,
                         0.0,
                         config().width() as f32,
                         config().height() as f32,
@@ -137,7 +137,7 @@ impl<'a> State<'a> {
             &tex,
             texture_rect!(tex),
             Rectangle::new(
-                config().margin() + 0.0,
+                0.0 + 0.0,
                 0.0,
                 config().width() as f32,
                 config().height() as f32,
@@ -153,7 +153,7 @@ impl<'a> State<'a> {
                 &laptop,
                 texture_rect!(laptop),
                 Rectangle::new(
-                    config().margin() + 0.0,
+                    0.0 + 0.0,
                     self.laptop_offset_y as f32,
                     config().width() as f32,
                     config().height() as f32,
@@ -197,7 +197,7 @@ impl<'a> State<'a> {
             let gimp_width = (165.0 * (rage / 100.0)) as i32 - 4;
 
             d.draw_rectangle_gradient_h(
-                config().margin() as i32 + 20,
+                0.0 as i32 + 20,
                 battery_bar_y as i32 + 2,
                 gimp_width,
                 (config().height() as f32 / 15.0) as i32,
@@ -209,7 +209,7 @@ impl<'a> State<'a> {
                 &rage_bar,
                 texture_rect!(rage_bar),
                 Rectangle::new(
-                    config().margin() + 14.0,
+                    0.0 + 14.0,
                     battery_bar_y,
                     config().width() as f32 / 7.5,
                     battery_bar_height,
@@ -227,7 +227,7 @@ impl<'a> State<'a> {
                 &tex,
                 texture_rect!(tex),
                 Rectangle::new(
-                    config().margin() + 0.0,
+                    0.0 + 0.0,
                     0.0,
                     config().width() as f32,
                     config().height() as f32,
@@ -291,6 +291,7 @@ impl<'a> State<'a> {
         mx: i32,
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let btn_width = config().ui_scale() * 100.0;
         let mut goto_cam1 = AtomicBool::new(false);
         let mut goto_cam2 = AtomicBool::new(false);
         let mut goto_cam3 = AtomicBool::new(false);
@@ -305,7 +306,7 @@ impl<'a> State<'a> {
 
             ui.window("Rooms")
                 .title_bar(false)
-                .position([20.0, 20.0], Condition::Always)
+                .position([config().real_margin() + 20.0, 20.0], Condition::Always)
                 .size([0.0, 0.0], Condition::Always)
                 .resizable(false)
                 .movable(false)
@@ -318,16 +319,16 @@ impl<'a> State<'a> {
                         ("Gopher Vent", &goto_cam4),
                         ("Wilbur's Room", &goto_cam6),
                     ];
-                    ui.set_window_font_scale(3.0);
+                    ui.set_window_font_scale(config().ui_scale());
                     let styles = vec![
-                        ui.push_style_color(StyleColor::Button, [0.25, 0.25, 0.25, 1.0]),
-                        ui.push_style_color(StyleColor::ButtonHovered, [0.15, 0.15, 0.15, 1.0]),
-                        ui.push_style_color(StyleColor::ButtonActive, [0.05, 0.05, 0.05, 1.0]),
+                        ui.push_style_color(StyleColor::Button, [0.25, 0.25, 0.25, 0.25]),
+                        ui.push_style_color(StyleColor::ButtonHovered, [0.15, 0.15, 0.15, 0.25]),
+                        ui.push_style_color(StyleColor::ButtonActive, [0.05, 0.05, 0.05, 0.25]),
                         ui.push_style_color(StyleColor::Separator, [0.0, 0.0, 0.0, 0.0]),
                     ];
 
                     for (title, value) in room_buttons {
-                        if ui.button_with_size(title, [config().width() as f32 / 4.0, 100.0]) {
+                        if ui.button_with_size(title, [btn_width, 100.0]) {
                             value.store(true, Ordering::Relaxed);
                             ui.separator();
                         };
@@ -344,13 +345,13 @@ impl<'a> State<'a> {
                 .movable(false)
                 .title_bar(false)
                 .bg_alpha(0.0)
-                .position([config().margin(), 0.0], ::imgui::Condition::Always)
+                .position([0.0, 0.0], ::imgui::Condition::Always)
                 .size(
                     [config().real_width() as f32, config().real_height() as f32],
                     ::imgui::Condition::Always,
                 )
                 .build(|| {
-                    ui.set_window_font_scale(4.0);
+                    ui.set_window_font_scale(config().ui_scale());
 
                     se.draw_battery(ui.get_window_draw_list()).unwrap();
                     se.draw_arrow(ui.get_window_draw_list()).unwrap();

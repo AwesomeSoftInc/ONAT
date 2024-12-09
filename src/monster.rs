@@ -664,7 +664,7 @@ impl Monster for Tux {
                         &*t,
                         texture_rect!(t),
                         Rectangle::new(
-                            (config().margin() + (config().width() / 2) as f32) - (mo * 2400.0),
+                            (0.0 + (config().width() / 2) as f32) - (mo * 2400.0),
                             (config().height() / 2) as f32 - (mo * 2000.0),
                             t.width as f32 + config().width() as f32 * width_offset * (mo * 4.0),
                             t.height as f32 + config().height() as f32 * height_offset * (mo * 4.0),

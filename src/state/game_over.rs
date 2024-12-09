@@ -49,7 +49,7 @@ impl<'a> State<'a> {
             damnyoudied,
             texture_rect!(damnyoudied),
             Rectangle::new(
-                config().margin(),
+                0.0,
                 0.0,
                 config().width() as f32,
                 config().height() as f32,
@@ -61,7 +61,7 @@ impl<'a> State<'a> {
         d.draw_text_ex(
             &self.font,
             text,
-            Vector2::new(config().margin() + 48.0, y),
+            Vector2::new(0.0 + 48.0, y),
             50.0,
             6.0,
             Color::RED,
@@ -70,7 +70,7 @@ impl<'a> State<'a> {
             &tex,
             texture_rect!(tex),
             Rectangle::new(
-                config().margin(),
+                0.0,
                 0.0,
                 config().width() as f32,
                 config().height() as f32,

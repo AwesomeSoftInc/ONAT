@@ -21,7 +21,7 @@ impl<'a> State<'a> {
             &self.font,
             "Programming\nDirector/Art/Play Testing\nMusic\nArt/Animator\nWisdom
             ",
-            Vector2::new(config().margin() + 48.0, 48.0),
+            Vector2::new(0.0 + 48.0, 48.0),
             30.0,
             6.0,
             Color::WHITE,
@@ -39,7 +39,7 @@ impl<'a> State<'a> {
         d.draw_text_ex(
             &self.font,
             "*Uses Windows",
-            Vector2::new(config().margin() + 5.0, config().height() as f32 - 48.0),
+            Vector2::new(0.0 + 5.0, config().height() as f32 - 48.0),
             32.0,
             6.0,
             Color::new(255, 255, 255, 255),

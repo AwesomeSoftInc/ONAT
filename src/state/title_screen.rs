@@ -20,7 +20,7 @@ impl<'a> State<'a> {
         config().height() as f32 / 16.0
     }
     fn title_w() -> f32 {
-        config().width() as f32 / 2.0
+        config().ui_scale() as f32 * 256.0
     }
     pub fn title_screen_draw(
         &mut self,
@@ -71,27 +71,20 @@ impl<'a> State<'a> {
         d.draw_texture_pro(
             tux_texture_title,
             texture_rect!(tux_texture_title),
-            Rectangle::new(
-                config().margin(),
-                0.0,
-                config().width() as f32,
-                config().height() as f32,
-            ),
+            Rectangle::new(0.0, 0.0, config().width() as f32, config().height() as f32),
             Vector2::new(0.0, 0.0),
             0.0,
             Color::new(255, 255, 255, alpha),
         );
 
-        for i in 0..=2 {
-            d.draw_text_ex(
-                &self.font,
-                "A Moderately\nUncomfortable\nNight\nwith Tux",
-                Vector2::new(Self::title_x() as f32 + i as f32, Self::title_y() as f32),
-                64.0,
-                6.0,
-                Color::new(255, 255, 255, alpha),
-            );
-        }
+        d.draw_text_ex(
+            &self.font,
+            "A Moderately\nUncomfortable\nNight\nwith Tux",
+            Vector2::new(Self::title_x() as f32, Self::title_y() as f32),
+            64.0,
+            6.0,
+            Color::new(255, 255, 255, alpha),
+        );
 
         d.draw_texture_pro(
             &tex,
@@ -121,8 +114,8 @@ impl<'a> State<'a> {
             ui.window("Menu")
                 .position(
                     [
-                        config().width() as f32 / 8.0,
-                        config().height() as f32 - Self::title_y(),
+                        config().real_margin() + (Self::title_x() / 2.0),
+                        (config().real_height() as f32 / 2.0),
                     ],
                     Condition::Always,
                 )
@@ -131,7 +124,7 @@ impl<'a> State<'a> {
                 .resizable(false)
                 .title_bar(false)
                 .build(|| {
-                    ui.set_window_font_scale(4.0);
+                    ui.set_window_font_scale(config().ui_scale());
                     let styles = vec![
                         ui.push_style_color(StyleColor::Button, [0.25, 0.25, 0.25, 1.0]),
                         ui.push_style_color(StyleColor::ButtonHovered, [0.15, 0.15, 0.15, 1.0]),

@@ -24,11 +24,11 @@ impl State<'_> {
                     ::imgui::Condition::FirstUseEver,
                 )
                 .build(|| {
-                    ui.set_window_font_scale(2.0);
+                    ui.set_window_font_scale(config().ui_scale());
                     let mut se = s.lock();
                     ui.menu("Monsters", || {
                         ui.menu("Penny", || {
-                            ui.set_window_font_scale(2.0);
+                            ui.set_window_font_scale(config().ui_scale());
                             ui.menu("Place in Hallway", || {
                                 if ui.button("Stage 1") {
                                     se.gang.penny.set_room(Room::Room3);

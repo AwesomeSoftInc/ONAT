@@ -99,17 +99,11 @@ impl<'a> State<'a> {
             180.0,
             Color::new(255, 255, 255, fb_a),
         );
+        d.draw_rectangle(0, 0, 0.0 as i32, config().height() as i32, Color::BLACK);
         d.draw_rectangle(
+            config().width() + 0.0 as i32 + 1,
             0,
-            0,
-            config().margin() as i32,
-            config().height() as i32,
-            Color::BLACK,
-        );
-        d.draw_rectangle(
-            config().width() + config().margin() as i32 + 1,
-            0,
-            config().margin() as i32,
+            0.0 as i32,
             config().height() as i32,
             Color::BLACK,
         );
