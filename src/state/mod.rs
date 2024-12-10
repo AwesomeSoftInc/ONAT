@@ -678,7 +678,9 @@ impl<'a> State<'a> {
             }
         }
         let rot = {
-            if self.jumpscarer == MonsterName::Tux || self.jumpscarer == MonsterName::GoldenTux {
+            if self.screen == Screen::Office && self.jumpscarer == MonsterName::Tux
+                || self.jumpscarer == MonsterName::GoldenTux
+            {
                 let r = thread_rng().gen_range(-5..5);
                 r as f32
             } else {
