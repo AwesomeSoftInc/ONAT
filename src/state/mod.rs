@@ -114,6 +114,8 @@ pub struct State<'a> {
     pub font: Font,
 
     pub reset_and_goto_title: bool,
+
+    pub test_value: f32,
 }
 
 impl<'a> State<'a> {
@@ -181,7 +183,7 @@ impl<'a> State<'a> {
                 config().real_width() as f32 * 0.10,
             ),
             Rectangle::new(
-                config().real_margin() + config().real_width() as f32 * 1.13,
+                config().real_margin() + config().real_width() as f32 * 1.20,
                 config().real_height() as f32 * 0.42,
                 config().real_width() as f32 * 0.10,
                 config().real_width() as f32 * 0.10,
@@ -236,7 +238,7 @@ impl<'a> State<'a> {
 
         let framebuffer =
             rl.load_render_texture(&thread, config().width() as u32, config().height() as u32)?;
-        let wallpaper_framebuffer = rl.load_render_texture(&thread, 1280, 960)?;
+        let wallpaper_framebuffer = rl.load_render_texture(&thread, 640, 480)?;
 
         let wallpaper_shader =
             rl.load_shader_from_memory(&thread, None, Some(include_str!("../shader/crt.fs")));
@@ -316,6 +318,7 @@ impl<'a> State<'a> {
             camera: camera,
             font: font,
             reset_and_goto_title: false,
+            test_value: 0.90,
         };
         Ok(state)
     }
@@ -327,6 +330,7 @@ impl<'a> State<'a> {
         mx: i32,
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        self.test_value -= (rl.get_mouse_wheel_move() / 100.0);
         #[cfg(debug_assertions)]
         {
             if rl.is_key_released(KeyboardKey::KEY_ONE) {
@@ -584,7 +588,9 @@ impl<'a> State<'a> {
                 }
 
                 match self.screen {
-                    Screen::Office => self.office_draw(&mut d, &thread, mx, my)?,
+                    Screen::Office => {
+                        self.office_draw(&mut d, &thread, mx, my)?;
+                    }
                     Screen::CameraRebooting => {
                         self.camera_rebooting_draw(&mut d, &thread, mx, my)?
                     }
@@ -717,15 +723,15 @@ impl<'a> State<'a> {
             self.debug_draw(&mut d)?;
         } else {
             match self.screen {
-                Screen::TitleScreen | Screen::Credits | Screen::GameOver | Screen::YouWin => {
+                Screen::TitleScreen => {
                     self.title_screen_menu(&mut d)?;
                 }
                 Screen::Camera => {
                     self.camera_ui_draw(&mut d, &thread, mx, my)?;
                 }
-                Screen::CameraRebooting => {}
+                Screen::Credits | Screen::GameOver | Screen::YouWin | Screen::CameraRebooting => {}
                 Screen::Office => {
-                    self.general_ui_draw(&mut d)?;
+                    self.office_ui_draw(&mut d, &thread, mx, my)?;
                 }
             }
         }

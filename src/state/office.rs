@@ -10,7 +10,9 @@ use crate::{
     textures::Textures,
 };
 
-use parking_lot::MutexGuard;
+use num::Float;
+use num_traits::float::FloatCore;
+use parking_lot::{Mutex, MutexGuard};
 use raylib::prelude::*;
 
 impl<'a> State<'a> {
@@ -62,7 +64,7 @@ impl<'a> State<'a> {
                                         &$($val).*,
                                         texture_rect!($($val).*),
                                         Rectangle::new(
-                                            0.0 + -self.bg_offset_x,
+                                            -self.bg_offset_x,
                                             0.0,
                                             config().width() as f32 * 1.6,
                                             config().height() as f32,
@@ -189,57 +191,57 @@ impl<'a> State<'a> {
 
         let mut i = 0;
         let mut hovering = false;
-        for button in &self.door_buttons {
-            if mx as f32 >= (button.x - self.bg_offset_x)
-                && mx as f32 <= (button.x - self.bg_offset_x) + button.width
-                && my as f32 >= button.y
-                && my as f32 <= button.y + button.height
-            {
-                hovering = true;
-                d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
-                if d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
-                    if i == 0 && !self.left_door_shut {
-                        if self.can_open_left_door {
-                            self.left_door_shut = true;
-                            self.can_open_left_door = false;
-                            self.left_door_last_shut = SystemTime::now();
-                            if self.gang.tux.room() == Room::Room3 {
-                                self.gang.tux.set_room(Room::Room1);
-                                self.gang.tux.can_move = false;
-                                self.gang.tux.set_entered_from_left(false);
-                                self.gang.tux.goto_room_after_office();
-                                self.open_left_door_back_up = true;
-                                self.gang.tux.checked_camera = None;
-                                self.gang.tux.moved_to_hallway_at = SystemTime::now();
-                            }
-                            self.audio.play_door_left()?;
-                        } else {
-                            self.audio.play_jammed()?;
-                        }
-                    } else if i == 1 && !self.right_door_shut {
-                        if self.can_open_right_door {
-                            self.right_door_shut = true;
-                            self.can_open_right_door = false;
-                            self.right_door_last_shut = SystemTime::now();
-                            if self.gang.tux.room() == Room::Room5 {
-                                self.gang.tux.set_room(Room::Room1);
-                                self.gang.tux.can_move = false;
-                                self.gang.tux.set_entered_from_right(false);
-                                self.gang.tux.goto_room_after_office();
-                                self.open_right_door_back_up = true;
-                                self.gang.tux.checked_camera = None;
-                                self.gang.tux.moved_to_hallway_at = SystemTime::now();
-                            }
-                            self.audio.play_door_right()?;
-                        } else {
-                            self.audio.play_jammed()?;
-                        }
-                    }
-                }
-            }
+        // for button in &self.door_buttons {
+        //     if mx as f32 >= (button.x - self.bg_offset_x)
+        //         && mx as f32 <= (button.x - self.bg_offset_x) + button.width
+        //         && my as f32 >= button.y
+        //         && my as f32 <= button.y + button.height
+        //     {
+        //         hovering = true;
+        //         d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
+        //         if d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
+        //             if i == 0 && !self.left_door_shut {
+        //                 if self.can_open_left_door {
+        //                     self.left_door_shut = true;
+        //                     self.can_open_left_door = false;
+        //                     self.left_door_last_shut = SystemTime::now();
+        //                     if self.gang.tux.room() == Room::Room3 {
+        //                         self.gang.tux.set_room(Room::Room1);
+        //                         self.gang.tux.can_move = false;
+        //                         self.gang.tux.set_entered_from_left(false);
+        //                         self.gang.tux.goto_room_after_office();
+        //                         self.open_left_door_back_up = true;
+        //                         self.gang.tux.checked_camera = None;
+        //                         self.gang.tux.moved_to_hallway_at = SystemTime::now();
+        //                     }
+        //                     self.audio.play_door_left()?;
+        //                 } else {
+        //                     self.audio.play_jammed()?;
+        //                 }
+        //             } else if i == 1 && !self.right_door_shut {
+        //                 if self.can_open_right_door {
+        //                     self.right_door_shut = true;
+        //                     self.can_open_right_door = false;
+        //                     self.right_door_last_shut = SystemTime::now();
+        //                     if self.gang.tux.room() == Room::Room5 {
+        //                         self.gang.tux.set_room(Room::Room1);
+        //                         self.gang.tux.can_move = false;
+        //                         self.gang.tux.set_entered_from_right(false);
+        //                         self.gang.tux.goto_room_after_office();
+        //                         self.open_right_door_back_up = true;
+        //                         self.gang.tux.checked_camera = None;
+        //                         self.gang.tux.moved_to_hallway_at = SystemTime::now();
+        //                     }
+        //                     self.audio.play_door_right()?;
+        //                 } else {
+        //                     self.audio.play_jammed()?;
+        //                 }
+        //             }
+        //         }
+        //     }
 
-            i += 1;
-        }
+        //     i += 1;
+        // }
 
         if !hovering {
             d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_DEFAULT);
@@ -524,6 +526,111 @@ impl<'a> State<'a> {
         Ok(())
     }
 
+    pub fn office_ui_draw(
+        &mut self,
+        d: &mut RaylibDrawHandle,
+        thread: &RaylibThread,
+        mx: i32,
+        my: i32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let ok = (config().real_width() as f32 / 1024.0).ceil();
+        let mut fuck = config().ui_scale() as i32;
+        if (fuck & 1) == 0 {
+            fuck -= 1;
+        }
+        let what = config().ui_scale() + (0.90 * fuck as f32);
+        let offx = &self.bg_offset_x * (what);
+        let s = Mutex::new(self);
+
+        d.start_imgui(|ui| {
+            ui.window("ui")
+                .resizable(false)
+                .movable(false)
+                .title_bar(false)
+                .bg_alpha(0.0)
+                .position([config().real_margin(), 0.0], ::imgui::Condition::Always)
+                .size(
+                    [config().real_width() as f32, config().real_height() as f32],
+                    ::imgui::Condition::Always,
+                )
+                .build(|| {
+                    let se = s.lock();
+
+                    ui.set_window_font_scale(config().ui_scale());
+
+                    se.draw_battery(ui.get_window_draw_list()).unwrap();
+                    se.draw_arrow(ui.get_window_draw_list()).unwrap();
+                    se.draw_time(ui.get_window_draw_list()).unwrap();
+                });
+            let office_part1 = s.lock().textures.misc.office_part1().clone();
+
+            ui.window("door_buttons")
+                .position(
+                    [-(offx / config().ui_scale()), 0.0],
+                    ::imgui::Condition::Always,
+                )
+                .size(
+                    [
+                        office_part1.width as f32 * what,
+                        office_part1.height as f32 * what,
+                    ],
+                    ::imgui::Condition::Always,
+                )
+                .bg_alpha(0.0)
+                .title_bar(false)
+                .build(|| {
+                    let mut se = s.lock();
+
+                    ui.set_window_font_scale(config().ui_scale());
+
+                    ui.set_cursor_pos([400.0 * ok, 325.0 * ok]);
+                    if ui.button_with_size("LEFT", [150.0, 150.0]) {
+                        if !se.left_door_shut {
+                            if se.can_open_left_door {
+                                se.left_door_shut = true;
+                                se.can_open_left_door = false;
+                                se.left_door_last_shut = SystemTime::now();
+                                if se.gang.tux.room() == Room::Room3 {
+                                    se.gang.tux.set_room(Room::Room1);
+                                    se.gang.tux.can_move = false;
+                                    se.gang.tux.set_entered_from_left(false);
+                                    se.gang.tux.goto_room_after_office();
+                                    se.open_left_door_back_up = true;
+                                    se.gang.tux.checked_camera = None;
+                                    se.gang.tux.moved_to_hallway_at = SystemTime::now();
+                                }
+                                se.audio.play_door_left().unwrap();
+                            } else {
+                                se.audio.play_jammed().unwrap();
+                            }
+                        }
+                    }
+                    ui.set_cursor_pos([1175.0 * ok, 325.0 * ok]);
+                    if ui.button_with_size("RIGHT", [150.0, 150.0]) {
+                        if !se.right_door_shut {
+                            if se.can_open_right_door {
+                                se.right_door_shut = true;
+                                se.can_open_right_door = false;
+                                se.right_door_last_shut = SystemTime::now();
+                                if se.gang.tux.room() == Room::Room5 {
+                                    se.gang.tux.set_room(Room::Room1);
+                                    se.gang.tux.can_move = false;
+                                    se.gang.tux.set_entered_from_right(false);
+                                    se.gang.tux.goto_room_after_office();
+                                    se.open_right_door_back_up = true;
+                                    se.gang.tux.checked_camera = None;
+                                    se.gang.tux.moved_to_hallway_at = SystemTime::now();
+                                }
+                                se.audio.play_door_right().unwrap();
+                            } else {
+                                se.audio.play_jammed().unwrap();
+                            }
+                        }
+                    }
+                });
+        });
+        Ok(())
+    }
     pub fn wallpaper_draw(&mut self, d: &mut RaylibDrawHandle, thread: &RaylibThread) {
         let mut d = d.begin_texture_mode(&thread, &mut self.wallpaper_framebuffer);
 
@@ -534,57 +641,10 @@ impl<'a> State<'a> {
         d.draw_texture(&wallpaper, 0, 0, Color::WHITE);
 
         d.draw_rectangle(
-            center.x as i32 - 260,
-            center.y as i32 - 140,
-            520,
-            200,
-            Color::BLACK,
-        );
-        d.draw_rectangle(
-            center.x as i32 - 260,
-            center.y as i32 - 140,
-            510,
-            190,
-            Color::WHITE,
-        );
-
-        d.draw_rectangle(
-            center.x as i32 - 240,
-            center.y as i32 - 130,
-            500,
-            180,
-            Color::new(191, 191, 191, 255),
-        );
-
-        d.draw_rectangle(
-            center.x as i32 - 260,
-            center.y as i32 - 210,
-            520,
-            60,
-            Color::BLACK,
-        );
-
-        d.draw_rectangle_gradient_h(
-            center.x as i32 - 240,
-            center.y as i32 - 200,
-            490,
+            246,
+            250,
+            ((self.tainted / 100.0) * 152.0) as i32,
             50,
-            Color::RED,
-            Color::DARKRED,
-        );
-
-        d.draw_rectangle(
-            center.x as i32 - 100,
-            center.y as i32 - 25,
-            200,
-            50,
-            Color::BLACK,
-        );
-        d.draw_rectangle(
-            center.x as i32 - 95,
-            center.y as i32 - 19,
-            (self.tainted as i32 * 2) - 10,
-            40,
             Color::GREEN,
         );
     }

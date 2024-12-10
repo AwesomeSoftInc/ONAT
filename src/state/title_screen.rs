@@ -30,6 +30,8 @@ impl<'a> State<'a> {
         my: i32,
         tex: Texture2D,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let alpha = self.title_alpha() as u8;
+
         self.audio.play_title(self.has_won)?;
         let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
 
@@ -59,14 +61,6 @@ impl<'a> State<'a> {
             }
             self.textures.misc.title1()
         };
-
-        let alpha = {
-            if self.going_to_office_from_title {
-                255.0 - (self.title_clicked.elapsed()?.as_millis() as f32 / (5000.0 / 255.0))
-            } else {
-                255.0
-            }
-        } as u8;
 
         d.draw_texture_pro(
             tux_texture_title,
@@ -110,6 +104,8 @@ impl<'a> State<'a> {
         let mut goto_title = AtomicBool::new(false);
         let mut goto_credits = AtomicBool::new(false);
 
+        let alpha = self.title_alpha() / 255.0;
+
         d.start_imgui(|ui| {
             ui.window("Menu")
                 .position(
@@ -123,15 +119,17 @@ impl<'a> State<'a> {
                 .movable(false)
                 .resizable(false)
                 .title_bar(false)
+                .bg_alpha(alpha)
                 .build(|| {
                     ui.set_window_font_scale(config().ui_scale());
                     let styles = vec![
-                        ui.push_style_color(StyleColor::Button, [0.25, 0.25, 0.25, 1.0]),
-                        ui.push_style_color(StyleColor::ButtonHovered, [0.15, 0.15, 0.15, 1.0]),
-                        ui.push_style_color(StyleColor::ButtonActive, [0.05, 0.05, 0.05, 1.0]),
+                        ui.push_style_color(StyleColor::Button, [0.25, 0.25, 0.25, alpha]),
+                        ui.push_style_color(StyleColor::ButtonHovered, [0.15, 0.15, 0.15, alpha]),
+                        ui.push_style_color(StyleColor::ButtonActive, [0.05, 0.05, 0.05, alpha]),
                         ui.push_style_color(StyleColor::Separator, [0.0, 0.0, 0.0, 0.0]),
+                        ui.push_style_color(StyleColor::Text, [1.0, 1.0, 1.0, alpha]),
                     ];
-
+                    let bsize = ui.push_style_var(StyleVar::FrameBorderSize(0.0));
                     if ui.button_with_size("Start Game", [Self::title_w() - 15.0, 100.0]) {
                         goto_title.store(true, Ordering::Relaxed);
                     };
@@ -144,6 +142,7 @@ impl<'a> State<'a> {
                     for style in styles {
                         style.pop();
                     }
+                    bsize.pop();
                 });
         });
 
@@ -168,5 +167,13 @@ impl<'a> State<'a> {
         }
 
         Ok(())
+    }
+
+    pub fn title_alpha(&self) -> f32 {
+        if self.going_to_office_from_title {
+            255.0 - (self.title_clicked.elapsed().unwrap().as_millis() as f32 / (5000.0 / 255.0))
+        } else {
+            255.0
+        }
     }
 }

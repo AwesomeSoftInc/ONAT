@@ -7,35 +7,6 @@ use crate::config;
 use super::State;
 
 impl<'a> State<'a> {
-    pub fn general_ui_draw(
-        &mut self,
-        d: &mut RaylibDrawHandle,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let s = Mutex::new(self);
-        d.start_imgui(|ui| {
-            let se = s.lock();
-            ui.window("ui")
-                .resizable(false)
-                .movable(false)
-                .title_bar(false)
-                .bg_alpha(0.0)
-                .position([config().real_margin(), 0.0], ::imgui::Condition::Always)
-                .size(
-                    [config().real_width() as f32, config().real_height() as f32],
-                    ::imgui::Condition::Always,
-                )
-                .build(|| {
-                    ui.set_window_font_scale(config().ui_scale());
-
-                    se.draw_battery(ui.get_window_draw_list()).unwrap();
-                    se.draw_arrow(ui.get_window_draw_list()).unwrap();
-                    se.draw_time(ui.get_window_draw_list()).unwrap();
-                });
-        });
-
-        Ok(())
-    }
-
     pub fn draw_battery(
         &self,
         draw_list: DrawListMut<'_>,
@@ -43,7 +14,7 @@ impl<'a> State<'a> {
         // Battery size
         let bat_width = 70 * config().ui_scale() as i32;
         let bat_height = Self::ui_bottom_height();
-        let bat_start = config().real_margin() + 5.0;
+        let bat_start = config().real_margin() + config().width() as f32 / 32.0;
         let bat_end = bat_start + bat_width as f32;
         let bat_y = config().real_height() as f32 - bat_height;
 

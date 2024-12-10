@@ -24,8 +24,15 @@ impl Config {
     pub fn new() -> Self {
         // Get the user's real screen dimensions.
         let (rl, _) = raylib::init().title("ONAT Screen Size checker").build();
-        let monitor_width = get_monitor_width(get_current_monitor_index());
-        let monitor_height = get_monitor_height(get_current_monitor_index());
+        let mut monitor_width = get_monitor_width(get_current_monitor_index());
+        let mut monitor_height = get_monitor_height(get_current_monitor_index());
+
+        if monitor_width <= 1024 {
+            monitor_width = 1024;
+        }
+        if monitor_height <= 768 {
+            monitor_height = 768;
+        }
 
         let default_ratio = monitor_width as f32 / monitor_height as f32;
         let desired_ratio = 4.0 / 3.0;
