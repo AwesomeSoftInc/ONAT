@@ -12,7 +12,7 @@ impl<'a> State<'a> {
         draw_list: DrawListMut<'_>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Battery size
-        let bat_width = 70 * config().ui_scale() as i32;
+        let bat_width = (70 * (config().ui_scale() as i32)).clamp(0, 255);
         let bat_height = Self::ui_bottom_height();
         let bat_start = config().real_margin() + config().width() as f32 / 32.0;
         let bat_end = bat_start + bat_width as f32;
@@ -38,7 +38,7 @@ impl<'a> State<'a> {
             draw_list
                 .add_line(
                     [x, bat_y + off_y],
-                    [x, config().real_height() as f32 - 50.0 - off_y],
+                    [x, bat_y + 75.0 - off_y],
                     ImColor32::from_rgb(255 - i as u8, i as u8, 0),
                 )
                 .build();
@@ -47,7 +47,7 @@ impl<'a> State<'a> {
         draw_list
             .add_rect(
                 [bat_start, bat_y],
-                [bat_end, config().real_height() as f32 - 50.0],
+                [bat_end, bat_y + 75.0],
                 ImColor32::WHITE,
             )
             .thickness(config().ui_scale() * 4.0)
@@ -80,7 +80,7 @@ impl<'a> State<'a> {
             .add_polyline(
                 vec![
                     [center - 50.0, bottom - (height * 0.25)],
-                    [center, bottom - (height * 0.75)],
+                    [center, bottom - (height * 0.60)],
                     [center + 50.0, bottom - (height * 0.25)],
                 ],
                 ImColor32::from_rgba(0, 0, 0, 128),
@@ -95,11 +95,11 @@ impl<'a> State<'a> {
         let time = self.time()?;
 
         let time = format!("{}:00AM", time);
-        let font_size = 8.0 * config().ui_scale();
+        let font_size = 16.0 * config().ui_scale();
         draw_list.add_text(
             [
                 (config().real_margin() + config().real_width() as f32)
-                    - self.font.measure_text(&time, font_size, 3.0).x
+                    - self.font.measure_text(&time, font_size * 2.0, 3.0).x
                     - 50.0,
                 50.0,
             ],
@@ -113,5 +113,52 @@ impl<'a> State<'a> {
     // helper function for getting the point that the ui should reach up to.
     pub fn ui_bottom_height() -> f32 {
         50.0 + 30.0 * config().ui_scale()
+    }
+
+    pub fn draw_rage(&self, draw_list: DrawListMut<'_>) -> Result<(), Box<dyn std::error::Error>> {
+        // Battery size
+        let bat_width = (70 * config().ui_scale() as i32).clamp(0, 255);
+        let bat_height = Self::ui_bottom_height();
+        let bat_start = config().real_margin() + config().width() as f32 / 32.0;
+        let bat_end = bat_start + bat_width as f32;
+        let bat_y = config().real_height() as f32 - (bat_height * 2.5);
+
+        // Inner bar size
+        let bar_width = (self.gang.wilber.rage() * (bat_width as f32 / 100.0)) as i32;
+        let bar_height = 100.0;
+
+        draw_list.add_text(
+            [bat_start, bat_y - (20.0 * config().ui_scale())],
+            ImColor32::WHITE,
+            "RAGE",
+        );
+
+        for i in 0..bar_width {
+            let x = bat_start + i as f32;
+            let mut off_y = (10.0 - i as f32).clamp(0.0, bar_height);
+            if i >= bat_width - 10 {
+                off_y += (i - (bat_width - 10)) as f32;
+            }
+
+            draw_list
+                .add_line(
+                    [x, bat_y + off_y],
+                    [x, bat_y + 75.0 - off_y],
+                    ImColor32::from_rgb(255 - i as u8, 0, 0),
+                )
+                .build();
+        }
+
+        draw_list
+            .add_rect(
+                [bat_start, bat_y],
+                [bat_end, bat_y + 75.0],
+                ImColor32::WHITE,
+            )
+            .thickness(config().ui_scale() * 4.0)
+            .rounding(config().ui_scale() * 4.50)
+            .build();
+
+        Ok(())
     }
 }

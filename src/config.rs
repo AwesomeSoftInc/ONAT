@@ -62,7 +62,7 @@ impl Config {
         Self {
             emulated_dimensions,
             real_dimensions,
-            ui_scale: (monitor_width as f32 / 1024.0).ceil(),
+            ui_scale: (monitor_width as f32 / 1024.0).ceil() + 2.0,
         }
     }
 

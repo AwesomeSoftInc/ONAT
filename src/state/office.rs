@@ -533,12 +533,14 @@ impl<'a> State<'a> {
         mx: i32,
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let ui_scale = config().ui_scale() - 2.0;
+
         let ok = (config().real_width() as f32 / 1024.0).ceil();
-        let mut fuck = config().ui_scale() as i32;
+        let mut fuck = ui_scale as i32;
         if (fuck & 1) == 0 {
             fuck -= 1;
         }
-        let what = config().ui_scale() + (0.90 * fuck as f32);
+        let what = ui_scale + (0.90 * fuck as f32);
         let offx = &self.bg_offset_x * (what);
         let s = Mutex::new(self);
 
@@ -565,10 +567,7 @@ impl<'a> State<'a> {
             let office_part1 = s.lock().textures.misc.office_part1().clone();
 
             ui.window("door_buttons")
-                .position(
-                    [-(offx / config().ui_scale()), 0.0],
-                    ::imgui::Condition::Always,
-                )
+                .position([-(offx / ui_scale), 0.0], ::imgui::Condition::Always)
                 .size(
                     [
                         office_part1.width as f32 * what,
@@ -581,7 +580,7 @@ impl<'a> State<'a> {
                 .build(|| {
                     let mut se = s.lock();
 
-                    ui.set_window_font_scale(config().ui_scale());
+                    ui.set_window_font_scale(ui_scale);
 
                     ui.set_cursor_pos([400.0 * ok, 325.0 * ok]);
                     if ui.button_with_size("LEFT", [150.0, 150.0]) {

@@ -190,35 +190,7 @@ impl<'a> State<'a> {
                 self.gang.gogopher.duct_timer = 0;
             }
         }
-        if self.sel_camera == Room::Room6 && self.gang.wilber.active() {
-            let battery_bar_height = config().height() as f32 / 13.5;
-            let battery_bar_y = config().height() as f32 - (config().height() as f32 / 5.0);
-            let rage = self.gang.wilber.rage();
-            let gimp_width = (165.0 * (rage / 100.0)) as i32 - 4;
 
-            d.draw_rectangle_gradient_h(
-                0.0 as i32 + 20,
-                battery_bar_y as i32 + 2,
-                gimp_width,
-                (config().height() as f32 / 15.0) as i32,
-                Color::BLACK,
-                Color::new(255, 23, 62, 255),
-            );
-            let rage_bar = &*self.textures.misc.rage_bar();
-            d.draw_texture_pro(
-                &rage_bar,
-                texture_rect!(rage_bar),
-                Rectangle::new(
-                    0.0 + 14.0,
-                    battery_bar_y,
-                    config().width() as f32 / 7.5,
-                    battery_bar_height,
-                ),
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::WHITE,
-            );
-        }
         let millis = self.camera_last_changed.elapsed()?.as_millis();
 
         if millis <= 50 {
@@ -356,6 +328,12 @@ impl<'a> State<'a> {
                     se.draw_battery(ui.get_window_draw_list()).unwrap();
                     se.draw_arrow(ui.get_window_draw_list()).unwrap();
                     se.draw_time(ui.get_window_draw_list()).unwrap();
+                    if se.sel_camera == Room::Room6 && se.gang.wilber.active() {
+                        se.draw_rage(ui.get_window_draw_list()).unwrap();
+                    }
+                    if se.sel_camera == Room::Room4 && se.gang.gogopher.active() {
+                        // se.draw_duct_heater(ui.get_window_draw_list()).unwrap();
+                    }
                 });
         });
 
