@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use super::{Screen, State};
 use crate::config::config;
 use crate::{enums::Room, monster::Monster, state::CAMERA_TIME, texture_rect};
+use crate::{style_pop, style_push};
 
 use ::imgui::{Condition, StyleColor};
 use parking_lot::Mutex;
@@ -163,33 +164,6 @@ impl<'a> State<'a> {
                 Color::WHITE,
             );
         }
-        if self.sel_camera == Room::Room4 {
-            d.draw_rectangle(
-                self.duct_button.x as i32 + 1,
-                self.duct_button.y as i32,
-                self.duct_button.width as i32,
-                self.duct_button.height as i32,
-                Color::GRAY,
-            );
-            d.draw_rectangle_lines_ex(self.duct_button, 5.0, Color::BLACK);
-            d.draw_text_ex(
-                &self.font,
-                "HEAT UP",
-                Vector2::new(self.duct_button.x + 32.0, self.duct_button.y + 32.0),
-                48.0,
-                6.0,
-                Color::BLACK,
-            );
-            if d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT)
-                && (mx as f32 >= (self.duct_button.x)
-                    && mx as f32 <= (self.duct_button.x) + self.duct_button.width
-                    && my as f32 >= self.duct_button.y
-                    && my as f32 <= self.duct_button.y + self.duct_button.height)
-            {
-                self.gang.gogopher.duct_heat_timer = 250;
-                self.gang.gogopher.duct_timer = 0;
-            }
-        }
 
         let millis = self.camera_last_changed.elapsed()?.as_millis();
 
@@ -270,6 +244,7 @@ impl<'a> State<'a> {
         let mut goto_cam4 = AtomicBool::new(false);
         let mut goto_cam5 = AtomicBool::new(false);
         let mut goto_cam6 = AtomicBool::new(false);
+        let mut duct_heatup = AtomicBool::new(false);
 
         let s = Mutex::new(&self);
 
@@ -292,12 +267,7 @@ impl<'a> State<'a> {
                         ("Wilbur's Room", &goto_cam6),
                     ];
                     ui.set_window_font_scale(config().ui_scale());
-                    let styles = vec![
-                        ui.push_style_color(StyleColor::Button, [0.25, 0.25, 0.25, 0.25]),
-                        ui.push_style_color(StyleColor::ButtonHovered, [0.15, 0.15, 0.15, 0.25]),
-                        ui.push_style_color(StyleColor::ButtonActive, [0.05, 0.05, 0.05, 0.25]),
-                        ui.push_style_color(StyleColor::Separator, [0.0, 0.0, 0.0, 0.0]),
-                    ];
+                    let styles = style_push!(ui);
 
                     for (title, value) in room_buttons {
                         if ui.button_with_size(title, [btn_width, 100.0]) {
@@ -305,10 +275,7 @@ impl<'a> State<'a> {
                             ui.separator();
                         };
                     }
-
-                    for style in styles {
-                        style.pop();
-                    }
+                    style_pop!(styles);
                 });
 
             // We need to draw the ui here as well because we're another imgui element and can't have two frames at once.
@@ -332,7 +299,19 @@ impl<'a> State<'a> {
                         se.draw_rage(ui.get_window_draw_list()).unwrap();
                     }
                     if se.sel_camera == Room::Room4 && se.gang.gogopher.active() {
-                        // se.draw_duct_heater(ui.get_window_draw_list()).unwrap();
+                        let bat_height = Self::bat_height();
+                        ui.set_cursor_pos([
+                            Self::bat_start(),
+                            config().real_height() as f32 - (bat_height * 3.0),
+                        ]);
+                        let styles = style_push!(ui);
+                        if ui.button_with_size(
+                            "HEAT UP",
+                            [Self::bat_width() as f32, bat_height as f32 / 2.0],
+                        ) {
+                            duct_heatup.store(true, Ordering::Relaxed);
+                        }
+                        style_pop!(styles);
                     }
                 });
         });
@@ -355,7 +334,10 @@ impl<'a> State<'a> {
         if *goto_cam6.get_mut() {
             self.sel_camera = Room::Room6;
         }
-
+        if *duct_heatup.get_mut() {
+            self.gang.gogopher.duct_heat_timer = 250;
+            self.gang.gogopher.duct_timer = 0;
+        }
         Ok(())
     }
 }

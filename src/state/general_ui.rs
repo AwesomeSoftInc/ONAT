@@ -12,9 +12,9 @@ impl<'a> State<'a> {
         draw_list: DrawListMut<'_>,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // Battery size
-        let bat_width = (70 * (config().ui_scale() as i32)).clamp(0, 255);
-        let bat_height = Self::ui_bottom_height();
-        let bat_start = config().real_margin() + config().width() as f32 / 32.0;
+        let bat_width = Self::bat_width();
+        let bat_height = Self::bat_height();
+        let bat_start = Self::bat_start();
         let bat_end = bat_start + bat_width as f32;
         let bat_y = config().real_height() as f32 - bat_height;
 
@@ -62,7 +62,7 @@ impl<'a> State<'a> {
         let width = config().real_width() as f32 / 4.0;
         let bottom = config().real_height() as f32;
 
-        let height = Self::ui_bottom_height();
+        let height = Self::bat_height();
 
         draw_list
             .add_rect(
@@ -111,15 +111,15 @@ impl<'a> State<'a> {
     }
 
     // helper function for getting the point that the ui should reach up to.
-    pub fn ui_bottom_height() -> f32 {
+    pub fn bat_height() -> f32 {
         50.0 + 30.0 * config().ui_scale()
     }
 
     pub fn draw_rage(&self, draw_list: DrawListMut<'_>) -> Result<(), Box<dyn std::error::Error>> {
         // Battery size
-        let bat_width = (70 * config().ui_scale() as i32).clamp(0, 255);
-        let bat_height = Self::ui_bottom_height();
-        let bat_start = config().real_margin() + config().width() as f32 / 32.0;
+        let bat_width = Self::bat_width();
+        let bat_height = Self::bat_height();
+        let bat_start = Self::bat_start();
         let bat_end = bat_start + bat_width as f32;
         let bat_y = config().real_height() as f32 - (bat_height * 2.5);
 
@@ -160,5 +160,13 @@ impl<'a> State<'a> {
             .build();
 
         Ok(())
+    }
+
+    pub fn bat_width() -> i32 {
+        (70 * config().ui_scale() as i32).clamp(0, 255)
+    }
+
+    pub fn bat_start() -> f32 {
+        config().real_margin() + config().width() as f32 / 32.0
     }
 }

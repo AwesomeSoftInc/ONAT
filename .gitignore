@@ -1,7 +1,7 @@
 /target
 *.zip
-*.exe
-what
+/*.exe
+/what
 /raylib
 /include
 /lib

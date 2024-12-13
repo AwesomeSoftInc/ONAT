@@ -12,14 +12,6 @@ use rand::{thread_rng, Rng};
 
 use crate::{audio::Audio, config::config, enums::Room, texture_rect, textures::Textures};
 
-pub const PENNY_START: bool = true;
-pub const BEASTIE_START: bool = true;
-pub const WILBER_START: bool = false;
-pub const GO_GOPHER_START: bool = false;
-pub const TUX_START: bool = false;
-pub const NOLOK_START: bool = false;
-pub const GOLDEN_TUX_START: bool = false;
-
 pub const MONSTER_TIME_OFFICE_WAIT_THING: u64 = 5;
 
 pub const DEFAULT_AI_LEVEL: u8 = 2;
@@ -252,7 +244,7 @@ impl Penny {
             room: Room::Room2,
             next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
-            active: PENNY_START,
+            active: true,
             entered_from_left: false,
             entered_from_right: false,
             door_shut: false,
@@ -335,7 +327,7 @@ impl Beastie {
             room: Room::Room2,
             next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
-            active: BEASTIE_START,
+            active: true,
             entered_from_left: false,
             entered_from_right: false,
             door_shut: false,
@@ -420,7 +412,7 @@ impl Wilber {
             room: Room::Room6,
             next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
-            active: WILBER_START,
+            active: false,
             entered_from_left: false,
             entered_from_right: false,
             rage: 0.0,
@@ -495,7 +487,7 @@ impl GoGopher {
 
             next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
-            active: GO_GOPHER_START,
+            active: false,
             entered_from_left: false,
             entered_from_right: false,
             duct_timer: 0,
@@ -619,7 +611,7 @@ impl Tux {
 
             next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
-            active: TUX_START,
+            active: false,
             entered_from_left: false,
             entered_from_right: false,
             progress_to_hallway: 1,
@@ -787,7 +779,7 @@ impl Nolok {
 
             next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
-            active: NOLOK_START,
+            active: false,
             entered_from_left: false,
             entered_from_right: false,
             progress_to_hallway: 1,
@@ -856,7 +848,7 @@ impl GoldenTux {
 
             next_room: Room::None,
             ai_level: DEFAULT_AI_LEVEL,
-            active: GOLDEN_TUX_START,
+            active: false,
             entered_from_left: false,
             entered_from_right: false,
             progress_to_hallway: 1,
@@ -1046,21 +1038,3 @@ impl Gang {
         // self.golden_tux.ai_level += 3;
     }
 }
-
-/*
-
-Penny: Penny is the first monster to start moving. She starts in Cam 2, then progresses to Cam 3, then the office. After she leaves cam 3, the player has a brief period to shut the door before she peeks in and starts Tainting their kernel.
-
-Beastie: Beastie also starts at 12 AM, shortly after Penny. He is nearly identical, merely going to the right side instead.
-
-Wilber: Around 1 AM, a hangman poster will fade into the player’s office. From now on, they’ll have to frequently check Cam 6 to check on Wilber. Wilber has a Rage meter that continuously fills whenever he is not being viewed and drains whenever Cam 6 is being watched. Whenever the meter fills, the hangman poster will progress 1 phase. If the hangman game is completed, Wilber will kill the player.
-
-GoGopher: The Go Gopher becomes a threat at 2 AM. He’ll occasionally appear in Cam 4. The player must heat up the duct or else he’ll pop out and fill the Tainted bar by 50%.
-
-Tux: The big bad himself, Tux, awakens at 3 AM. He starts in Tux’s Domain (Cam 1) and will be seen programming something. Eventually, he’ll leave his chair and get closer and closer to the camera while getting angrier. Then, he’ll leave the room and either slide down Cam 3 or 5. The player must shut the corresponding door or else Tux will slide into their room and instantly kill them, regardless of how Tainted they were.
-
-Nolok: Starting at 4 AM, the player might start seeing Nolok’s glowing pupils in either of their doorways. They have a few seconds to shut the corresponding door before he peeks in and spikes their Tainted bar faster than any other character.
-
-Golden Tux: Golden Tux is an easter egg character that has a chance of appearing in the player’s office when they drop their monitor around 5 AM. If he appears in their room, the player must quickly lift the camera to avoid an instant Game Over.
-
-*/

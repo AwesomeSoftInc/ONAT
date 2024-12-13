@@ -70,50 +70,50 @@ impl Audio {
         sdl2::mixer::open_audio(44000, AUDIO_F32, 2, 256)?;
         sdl2::mixer::allocate_channels(8);
 
-        let door = sdl2::mixer::Chunk::from_file("./audio/door.mp3")?;
-        let fuck_you_tux = sdl2::mixer::Chunk::from_file("./audio/fuck_you_tux.mp3")?;
-        let thud = sdl2::mixer::Chunk::from_file("./audio/thud.mp3")?;
-        let noise = sdl2::mixer::Chunk::from_file("./audio/noise.mp3")?;
-        let wilber_appear = sdl2::mixer::Chunk::from_file("./audio/wilber_appear.mp3")?;
-        let tux_appear = sdl2::mixer::Chunk::from_file("./audio/tux_appears.mp3")?;
-        let gopher_appear = sdl2::mixer::Chunk::from_file("./audio/gopher.mp3")?;
+        let door = sdl2::mixer::Chunk::from_file("./audio/door.ogg")?;
+        let fuck_you_tux = sdl2::mixer::Chunk::from_file("./audio/fuck_you_tux.ogg")?;
+        let thud = sdl2::mixer::Chunk::from_file("./audio/thud.ogg")?;
+        let noise = sdl2::mixer::Chunk::from_file("./audio/noise.ogg")?;
+        let wilber_appear = sdl2::mixer::Chunk::from_file("./audio/wilber_appear.ogg")?;
+        let tux_appear = sdl2::mixer::Chunk::from_file("./audio/tux_appears.ogg")?;
+        let gopher_appear = sdl2::mixer::Chunk::from_file("./audio/gopher.ogg")?;
         let open_source_closed_casket =
-            sdl2::mixer::Chunk::from_file("./audio/open_source_closed_casket.mp3")?;
-        let plush = sdl2::mixer::Chunk::from_file("./audio/plush.mp3")?;
+            sdl2::mixer::Chunk::from_file("./audio/open_source_closed_casket.ogg")?;
+        let plush = sdl2::mixer::Chunk::from_file("./audio/plush.ogg")?;
 
-        let regular_jumpscare = sdl2::mixer::Chunk::from_file("./audio/regular_jumpscare.mp3")?;
-        let tux_jumpscare = sdl2::mixer::Chunk::from_file("./audio/tux_jumpscare.mp3")?;
-        let revenant_party = sdl2::mixer::Chunk::from_file("./audio/revenant_party.mp3")?;
-        let brownian_noise = sdl2::mixer::Chunk::from_file("./audio/brownian_noise.mp3")?;
+        let regular_jumpscare = sdl2::mixer::Chunk::from_file("./audio/regular_jumpscare.ogg")?;
+        let tux_jumpscare = sdl2::mixer::Chunk::from_file("./audio/tux_jumpscare.ogg")?;
+        let revenant_party = sdl2::mixer::Chunk::from_file("./audio/revenant_party.ogg")?;
+        let brownian_noise = sdl2::mixer::Chunk::from_file("./audio/brownian_noise.ogg")?;
         let ambience_ominous = vec![
-            sdl2::mixer::Chunk::from_file("./audio/ominous_ambient_1.mp3")?,
-            sdl2::mixer::Chunk::from_file("./audio/ominous_ambient_3.mp3")?,
+            sdl2::mixer::Chunk::from_file("./audio/ominous_ambient_1.ogg")?,
+            sdl2::mixer::Chunk::from_file("./audio/ominous_ambient_3.ogg")?,
         ];
-        let ambience_unused = sdl2::mixer::Chunk::from_file("./audio/ominous_ambient_2.mp3")?;
+        let ambience_unused = sdl2::mixer::Chunk::from_file("./audio/ominous_ambient_2.ogg")?;
 
         let ambience_sinister = vec![
-            sdl2::mixer::Chunk::from_file("./audio/sinister_ambient_1.mp3")?,
-            sdl2::mixer::Chunk::from_file("./audio/sinister_ambient_2.mp3")?,
-            sdl2::mixer::Chunk::from_file("./audio/sinister_ambient_3.mp3")?,
+            sdl2::mixer::Chunk::from_file("./audio/sinister_ambient_1.ogg")?,
+            sdl2::mixer::Chunk::from_file("./audio/sinister_ambient_2.ogg")?,
+            sdl2::mixer::Chunk::from_file("./audio/sinister_ambient_3.ogg")?,
         ];
 
-        let bells = sdl2::mixer::Chunk::from_file("./audio/bells.mp3")?;
+        let bells = sdl2::mixer::Chunk::from_file("./audio/bells.ogg")?;
 
-        let stinger = sdl2::mixer::Chunk::from_file("./audio/stinger.mp3")?;
-        let jammed = sdl2::mixer::Chunk::from_file("./audio/jammed.mp3")?;
-        let camera_flip = sdl2::mixer::Chunk::from_file("./audio/camera_flip.mp3")?;
+        let stinger = sdl2::mixer::Chunk::from_file("./audio/stinger.ogg")?;
+        let jammed = sdl2::mixer::Chunk::from_file("./audio/jammed.ogg")?;
+        let camera_flip = sdl2::mixer::Chunk::from_file("./audio/camera_flip.ogg")?;
 
         let wilburs = vec![
-            sdl2::mixer::Chunk::from_file("./audio/wilbur1.mp3")?,
-            sdl2::mixer::Chunk::from_file("./audio/wilbur3.mp3")?,
-            sdl2::mixer::Chunk::from_file("./audio/wilbur2.mp3")?,
+            sdl2::mixer::Chunk::from_file("./audio/wilbur1.ogg")?,
+            sdl2::mixer::Chunk::from_file("./audio/wilbur3.ogg")?,
+            sdl2::mixer::Chunk::from_file("./audio/wilbur2.ogg")?,
         ];
 
         let mut tainted_notes = Vec::new();
         let mut tainted_channels = Vec::new();
         for i in 1..37 {
             tainted_notes.push(sdl2::mixer::Chunk::from_file(format!(
-                "./audio/tainted/note{}.mp3",
+                "./audio/tainted/note{}.ogg",
                 i
             ))?);
             tainted_channels.push(None);

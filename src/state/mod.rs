@@ -495,7 +495,7 @@ impl<'a> State<'a> {
             return Ok(());
         }
 
-        if my >= config().real_height() - Self::ui_bottom_height() as i32
+        if my >= config().real_height() - Self::bat_height() as i32
             && rl.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT)
             && !self.getting_jumpscared
         {

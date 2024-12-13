@@ -19,12 +19,6 @@ mod state;
 mod textures;
 
 use config::config;
-pub struct ScreenInfo {
-    width: i32,
-    height: i32,
-    ratio: f32,
-    margin: f32,
-}
 
 unsafe extern "C" fn handler(signum: libc::c_int) {
     let bt = std::backtrace::Backtrace::force_capture();
@@ -57,7 +51,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         ".png",
         &include_bytes!("../assets/misc/icon.png").to_vec(),
     )?);
+    println!("loading audio...");
     let audio = Box::leak(Box::new(Audio::new()?));
+    println!("loading textures...");
     let textures = Box::leak(Box::new(Textures::new()?));
 
     let mut state = State::new(&mut rl, &thread, audio, textures)?;

@@ -3,7 +3,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::{config::config, texture_rect};
+use crate::{config::config, style_pop, style_push, texture_rect};
 
 use super::{Screen, State};
 use ::imgui::StyleColor;
@@ -122,14 +122,11 @@ impl<'a> State<'a> {
                 .bg_alpha(alpha)
                 .build(|| {
                     ui.set_window_font_scale(config().ui_scale());
-                    let styles = vec![
-                        ui.push_style_color(StyleColor::Button, [0.25, 0.25, 0.25, alpha]),
-                        ui.push_style_color(StyleColor::ButtonHovered, [0.15, 0.15, 0.15, alpha]),
-                        ui.push_style_color(StyleColor::ButtonActive, [0.05, 0.05, 0.05, alpha]),
-                        ui.push_style_color(StyleColor::Separator, [0.0, 0.0, 0.0, 0.0]),
-                        ui.push_style_color(StyleColor::Text, [1.0, 1.0, 1.0, alpha]),
-                    ];
+
+                    let styles = style_push!(ui);
+                    let alpha_style = ui.push_style_color(StyleColor::Text, [1.0, 1.0, 1.0, alpha]);
                     let bsize = ui.push_style_var(StyleVar::FrameBorderSize(0.0));
+
                     if ui.button_with_size("Start Game", [Self::title_w() - 15.0, 100.0]) {
                         goto_title.store(true, Ordering::Relaxed);
                     };
@@ -139,10 +136,10 @@ impl<'a> State<'a> {
                     if ui.button_with_size("Credits", [Self::title_w() - 15.0, 100.0]) {
                         goto_credits.store(true, Ordering::Relaxed);
                     };
-                    for style in styles {
-                        style.pop();
-                    }
+
+                    style_pop!(styles);
                     bsize.pop();
+                    alpha_style.pop();
                 });
         });
 
