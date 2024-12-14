@@ -4,13 +4,14 @@ mod debug;
 mod game_over;
 mod general_ui;
 mod office;
+mod settings;
 mod title_screen;
 mod you_win;
 
 use ::core::f32;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use rand::{rngs::ThreadRng, thread_rng, Rng};
+use rand::{thread_rng, Rng};
 use raylib::prelude::*;
 
 pub const CAMERA_TIME: f32 = 0.1;
@@ -33,6 +34,7 @@ pub enum Screen {
     Camera,
     GameOver,
     YouWin,
+    Settings,
 }
 
 pub struct State<'a> {
@@ -40,17 +42,12 @@ pub struct State<'a> {
     pub screen: Screen,
     pub bg_offset_x: f32,
     pub laptop_offset_y: f64,
-    pub camera_clickables: Vec<Rectangle>,
-    pub plush_clickable: Rectangle,
-    pub door_buttons: Vec<Rectangle>,
-    pub duct_button: Rectangle,
     pub sel_camera: Room,
     pub timer: SystemTime,
 
     pub ingame_time: SystemTime,
     pub gang: Gang,
     pub tainted: f32,
-    pub tainted_cache: f32,
 
     pub camera_timer: f32,
     pub camera_booting: bool,
@@ -75,9 +72,6 @@ pub struct State<'a> {
     pub left_door_last_shut: SystemTime,
     pub right_door_last_shut: SystemTime,
 
-    pub duct_heat_timer: f64,
-
-    pub rand: ThreadRng,
     pub skinman_chance: u32,
     pub skinman_appeared: bool,
 
@@ -85,7 +79,6 @@ pub struct State<'a> {
     pub going_to_camera: bool,
     pub going_to_office_from_title: bool,
     pub title_clicked: SystemTime,
-    pub going_to_youwin: bool,
 
     pub wilber_snd_played: bool,
     pub tux_snd_played: bool,
@@ -116,6 +109,9 @@ pub struct State<'a> {
     pub reset_and_goto_title: bool,
 
     pub test_value: f32,
+
+    pub plush_clickable: Rectangle,
+    pub door_buttons: Vec<Rectangle>,
 }
 
 impl<'a> State<'a> {
@@ -129,74 +125,6 @@ impl<'a> State<'a> {
         let bg_offset_x = config().width() as f32 / 2.0;
         let laptop_offset_y = config().height() as f64;
 
-        let modifier = config().real_ratio().floor() * 0.1;
-        let camera_clickables = vec![
-            Rectangle::new(
-                config().real_margin() + config().real_width() as f32 * (0.685 + modifier),
-                config().real_height() as f32 * 0.44,
-                config().real_width() as f32 * 0.05,
-                config().real_height() as f32 * 0.04,
-            ), // Room1
-            Rectangle::new(
-                config().real_margin() + config().real_width() as f32 * (0.685 + modifier),
-                config().real_height() as f32 * 0.65,
-                config().real_width() as f32 * 0.05,
-                config().real_height() as f32 * 0.04,
-            ), // Room2
-            Rectangle::new(
-                config().real_margin() + config().real_width() as f32 * (0.55 + modifier),
-                config().real_height() as f32 * 0.865,
-                config().real_width() as f32 * 0.05,
-                config().real_height() as f32 * 0.04,
-            ), // Room3
-            Rectangle::new(
-                config().real_margin() + config().real_width() as f32 * (0.82 + modifier),
-                config().real_height() as f32 * 0.865,
-                config().real_width() as f32 * 0.05,
-                config().real_height() as f32 * 0.04,
-            ), // Room4
-            Rectangle::new(
-                config().real_margin() + config().real_width() as f32 * (0.685 + modifier),
-                config().real_height() as f32 * 0.79,
-                config().real_width() as f32 * 0.05,
-                config().real_height() as f32 * 0.04,
-            ), // Room5
-            Rectangle::new(
-                config().real_margin() + config().real_width() as f32 * (0.55 + modifier),
-                config().real_height() as f32 * 0.44,
-                config().real_width() as f32 * 0.05,
-                config().real_height() as f32 * 0.04,
-            ), // Room6
-        ];
-
-        let plush_clickable = Rectangle::new(
-            ((config().real_width() / 3) as f32 * 1.6),
-            (config().real_height() / 4) as f32 + (config().real_height() / 2) as f32,
-            200.0,
-            200.0,
-        );
-        let door_buttons = vec![
-            Rectangle::new(
-                config().real_margin() + config().real_width() as f32 * 0.36,
-                config().real_height() as f32 * 0.42,
-                config().real_width() as f32 * 0.10,
-                config().real_width() as f32 * 0.10,
-            ),
-            Rectangle::new(
-                config().real_margin() + config().real_width() as f32 * 1.20,
-                config().real_height() as f32 * 0.42,
-                config().real_width() as f32 * 0.10,
-                config().real_width() as f32 * 0.10,
-            ),
-        ];
-
-        let duct_button = Rectangle::new(
-            config().real_margin() + config().real_width() as f32 * 0.01,
-            config().real_height() as f32 * 0.80,
-            config().real_width() as f32 * 0.20,
-            config().real_height() as f32 * 0.10,
-        );
-
         let sel_camera = Room::Room1;
         let timer = SystemTime::now();
 
@@ -206,7 +134,6 @@ impl<'a> State<'a> {
         let gang = Gang::new();
 
         let tainted = 0.0;
-        let tainted_cache = 0.0;
 
         let camera_timer = 100.0;
         let camera_booting = false;
@@ -224,17 +151,12 @@ impl<'a> State<'a> {
         let left_door_last_shut: SystemTime = UNIX_EPOCH;
         let right_door_last_shut: SystemTime = UNIX_EPOCH;
 
-        let duct_heat_timer = 0.0;
-
-        let rand = thread_rng();
         let skinman_chance = 1000;
         let skinman_appeared = false;
 
         let scroll_amount = config().width().clone() as f32 * 0.01;
 
         let var_name = config().height() as f64 / 4.0;
-
-        // let (wilber, tux, penny, beastie, gopher, golden_tux) = load_jumpscares(textures);
 
         let framebuffer =
             rl.load_render_texture(&thread, config().width() as u32, config().height() as u32)?;
@@ -256,6 +178,13 @@ impl<'a> State<'a> {
             zoom: 1.0,
         };
 
+        let plush_clickable = Rectangle::new(747.0, 782.0, 250.0, 250.0);
+
+        let door_buttons = vec![
+            Rectangle::new(547.0, 482.0, 100.0, 100.0),
+            Rectangle::new(1637.0, 482.0, 100.0, 100.0),
+        ];
+
         let font = unsafe { Font::from_raw(rl.get_font_default().to_raw()) };
         let state = Self {
             audio,
@@ -263,16 +192,12 @@ impl<'a> State<'a> {
             screen,
             bg_offset_x,
             laptop_offset_y,
-            camera_clickables,
-            plush_clickable,
-            door_buttons,
-            duct_button,
+
             sel_camera,
             timer,
             ingame_time,
             gang,
             tainted,
-            tainted_cache,
             camera_timer,
             camera_booting,
             camera_booting_timer,
@@ -287,16 +212,13 @@ impl<'a> State<'a> {
             right_door_bypass_cooldown: false,
             left_door_last_shut,
             right_door_last_shut,
-            duct_heat_timer,
             left_door_anim_timer: -(config().height() as f32 * 0.09),
             right_door_anim_timer: -(config().height() as f32 * 0.09),
-            rand,
             skinman_chance,
             skinman_appeared,
             going_to_camera: false,
             going_to_office: false,
             going_to_office_from_title: false,
-            going_to_youwin: false,
             title_clicked: SystemTime::now(),
             jumpscare_counter: 0,
             getting_jumpscared: false,
@@ -319,6 +241,8 @@ impl<'a> State<'a> {
             font: font,
             reset_and_goto_title: false,
             test_value: 0.90,
+            plush_clickable,
+            door_buttons,
         };
         Ok(state)
     }
@@ -330,7 +254,7 @@ impl<'a> State<'a> {
         mx: i32,
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        self.test_value -= (rl.get_mouse_wheel_move() / 100.0);
+        self.test_value -= rl.get_mouse_wheel_move() / 100.0;
         #[cfg(debug_assertions)]
         {
             if rl.is_key_released(KeyboardKey::KEY_ONE) {
@@ -529,7 +453,7 @@ impl<'a> State<'a> {
         rl: &mut RaylibHandle,
         thread: &RaylibThread,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let (img, tex) = match self.screen {
+        let (_img, tex) = match self.screen {
             Screen::Camera | Screen::GameOver => {
                 let img = Image::gen_image_white_noise(320, 240, 0.1);
                 let tex = rl.load_texture_from_image(&thread, &img)?;
@@ -555,21 +479,26 @@ impl<'a> State<'a> {
         let mut d = _d.begin_mode2D(self.camera);
         d.clear_background(Color::BLACK);
 
-        let mx = {
+        let width_mul = (d.get_render_width() as f32 / self.framebuffer.width() as f32);
+        let height_mul = (d.get_render_height() as f32 / self.framebuffer.height() as f32);
+
+        let mx = ({
             if d.get_touch_x() != 0 {
                 d.get_touch_x()
             } else {
                 d.get_mouse_x()
             }
-        };
+        } as f32
+            / width_mul) as i32;
 
-        let my = {
+        let my = ({
             if d.get_touch_y() != 0 {
                 d.get_touch_y()
             } else {
                 d.get_mouse_y()
             }
-        };
+        } as f32
+            / height_mul) as i32;
 
         match self.screen {
             Screen::TitleScreen => self.title_screen_draw(&mut d, &thread, mx, my, tex)?,
@@ -599,11 +528,6 @@ impl<'a> State<'a> {
                 }
             }
         }
-
-        /*
-        Screen::Office => self.office_draw(&mut d, mx, my)?,
-            Screen::CameraRebooting => self.camera_rebooting_draw(&mut d, mx, my)?,
-            Screen::Camera => self.camera_draw(&mut d, mx, my, tex)?, */
 
         let inoffice = self.gang.in_room(Room::Office);
 
@@ -735,6 +659,7 @@ impl<'a> State<'a> {
                 Screen::Office => {
                     self.office_ui_draw(&mut d, &thread, mx, my)?;
                 }
+                Screen::Settings => self.settings_draw(&mut d, &thread, mx, my)?,
             }
         }
 

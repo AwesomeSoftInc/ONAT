@@ -18,7 +18,7 @@ mod monster;
 mod state;
 mod textures;
 
-use config::config;
+use config::{config, config_mut};
 
 unsafe extern "C" fn handler(signum: libc::c_int) {
     let bt = std::backtrace::Backtrace::force_capture();
@@ -79,7 +79,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
 
         if rl.is_key_pressed(KeyboardKey::KEY_F11) && !fullscreened {
-            rl.toggle_fullscreen();
+            config_mut().toggle_fullscreen(&mut rl);
             fullscreened = true;
             if !rl.is_window_fullscreen() {
                 rl.set_window_position(remembered_x as i32, remembered_y as i32);
@@ -105,16 +105,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
 
             state.ingame_time += Duration::from_millis(36);
-
-            if state.going_to_office_from_title {
-                rl.set_mouse_position(Vector2::new(
-                    config().real_width_raw() as f32 / 2.0,
-                    config().real_height() as f32 / 2.0,
-                ));
-                rl.hide_cursor();
-            } else {
-                rl.show_cursor();
-            }
 
             let (mx, my) = (rl.get_mouse_x(), rl.get_mouse_y());
             state.step(&mut rl, &thread, mx, my)?;

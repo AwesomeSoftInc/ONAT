@@ -252,11 +252,11 @@ impl<'a> State<'a> {
             let se = s.lock();
 
             ui.window("Rooms")
-                .title_bar(false)
-                .position([config().real_margin() + 20.0, 20.0], Condition::Always)
+                .position(
+                    [config().real_margin() + 20.0, 20.0],
+                    Condition::FirstUseEver,
+                )
                 .size([0.0, 0.0], Condition::Always)
-                .resizable(false)
-                .movable(false)
                 .build(|| {
                     let room_buttons = vec![
                         ("Tux", &goto_cam1),
@@ -270,7 +270,7 @@ impl<'a> State<'a> {
                     let styles = style_push!(ui);
 
                     for (title, value) in room_buttons {
-                        if ui.button_with_size(title, [btn_width, 100.0]) {
+                        if ui.button(title) {
                             value.store(true, Ordering::Relaxed);
                             ui.separator();
                         };

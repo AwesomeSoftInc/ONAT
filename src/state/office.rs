@@ -12,6 +12,7 @@ use crate::{
 
 use num::Float;
 use num_traits::float::FloatCore;
+use num_traits::real::Real;
 use parking_lot::{Mutex, MutexGuard};
 use raylib::prelude::*;
 
@@ -28,14 +29,20 @@ impl<'a> State<'a> {
         let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
         d.clear_background(Color::BLACK);
 
-        let cx = (0.0 - self.bg_offset_x) as i32 + ((config().width() / 3) as f32 * 1.6) as i32;
-        let cy = (config().height() / 4) + (config().height() / 2);
-        if mx >= cx && mx <= cx + 200 && my >= cy && my <= cy + 200 {
-            d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
+        let mut hovering = false;
+
+        let button = self.plush_clickable;
+        if mx as f32 >= (button.x - self.bg_offset_x)
+            && mx as f32 <= (button.x - self.bg_offset_x) + button.width
+            && my as f32 >= button.y
+            && my as f32 <= button.y + button.height
+        {
+            hovering = true;
             if d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
                 self.audio.play_plush()?;
             }
         }
+
         #[cfg(not(feature = "no_camera_timer"))]
         if self.camera_timer <= 100.0 {
             self.camera_timer += CAMERA_TIME;
@@ -187,64 +194,6 @@ impl<'a> State<'a> {
             a!(door_light_right_on);
         } else {
             a!(door_light_right_off);
-        }
-
-        let mut i = 0;
-        let mut hovering = false;
-        // for button in &self.door_buttons {
-        //     if mx as f32 >= (button.x - self.bg_offset_x)
-        //         && mx as f32 <= (button.x - self.bg_offset_x) + button.width
-        //         && my as f32 >= button.y
-        //         && my as f32 <= button.y + button.height
-        //     {
-        //         hovering = true;
-        //         d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
-        //         if d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
-        //             if i == 0 && !self.left_door_shut {
-        //                 if self.can_open_left_door {
-        //                     self.left_door_shut = true;
-        //                     self.can_open_left_door = false;
-        //                     self.left_door_last_shut = SystemTime::now();
-        //                     if self.gang.tux.room() == Room::Room3 {
-        //                         self.gang.tux.set_room(Room::Room1);
-        //                         self.gang.tux.can_move = false;
-        //                         self.gang.tux.set_entered_from_left(false);
-        //                         self.gang.tux.goto_room_after_office();
-        //                         self.open_left_door_back_up = true;
-        //                         self.gang.tux.checked_camera = None;
-        //                         self.gang.tux.moved_to_hallway_at = SystemTime::now();
-        //                     }
-        //                     self.audio.play_door_left()?;
-        //                 } else {
-        //                     self.audio.play_jammed()?;
-        //                 }
-        //             } else if i == 1 && !self.right_door_shut {
-        //                 if self.can_open_right_door {
-        //                     self.right_door_shut = true;
-        //                     self.can_open_right_door = false;
-        //                     self.right_door_last_shut = SystemTime::now();
-        //                     if self.gang.tux.room() == Room::Room5 {
-        //                         self.gang.tux.set_room(Room::Room1);
-        //                         self.gang.tux.can_move = false;
-        //                         self.gang.tux.set_entered_from_right(false);
-        //                         self.gang.tux.goto_room_after_office();
-        //                         self.open_right_door_back_up = true;
-        //                         self.gang.tux.checked_camera = None;
-        //                         self.gang.tux.moved_to_hallway_at = SystemTime::now();
-        //                     }
-        //                     self.audio.play_door_right()?;
-        //                 } else {
-        //                     self.audio.play_jammed()?;
-        //                 }
-        //             }
-        //         }
-        //     }
-
-        //     i += 1;
-        // }
-
-        if !hovering {
-            d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_DEFAULT);
         }
 
         // LEFT DOOR
@@ -523,6 +472,66 @@ impl<'a> State<'a> {
                 }
             }
         }
+
+        let mut i = 0;
+
+        for button in &self.door_buttons {
+            if mx as f32 >= (button.x - self.bg_offset_x)
+                && mx as f32 <= (button.x - self.bg_offset_x) + button.width
+                && my as f32 >= button.y
+                && my as f32 <= button.y + button.height
+            {
+                hovering = true;
+
+                if d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
+                    if i == 0 && !self.left_door_shut {
+                        if self.can_open_left_door {
+                            self.left_door_shut = true;
+                            self.can_open_left_door = false;
+                            self.left_door_last_shut = SystemTime::now();
+                            if self.gang.tux.room() == Room::Room3 {
+                                self.gang.tux.set_room(Room::Room1);
+                                self.gang.tux.can_move = false;
+                                self.gang.tux.set_entered_from_left(false);
+                                self.gang.tux.goto_room_after_office();
+                                self.open_left_door_back_up = true;
+                                self.gang.tux.checked_camera = None;
+                                self.gang.tux.moved_to_hallway_at = SystemTime::now();
+                            }
+                            self.audio.play_door_left().unwrap();
+                        } else {
+                            self.audio.play_jammed().unwrap();
+                        }
+                    } else if i == 1 && !self.right_door_shut {
+                        if self.can_open_right_door {
+                            self.right_door_shut = true;
+                            self.can_open_right_door = false;
+                            self.right_door_last_shut = SystemTime::now();
+                            if self.gang.tux.room() == Room::Room5 {
+                                self.gang.tux.set_room(Room::Room1);
+                                self.gang.tux.can_move = false;
+                                self.gang.tux.set_entered_from_right(false);
+                                self.gang.tux.goto_room_after_office();
+                                self.open_right_door_back_up = true;
+                                self.gang.tux.checked_camera = None;
+                                self.gang.tux.moved_to_hallway_at = SystemTime::now();
+                            }
+                            self.audio.play_door_right().unwrap();
+                        } else {
+                            self.audio.play_jammed().unwrap();
+                        }
+                    }
+                }
+            }
+
+            i += 1;
+        }
+
+        if hovering {
+            d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
+        } else {
+            d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_DEFAULT);
+        }
         Ok(())
     }
 
@@ -533,7 +542,7 @@ impl<'a> State<'a> {
         mx: i32,
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let ui_scale = config().ui_scale() - 2.0;
+        let ui_scale = config().ui_scale();
 
         let ok = (config().real_width() as f32 / 1024.0).ceil();
         let mut fuck = ui_scale as i32;
@@ -565,68 +574,6 @@ impl<'a> State<'a> {
                     se.draw_time(ui.get_window_draw_list()).unwrap();
                 });
             let office_part1 = s.lock().textures.misc.office_part1().clone();
-
-            ui.window("door_buttons")
-                .position([-(offx / ui_scale), 0.0], ::imgui::Condition::Always)
-                .size(
-                    [
-                        office_part1.width as f32 * what,
-                        office_part1.height as f32 * what,
-                    ],
-                    ::imgui::Condition::Always,
-                )
-                .bg_alpha(0.0)
-                .title_bar(false)
-                .build(|| {
-                    let mut se = s.lock();
-
-                    ui.set_window_font_scale(ui_scale);
-
-                    ui.set_cursor_pos([400.0 * ok, 325.0 * ok]);
-                    if ui.button_with_size("LEFT", [150.0, 150.0]) {
-                        if !se.left_door_shut {
-                            if se.can_open_left_door {
-                                se.left_door_shut = true;
-                                se.can_open_left_door = false;
-                                se.left_door_last_shut = SystemTime::now();
-                                if se.gang.tux.room() == Room::Room3 {
-                                    se.gang.tux.set_room(Room::Room1);
-                                    se.gang.tux.can_move = false;
-                                    se.gang.tux.set_entered_from_left(false);
-                                    se.gang.tux.goto_room_after_office();
-                                    se.open_left_door_back_up = true;
-                                    se.gang.tux.checked_camera = None;
-                                    se.gang.tux.moved_to_hallway_at = SystemTime::now();
-                                }
-                                se.audio.play_door_left().unwrap();
-                            } else {
-                                se.audio.play_jammed().unwrap();
-                            }
-                        }
-                    }
-                    ui.set_cursor_pos([1175.0 * ok, 325.0 * ok]);
-                    if ui.button_with_size("RIGHT", [150.0, 150.0]) {
-                        if !se.right_door_shut {
-                            if se.can_open_right_door {
-                                se.right_door_shut = true;
-                                se.can_open_right_door = false;
-                                se.right_door_last_shut = SystemTime::now();
-                                if se.gang.tux.room() == Room::Room5 {
-                                    se.gang.tux.set_room(Room::Room1);
-                                    se.gang.tux.can_move = false;
-                                    se.gang.tux.set_entered_from_right(false);
-                                    se.gang.tux.goto_room_after_office();
-                                    se.open_right_door_back_up = true;
-                                    se.gang.tux.checked_camera = None;
-                                    se.gang.tux.moved_to_hallway_at = SystemTime::now();
-                                }
-                                se.audio.play_door_right().unwrap();
-                            } else {
-                                se.audio.play_jammed().unwrap();
-                            }
-                        }
-                    }
-                });
         });
         Ok(())
     }

@@ -13,13 +13,13 @@ use raylib::prelude::*;
 use std::sync::atomic::Ordering;
 
 impl<'a> State<'a> {
-    fn title_x() -> f32 {
+    pub fn title_x() -> f32 {
         config().width() as f32 / 16.0
     }
-    fn title_y() -> f32 {
+    pub fn title_y() -> f32 {
         config().height() as f32 / 16.0
     }
-    fn title_w() -> f32 {
+    pub fn title_w() -> f32 {
         config().ui_scale() as f32 * 256.0
     }
     pub fn title_screen_draw(
@@ -102,6 +102,8 @@ impl<'a> State<'a> {
         d: &mut RaylibDrawHandle,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut goto_title = AtomicBool::new(false);
+        let mut goto_settings = AtomicBool::new(false);
+
         let mut goto_credits = AtomicBool::new(false);
 
         let alpha = self.title_alpha() / 255.0;
@@ -110,12 +112,12 @@ impl<'a> State<'a> {
             ui.window("Menu")
                 .position(
                     [
-                        config().real_margin() + (Self::title_x() / 2.0),
+                        config().real_margin() + 20.0,
                         (config().real_height() as f32 / 2.0),
                     ],
                     Condition::Always,
                 )
-                .size([Self::title_w(), 0.0], Condition::Always)
+                .size([0.0, 0.0], Condition::Always)
                 .movable(false)
                 .resizable(false)
                 .title_bar(false)
@@ -127,13 +129,15 @@ impl<'a> State<'a> {
                     let alpha_style = ui.push_style_color(StyleColor::Text, [1.0, 1.0, 1.0, alpha]);
                     let bsize = ui.push_style_var(StyleVar::FrameBorderSize(0.0));
 
-                    if ui.button_with_size("Start Game", [Self::title_w() - 15.0, 100.0]) {
+                    if ui.button("Start Game") {
                         goto_title.store(true, Ordering::Relaxed);
                     };
                     ui.separator();
-                    ui.button_with_size("Options", [Self::title_w() - 15.0, 100.0]);
+                    if ui.button("Options") {
+                        goto_settings.store(true, Ordering::Relaxed);
+                    };
                     ui.separator();
-                    if ui.button_with_size("Credits", [Self::title_w() - 15.0, 100.0]) {
+                    if ui.button("Credits") {
                         goto_credits.store(true, Ordering::Relaxed);
                     };
 
@@ -148,8 +152,14 @@ impl<'a> State<'a> {
             return Ok(());
         }
 
+        if *goto_settings.get_mut() {
+            self.screen = Screen::Settings;
+            return Ok(());
+        }
+
         if *goto_credits.get_mut() {
             self.screen = Screen::Credits;
+            return Ok(());
         }
 
         if self.going_to_office_from_title && self.title_clicked.elapsed()?.as_secs() >= 5 {
@@ -161,6 +171,16 @@ impl<'a> State<'a> {
             self.win_time = SystemTime::now();
             self.going_to_office_from_title = false;
             self.audio.play_brownian_noise()?;
+        }
+
+        if self.going_to_office_from_title {
+            d.set_mouse_position(Vector2::new(
+                config().real_width_raw() as f32 / 2.0,
+                config().real_height() as f32 / 2.0,
+            ));
+            d.hide_cursor();
+        } else {
+            d.show_cursor();
         }
 
         Ok(())
