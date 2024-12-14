@@ -442,9 +442,6 @@ impl<'a> State<'a> {
             }
         }
 
-        self.draw_step(rl, &thread)?;
-        self.audio_step()?;
-
         Ok(())
     }
 

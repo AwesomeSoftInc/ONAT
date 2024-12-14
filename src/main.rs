@@ -95,6 +95,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             fullscreened = false;
         }
 
+        state.draw_step(&mut rl, &thread)?;
+
         if state.timer.elapsed()?.as_millis() >= 1000 / 60 {
             state.timer = SystemTime::now();
 
@@ -108,6 +110,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             let (mx, my) = (rl.get_mouse_x(), rl.get_mouse_y());
             state.step(&mut rl, &thread, mx, my)?;
+            state.audio_step()?;
         }
     }
 
