@@ -181,8 +181,8 @@ impl<'a> State<'a> {
         let plush_clickable = Rectangle::new(747.0, 782.0, 250.0, 250.0);
 
         let door_buttons = vec![
-            Rectangle::new(547.0, 482.0, 100.0, 100.0),
-            Rectangle::new(1637.0, 482.0, 100.0, 100.0),
+            Rectangle::new(547.0, 482.0, 150.0, 150.0),
+            Rectangle::new(1637.0, 482.0, 150.0, 150.0),
         ];
 
         let font = unsafe { Font::from_raw(rl.get_font_default().to_raw()) };
@@ -479,8 +479,8 @@ impl<'a> State<'a> {
         let mut d = _d.begin_mode2D(self.camera);
         d.clear_background(Color::BLACK);
 
-        let width_mul = (d.get_render_width() as f32 / self.framebuffer.width() as f32);
-        let height_mul = (d.get_render_height() as f32 / self.framebuffer.height() as f32);
+        let width_mul = d.get_render_width() as f32 / self.framebuffer.width() as f32;
+        let height_mul = d.get_render_height() as f32 / self.framebuffer.height() as f32;
 
         let mx = ({
             if d.get_touch_x() != 0 {
