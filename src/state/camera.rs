@@ -284,7 +284,7 @@ impl<'a> State<'a> {
                 .movable(false)
                 .title_bar(false)
                 .bg_alpha(0.0)
-                .position([0.0, 0.0], ::imgui::Condition::Always)
+                .position([config().real_margin(), 0.0], ::imgui::Condition::Always)
                 .size(
                     [config().real_width() as f32, config().real_height() as f32],
                     ::imgui::Condition::Always,

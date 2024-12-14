@@ -23,7 +23,7 @@ impl<'a> State<'a> {
         let bar_height = 100.0;
 
         draw_list.add_text(
-            [bat_start, bat_y - (20.0 * config().ui_scale())],
+            [bat_start, bat_y - (20.0 * config().ui_scale()) - bat_height],
             ImColor32::WHITE,
             "BATTERY",
         );
@@ -37,8 +37,8 @@ impl<'a> State<'a> {
 
             draw_list
                 .add_line(
-                    [x, bat_y + off_y],
-                    [x, bat_y + 75.0 - off_y],
+                    [x, (bat_y + off_y) - bat_height],
+                    [x, (bat_y - off_y)],
                     ImColor32::from_rgb(255 - i as u8, i as u8, 0),
                 )
                 .build();
@@ -46,8 +46,8 @@ impl<'a> State<'a> {
 
         draw_list
             .add_rect(
-                [bat_start, bat_y],
-                [bat_end, bat_y + 75.0],
+                [bat_start, bat_y - bat_height],
+                [bat_end, bat_y],
                 ImColor32::WHITE,
             )
             .thickness(config().ui_scale() * 4.0)
@@ -62,7 +62,7 @@ impl<'a> State<'a> {
         let width = config().real_width() as f32 / 4.0;
         let bottom = config().real_height() as f32;
 
-        let height = Self::bat_height();
+        let height = Self::bat_height() + 50.0;
 
         draw_list
             .add_rect(
@@ -108,11 +108,6 @@ impl<'a> State<'a> {
         );
 
         Ok(())
-    }
-
-    // helper function for getting the point that the ui should reach up to.
-    pub fn bat_height() -> f32 {
-        50.0 + 30.0 * config().ui_scale()
     }
 
     pub fn draw_rage(&self, draw_list: DrawListMut<'_>) -> Result<(), Box<dyn std::error::Error>> {
@@ -164,6 +159,10 @@ impl<'a> State<'a> {
 
     pub fn bat_width() -> i32 {
         (70 * config().ui_scale() as i32).clamp(0, 255)
+    }
+
+    pub fn bat_height() -> f32 {
+        30.0 * config().ui_scale()
     }
 
     pub fn bat_start() -> f32 {
