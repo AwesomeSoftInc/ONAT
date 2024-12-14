@@ -13,7 +13,7 @@ macro_rules! field_parse {
         vec![
             $(
                 syn::Field::parse_named.parse2(quote! {
-                    $name: $t
+                    pub(crate) $name: $t
                 }).map_err(|e| {let e2: anyhow::Error = e.clone().into(); e2.context(format!("\"{}\" at {}:{}:{}", e, file!(), line!(), column!()))})?
             ),*
         ]

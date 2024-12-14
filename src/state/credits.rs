@@ -17,6 +17,7 @@ impl<'a> State<'a> {
         self.audio.play_title(self.has_won)?;
 
         d.clear_background(Color::BLACK);
+
         d.draw_text_ex(
             &self.font,
             "Programming\nDirector/Art/Play Testing\nMusic\nArt/Animator\nWisdom
