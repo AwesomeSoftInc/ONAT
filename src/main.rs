@@ -95,7 +95,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             fullscreened = false;
         }
 
-        state.draw_step(&mut rl, &thread)?;
+        let (mx, my) = state.mouse_position(&mut rl)?;
+
+        state.draw_step(&mut rl, &thread, mx, my)?;
 
         if state.timer.elapsed()?.as_millis() >= 1000 / 60 {
             state.timer = SystemTime::now();
@@ -113,6 +115,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             state.audio_step()?;
             state.audio_play_step()?;
+
+            state.draw_step_capped(&mut rl, &thread, mx, my)?;
         }
     }
 

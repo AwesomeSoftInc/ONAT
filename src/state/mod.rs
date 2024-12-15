@@ -388,6 +388,8 @@ impl<'a> State<'a> {
         &mut self,
         rl: &mut RaylibHandle,
         thread: &RaylibThread,
+        mx: i32,
+        my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let (_img, tex) = match self.screen {
             Screen::Camera | Screen::GameOver => {
@@ -414,27 +416,6 @@ impl<'a> State<'a> {
         let mut _d = rl.begin_drawing(&thread);
         let mut d = _d.begin_mode2D(self.camera);
         d.clear_background(Color::BLACK);
-
-        let width_mul = d.get_render_width() as f32 / self.framebuffer.width() as f32;
-        let height_mul = d.get_render_height() as f32 / self.framebuffer.height() as f32;
-
-        let mx = ({
-            if d.get_touch_x() != 0 {
-                d.get_touch_x()
-            } else {
-                d.get_mouse_x()
-            }
-        } as f32
-            / width_mul) as i32;
-
-        let my = ({
-            if d.get_touch_y() != 0 {
-                d.get_touch_y()
-            } else {
-                d.get_mouse_y()
-            }
-        } as f32
-            / height_mul) as i32;
 
         match self.screen {
             Screen::TitleScreen => self.title_screen_draw(&mut d, &thread, mx, my, tex)?,
@@ -580,6 +561,22 @@ impl<'a> State<'a> {
             Color::WHITE,
         );
 
+        d.draw_fps(10, 10);
+        Ok(())
+    }
+
+    /**
+    Draw anything that needs to be capped at the 60fps limit, including animations.
+    */
+    pub fn draw_step_capped(
+        &mut self,
+        rl: &mut RaylibHandle,
+        thread: &RaylibThread,
+        mx: i32,
+        my: i32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut d = rl.begin_drawing(&thread);
+
         // A few screens have imgui windows that need to be drawn after the fact.
         if d.is_key_down(KeyboardKey::KEY_LEFT_ALT) {
             self.debug_draw(&mut d)?;
@@ -598,8 +595,6 @@ impl<'a> State<'a> {
                 Screen::Settings => self.settings_draw(&mut d, &thread, mx, my)?,
             }
         }
-
-        d.draw_fps(10, 10);
         Ok(())
     }
 
@@ -763,5 +758,36 @@ impl<'a> State<'a> {
         } else {
             Ok(ct)
         }
+    }
+
+    /**
+    Get the mouse position, scaled according to what the framebuffer size is.
+    */
+    pub fn mouse_position(
+        &self,
+        d: &mut RaylibHandle,
+    ) -> Result<(i32, i32), Box<dyn std::error::Error>> {
+        let width_mul = d.get_render_width() as f32 / self.framebuffer.width() as f32;
+        let height_mul = d.get_render_height() as f32 / self.framebuffer.height() as f32;
+
+        let mx = ({
+            if d.get_touch_x() != 0 {
+                d.get_touch_x()
+            } else {
+                d.get_mouse_x()
+            }
+        } as f32
+            / width_mul) as i32;
+
+        let my = ({
+            if d.get_touch_y() != 0 {
+                d.get_touch_y()
+            } else {
+                d.get_mouse_y()
+            }
+        } as f32
+            / height_mul) as i32;
+
+        Ok((mx, my))
     }
 }
