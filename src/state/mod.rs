@@ -115,6 +115,9 @@ pub struct State<'a> {
 }
 
 impl<'a> State<'a> {
+    /**
+    Instantiate the global state.
+    */
     pub fn new(
         rl: &mut RaylibHandle,
         thread: &RaylibThread,
@@ -247,6 +250,11 @@ impl<'a> State<'a> {
         Ok(state)
     }
 
+    /**
+    Update the game's "timer state"; monster positions, the in game timer, etc.
+
+    It is IMPERITIVE that anything that should be in `State::step` is in the right function, as the `State::draw_step` is called at an uncapped rate as opposed to 60 times a second. Vice versa applies.
+    */
     pub fn step(
         &mut self,
         rl: &mut RaylibHandle,
@@ -254,80 +262,6 @@ impl<'a> State<'a> {
         mx: i32,
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        self.test_value -= rl.get_mouse_wheel_move() / 100.0;
-        #[cfg(debug_assertions)]
-        {
-            if rl.is_key_released(KeyboardKey::KEY_ONE) {
-                // activate wilbur
-                self.gang.wilber.time_since_appeared = Some(SystemTime::now());
-                self.gang.wilber.activate();
-            }
-            if rl.is_key_released(KeyboardKey::KEY_TWO) {
-                // activate tux
-                self.gang.tux.activate();
-            }
-            if rl.is_key_released(KeyboardKey::KEY_THREE) {
-                // activate gopher
-                self.gang.gogopher.activate();
-            }
-            if rl.is_key_released(KeyboardKey::KEY_FOUR) {
-                // put gopher in vent
-                self.gang.gogopher.set_room(Room::Room4)
-            }
-            if rl.is_key_released(KeyboardKey::KEY_FIVE) {
-                // activate golden tux
-                self.gang.golden_tux.activate();
-                self.gang.golden_tux.appeared = SystemTime::now();
-            }
-            if rl.is_key_released(KeyboardKey::KEY_SIX) {
-                // put penny in the hallway and right at the door
-                // (note: this will cause another bug where they aren't visible for the first few seconds. this bug is irrelevant since this is debug code)
-                self.gang.penny.set_room(Room::Room3);
-                self.gang.beastie.set_progress_to_hallway(2);
-            }
-            if rl.is_key_released(KeyboardKey::KEY_SEVEN) {
-                // put beastie in the hallway and right at the door
-                // (same bug is here)
-                self.gang.beastie.set_room(Room::Room5);
-                self.gang.beastie.set_progress_to_hallway(2);
-            }
-            if rl.is_key_down(KeyboardKey::KEY_EIGHT) {
-                // hold to drastically increase wilbur's rage meter
-
-                for _ in 0..60 {
-                    self.gang.wilber.rage_increment(&mut self.audio);
-                }
-            }
-            if rl.is_key_released(KeyboardKey::KEY_NINE) {
-                self.gang.hour_offset += 1;
-            }
-        }
-        if self.gang.wilber.active() && !self.wilber_snd_played {
-            self.audio.play_wilber()?;
-            self.wilber_snd_played = true;
-        }
-        if self.gang.tux.active() && !self.tux_snd_played {
-            self.audio.play_tux()?;
-            self.tux_snd_played = true;
-        }
-        if self.gang.gogopher.active() && !self.gopher_snd_played {
-            self.audio.play_gopher()?;
-            self.gopher_snd_played = true;
-        }
-        for mons in self.gang.in_room(Room::Office) {
-            if mons.active() {
-                let duration: &Duration = &mons.timer_until_office().elapsed()?;
-
-                let is_tux = mons.id() == MonsterName::Tux || mons.id() == MonsterName::GoldenTux;
-                if !is_tux
-                    && duration.as_millis() >= (MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000) - 500
-                {
-                    let note: usize = (self.tainted * 0.36) as usize;
-                    self.audio.play_tainted(note).unwrap();
-                }
-            }
-        }
-
         if self.camera_booting {
             self.camera_booting_timer += 0.01;
             if self.camera_booting_timer >= 250.0 {
@@ -445,6 +379,11 @@ impl<'a> State<'a> {
         Ok(())
     }
 
+    /**
+    Draw things from the state onto the window.
+
+    It is IMPERITIVE that anything that should be in `State::step` is in the right function, as the `State::draw_step` is called at an uncapped rate as opposed to 60 times a second. Vice versa applies.
+     */
     pub fn draw_step(
         &mut self,
         rl: &mut RaylibHandle,
@@ -664,6 +603,9 @@ impl<'a> State<'a> {
         Ok(())
     }
 
+    /**
+     Sets up audio based on the bg_offset_x, state, etc.
+    */
     pub fn audio_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let panner = self.bg_offset_x / 3.0;
         let mut left = 191.0 - panner;
@@ -777,6 +719,42 @@ impl<'a> State<'a> {
         }
         Ok(())
     }
+
+    /**
+    Plays audio based on relevant factors.
+    */
+    pub fn audio_play_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        if self.gang.wilber.active() && !self.wilber_snd_played {
+            self.audio.play_wilber()?;
+            self.wilber_snd_played = true;
+        }
+        if self.gang.tux.active() && !self.tux_snd_played {
+            self.audio.play_tux()?;
+            self.tux_snd_played = true;
+        }
+        if self.gang.gogopher.active() && !self.gopher_snd_played {
+            self.audio.play_gopher()?;
+            self.gopher_snd_played = true;
+        }
+        for mons in self.gang.in_room(Room::Office) {
+            if mons.active() {
+                let duration: &Duration = &mons.timer_until_office().elapsed()?;
+
+                let is_tux = mons.id() == MonsterName::Tux || mons.id() == MonsterName::GoldenTux;
+                if !is_tux
+                    && duration.as_millis() >= (MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000) - 500
+                {
+                    let note: usize = (self.tainted * 0.36) as usize;
+                    self.audio.play_tainted(note).unwrap();
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /**
+    Get the game's current hour.
+    */
     pub fn time(&self) -> Result<u64, Box<dyn std::error::Error>> {
         let cur_time = self.ingame_time.duration_since(UNIX_EPOCH)?;
         let ct = self.gang.hours(cur_time);

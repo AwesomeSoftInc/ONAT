@@ -110,7 +110,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             let (mx, my) = (rl.get_mouse_x(), rl.get_mouse_y());
             state.step(&mut rl, &thread, mx, my)?;
+
             state.audio_step()?;
+            state.audio_play_step()?;
         }
     }
 
