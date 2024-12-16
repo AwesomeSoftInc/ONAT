@@ -95,9 +95,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             fullscreened = false;
         }
 
-        let (mx, my) = state.mouse_position(&mut rl)?;
+        state.mouse_pointer = false;
 
-        state.draw_step(&mut rl, &thread, mx, my)?;
+        let (mx, my) = state.mouse_position(&mut rl)?;
 
         if state.timer.elapsed()?.as_millis() >= 1000 / 60 {
             state.timer = SystemTime::now();
@@ -110,13 +110,19 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             state.ingame_time += Duration::from_millis(36);
 
-            let (mx, my) = (rl.get_mouse_x(), rl.get_mouse_y());
             state.step(&mut rl, &thread, mx, my)?;
 
             state.audio_step()?;
             state.audio_play_step()?;
+        }
 
-            state.draw_step_capped(&mut rl, &thread, mx, my)?;
+        let mut d = rl.begin_drawing(&thread);
+        state.draw_step(&mut d, &thread, mx, my)?;
+        state.input_step(&mut d, &thread, mx, my)?;
+        if state.mouse_pointer {
+            d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
+        } else {
+            d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_DEFAULT);
         }
     }
 

@@ -12,8 +12,6 @@ impl State<'_> {
         &mut self,
         d: &mut RaylibDrawHandle,
         thread: &RaylibThread,
-        mx: i32,
-        my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut back = AtomicBool::new(false);
         d.start_imgui(|ui| {

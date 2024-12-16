@@ -112,6 +112,8 @@ pub struct State<'a> {
 
     pub plush_clickable: Rectangle,
     pub door_buttons: Vec<Rectangle>,
+
+    pub mouse_pointer: bool,
 }
 
 impl<'a> State<'a> {
@@ -246,6 +248,7 @@ impl<'a> State<'a> {
             test_value: 0.90,
             plush_clickable,
             door_buttons,
+            mouse_pointer: false,
         };
         Ok(state)
     }
@@ -353,27 +356,11 @@ impl<'a> State<'a> {
             return Ok(());
         }
 
-        if my >= config().real_height() - Self::bat_height() as i32
-            && rl.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT)
-            && !self.getting_jumpscared
-        {
-            self.audio.play_camera_flip()?;
-            match self.screen {
-                Screen::Office => {
-                    self.gang.golden_tux.deactivate();
-                    self.going_to_camera = true
-                }
-                Screen::CameraRebooting | Screen::Camera => {
-                    if self.gang.hours(cur_time) >= 5 {
-                        if thread_rng().gen_range(1..100) == 1 {
-                            self.gang.golden_tux.activate();
-                            self.gang.golden_tux.appeared = SystemTime::now();
-                        }
-                    }
-                    self.going_to_office = true
-                }
-                _ => (),
-            }
+        match self.screen {
+            Screen::Office => self.office_step()?,
+            Screen::Camera => self.camera_step(),
+            Screen::CameraRebooting => self.camera_rebooting_step(),
+            _ => {}
         }
 
         Ok(())
@@ -386,7 +373,7 @@ impl<'a> State<'a> {
      */
     pub fn draw_step(
         &mut self,
-        rl: &mut RaylibHandle,
+        rl: &mut RaylibDrawHandle,
         thread: &RaylibThread,
         mx: i32,
         my: i32,
@@ -413,37 +400,18 @@ impl<'a> State<'a> {
             }
         };
 
-        let mut _d = rl.begin_drawing(&thread);
-        let mut d = _d.begin_mode2D(self.camera);
+        let mut d = rl.begin_mode2D(self.camera);
         d.clear_background(Color::BLACK);
 
         match self.screen {
-            Screen::TitleScreen => self.title_screen_draw(&mut d, &thread, mx, my, tex)?,
-            Screen::Credits => self.credits_draw(&mut d, &thread, mx, my)?,
-            Screen::GameOver => self.gameover_draw(&mut d, &thread, mx, my, tex)?,
-            Screen::YouWin => self.win_draw(&mut d, mx, my)?,
-            _ => {
-                if let Screen::TitleScreen = self.screen {
-                    return Ok(());
-                }
-                if let Screen::GameOver = self.screen {
-                    return Ok(());
-                }
-                if let Screen::YouWin = self.screen {
-                    return Ok(());
-                }
-
-                match self.screen {
-                    Screen::Office => {
-                        self.office_draw(&mut d, &thread, mx, my)?;
-                    }
-                    Screen::CameraRebooting => {
-                        self.camera_rebooting_draw(&mut d, &thread, mx, my)?
-                    }
-                    Screen::Camera => self.camera_draw(&mut d, &thread, mx, my, tex)?,
-                    _ => {}
-                }
-            }
+            Screen::TitleScreen => self.title_screen_draw(&mut d, &thread, tex)?,
+            Screen::Credits => self.credits_draw(&mut d, &thread)?,
+            Screen::GameOver => self.gameover_draw(&mut d, &thread, tex)?,
+            Screen::YouWin => self.win_draw(&mut d)?,
+            Screen::Office => self.office_draw(&mut d, &thread)?,
+            Screen::CameraRebooting => self.camera_rebooting_draw(&mut d, &thread)?,
+            Screen::Camera => self.camera_draw(&mut d, &thread, tex)?,
+            Screen::Settings => {}
         }
 
         let inoffice = self.gang.in_room(Room::Office);
@@ -566,18 +534,15 @@ impl<'a> State<'a> {
     }
 
     /**
-    Draw anything that needs to be capped at the 60fps limit, including animations.
+    Process the clickable areas and the imgui menu.
     */
-    pub fn draw_step_capped(
+    pub fn input_step(
         &mut self,
-        rl: &mut RaylibHandle,
+        mut d: &mut RaylibDrawHandle,
         thread: &RaylibThread,
         mx: i32,
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut d = rl.begin_drawing(&thread);
-
-        // A few screens have imgui windows that need to be drawn after the fact.
         if d.is_key_down(KeyboardKey::KEY_LEFT_ALT) {
             self.debug_draw(&mut d)?;
         } else {
@@ -586,13 +551,15 @@ impl<'a> State<'a> {
                     self.title_screen_menu(&mut d)?;
                 }
                 Screen::Camera => {
-                    self.camera_ui_draw(&mut d, &thread, mx, my)?;
+                    self.arrow_click(d)?;
+                    self.camera_ui_draw(&mut d, &thread)?;
                 }
                 Screen::Credits | Screen::GameOver | Screen::YouWin | Screen::CameraRebooting => {}
                 Screen::Office => {
-                    self.office_ui_draw(&mut d, &thread, mx, my)?;
+                    self.office_clickable(&mut d, mx, my)?;
+                    self.office_ui_draw(&mut d, &thread)?;
                 }
-                Screen::Settings => self.settings_draw(&mut d, &thread, mx, my)?,
+                Screen::Settings => self.settings_draw(&mut d, &thread)?,
             }
         }
         Ok(())
@@ -789,5 +756,35 @@ impl<'a> State<'a> {
             / height_mul) as i32;
 
         Ok((mx, my))
+    }
+
+    pub fn arrow_click(&mut self, rl: &mut RaylibHandle) -> Result<(), Box<dyn std::error::Error>> {
+        let my = rl.get_mouse_y();
+        let cur_time = self.ingame_time.duration_since(UNIX_EPOCH)?;
+
+        if my >= config().real_height() - (Self::bat_height() * 2.5) as i32
+            && !self.getting_jumpscared
+        {
+            if rl.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
+                self.audio.play_camera_flip()?;
+                match self.screen {
+                    Screen::Office => {
+                        self.gang.golden_tux.deactivate();
+                        self.going_to_camera = true;
+                    }
+                    Screen::CameraRebooting | Screen::Camera => {
+                        if self.gang.hours(cur_time) >= 5 {
+                            if thread_rng().gen_range(1..100) == 1 {
+                                self.gang.golden_tux.activate();
+                                self.gang.golden_tux.appeared = SystemTime::now();
+                            }
+                        }
+                        self.going_to_office = true;
+                    }
+                    _ => (),
+                }
+            }
+        }
+        Ok(())
     }
 }

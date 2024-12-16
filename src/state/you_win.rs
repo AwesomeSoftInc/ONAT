@@ -5,12 +5,7 @@ use crate::config::config;
 use super::{Screen, State};
 
 impl<'a> State<'a> {
-    pub fn win_draw(
-        &mut self,
-        d: &mut RaylibDrawHandle,
-        mx: i32,
-        my: i32,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn win_draw(&mut self, d: &mut RaylibDrawHandle) -> Result<(), Box<dyn std::error::Error>> {
         self.audio.play_bells()?;
         d.clear_background(Color::BLACK);
         let fb_a = {

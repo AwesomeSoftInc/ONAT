@@ -12,18 +12,7 @@ use raylib::prelude::*;
 const TEXT_WIDTH: i32 = ("Laptop Rebooting".len() as i32) * 24;
 
 impl<'a> State<'a> {
-    pub fn camera_draw(
-        &mut self,
-        d: &mut RaylibDrawHandle,
-        thread: &RaylibThread,
-        mx: i32,
-        my: i32,
-        tex: Texture2D,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
-        d.clear_background(Color::BLACK);
-
-        #[cfg(not(feature = "no_camera_timer"))]
+    pub fn camera_step(&mut self) {
         if self.camera_timer >= 0.0 {
             self.camera_timer -= CAMERA_TIME;
         } else {
@@ -39,6 +28,16 @@ impl<'a> State<'a> {
                 self.going_to_office = false;
             }
         }
+    }
+
+    pub fn camera_draw(
+        &mut self,
+        d: &mut RaylibDrawHandle,
+        thread: &RaylibThread,
+        tex: Texture2D,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
+        d.clear_background(Color::BLACK);
 
         if self.camera_booting {
             self.screen = Screen::CameraRebooting;
@@ -190,16 +189,7 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    pub fn camera_rebooting_draw(
-        &mut self,
-        d: &mut RaylibDrawHandle,
-        thread: &RaylibThread,
-        mx: i32,
-        my: i32,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
-        d.clear_background(Color::BLACK);
-
+    pub fn camera_rebooting_step(&mut self) {
         if self.going_to_office {
             if self.laptop_offset_y < config().height() as f64 {
                 self.laptop_offset_y += self.var_name;
@@ -207,9 +197,17 @@ impl<'a> State<'a> {
                 self.screen = Screen::Office;
                 self.going_to_office = false;
             }
-            return Ok(());
         }
-        #[cfg(not(feature = "no_camera_timer"))]
+    }
+
+    pub fn camera_rebooting_draw(
+        &mut self,
+        d: &mut RaylibDrawHandle,
+        thread: &RaylibThread,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
+        d.clear_background(Color::BLACK);
+
         if self.camera_timer <= 100.0 {
             self.camera_timer += CAMERA_TIME;
             let x = ((config().width() as i32 / 2) as f32) - (TEXT_WIDTH / 2) as f32;
@@ -234,8 +232,6 @@ impl<'a> State<'a> {
         &mut self,
         d: &mut RaylibDrawHandle,
         thread: &RaylibThread,
-        mx: i32,
-        my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let btn_width = config().ui_scale() * 100.0;
         let mut goto_cam1 = AtomicBool::new(false);

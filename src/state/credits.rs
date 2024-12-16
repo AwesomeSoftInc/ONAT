@@ -9,8 +9,6 @@ impl<'a> State<'a> {
         &mut self,
         d: &mut RaylibDrawHandle,
         thread: &RaylibThread,
-        mx: i32,
-        my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
 
@@ -55,11 +53,11 @@ impl<'a> State<'a> {
             6.0,
             Color::WHITE,
         );
-        if d.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
-            if mx >= cx && my >= cy {
-                self.screen = Screen::TitleScreen;
-            }
-        }
+        // if d.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
+        //     if mx >= cx && my >= cy {
+        //         self.screen = Screen::TitleScreen;
+        //     }
+        // }
         Ok(())
     }
 }

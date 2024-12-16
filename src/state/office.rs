@@ -10,39 +10,11 @@ use crate::{
     textures::Textures,
 };
 
-use num::Float;
-use num_traits::float::FloatCore;
-use num_traits::real::Real;
 use parking_lot::{Mutex, MutexGuard};
 use raylib::prelude::*;
 
 impl<'a> State<'a> {
-    pub fn office_draw(
-        &mut self,
-        d: &mut RaylibDrawHandle,
-        thread: &RaylibThread,
-        mx: i32,
-        my: i32,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        self.wallpaper_draw(d, &thread);
-
-        let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
-        d.clear_background(Color::BLACK);
-
-        let mut hovering = false;
-
-        let button = self.plush_clickable;
-        if mx as f32 >= (button.x - self.bg_offset_x)
-            && mx as f32 <= (button.x - self.bg_offset_x) + button.width
-            && my as f32 >= button.y
-            && my as f32 <= button.y + button.height
-        {
-            hovering = true;
-            if d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
-                self.audio.play_plush()?;
-            }
-        }
-
+    pub fn office_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(not(feature = "no_camera_timer"))]
         if self.camera_timer <= 100.0 {
             self.camera_timer += CAMERA_TIME;
@@ -65,6 +37,41 @@ impl<'a> State<'a> {
                 }
             }
         }
+        // LEFT DOOR
+        if self.left_door_shut {
+            if self.left_door_anim_timer <= 0.0 {
+                self.left_door_anim_timer += DOOR_ANIM_SPEED;
+            }
+        } else {
+            if self.left_door_anim_timer >= -(config().height() as f32) {
+                self.left_door_anim_timer -= DOOR_ANIM_SPEED;
+            }
+        }
+
+        // RIGHT DOOR
+        if self.right_door_shut {
+            if self.right_door_anim_timer <= 0.0 {
+                self.right_door_anim_timer += DOOR_ANIM_SPEED;
+            }
+        } else {
+            if self.right_door_anim_timer >= -(config().height() as f32) {
+                self.right_door_anim_timer -= DOOR_ANIM_SPEED;
+            }
+        }
+        self.gang.wilber.rage_increment(&mut self.audio);
+
+        Ok(())
+    }
+    pub fn office_draw(
+        &mut self,
+        d: &mut RaylibDrawHandle,
+        thread: &RaylibThread,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        self.wallpaper_draw(d, &thread);
+
+        let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
+        d.clear_background(Color::BLACK);
+
         macro_rules! a {
                                 ($($val:tt).*) => {
                                     d.draw_texture_pro(
@@ -196,29 +203,6 @@ impl<'a> State<'a> {
             a!(door_light_right_off);
         }
 
-        // LEFT DOOR
-        if self.left_door_shut {
-            if self.left_door_anim_timer <= 0.0 {
-                self.left_door_anim_timer += DOOR_ANIM_SPEED;
-            }
-        } else {
-            if self.left_door_anim_timer >= -(config().height() as f32) {
-                self.left_door_anim_timer -= DOOR_ANIM_SPEED;
-            }
-        }
-
-        // RIGHT DOOR
-        if self.right_door_shut {
-            if self.right_door_anim_timer <= 0.0 {
-                self.right_door_anim_timer += DOOR_ANIM_SPEED;
-            }
-        } else {
-            if self.right_door_anim_timer >= -(config().height() as f32) {
-                self.right_door_anim_timer -= DOOR_ANIM_SPEED;
-            }
-        }
-        self.gang.wilber.rage_increment(&mut self.audio);
-
         if self.laptop_offset_y < config().height() as f64 {
             let laptop = &*self.textures.misc.laptop();
             d.draw_texture_pro(
@@ -240,9 +224,8 @@ impl<'a> State<'a> {
         for mons in inoffice {
             if mons.active() {
                 let duration: &Duration = &mons.timer_until_office().elapsed()?;
-                let mut door_open_check = false;
 
-                let is_tux = (mons.id() == MonsterName::Tux || mons.id() == MonsterName::GoldenTux);
+                let is_tux = mons.id() == MonsterName::Tux || mons.id() == MonsterName::GoldenTux;
                 if !is_tux
                     && duration.as_millis() >= (MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000) - 500
                 {
@@ -473,6 +456,58 @@ impl<'a> State<'a> {
             }
         }
 
+        Ok(())
+    }
+
+    pub fn office_ui_draw(
+        &mut self,
+        d: &mut RaylibDrawHandle,
+        thread: &RaylibThread,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let s = Mutex::new(self);
+
+        d.start_imgui(|ui| {
+            ui.window("ui")
+                .resizable(false)
+                .movable(false)
+                .title_bar(false)
+                .bg_alpha(0.0)
+                .position([config().real_margin(), 0.0], ::imgui::Condition::Always)
+                .size(
+                    [config().real_width() as f32, config().real_height() as f32],
+                    ::imgui::Condition::Always,
+                )
+                .build(|| {
+                    let se = s.lock();
+
+                    ui.set_window_font_scale(config().ui_scale());
+
+                    se.draw_battery(ui.get_window_draw_list()).unwrap();
+                    se.draw_arrow(ui.get_window_draw_list()).unwrap();
+                    se.draw_time(ui.get_window_draw_list()).unwrap();
+                });
+        });
+        Ok(())
+    }
+
+    pub fn office_clickable(
+        &mut self,
+        d: &mut RaylibHandle,
+        mx: i32,
+        my: i32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let button = self.plush_clickable;
+        if mx as f32 >= (button.x - self.bg_offset_x)
+            && mx as f32 <= (button.x - self.bg_offset_x) + button.width
+            && my as f32 >= button.y
+            && my as f32 <= button.y + button.height
+        {
+            self.mouse_pointer = true;
+            if d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
+                self.audio.play_plush()?;
+            }
+        }
+
         let mut i = 0;
 
         for button in &self.door_buttons {
@@ -481,7 +516,7 @@ impl<'a> State<'a> {
                 && my as f32 >= button.y
                 && my as f32 <= button.y + button.height
             {
-                hovering = true;
+                self.mouse_pointer = true;
 
                 if d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
                     if i == 0 && !self.left_door_shut {
@@ -527,56 +562,11 @@ impl<'a> State<'a> {
             i += 1;
         }
 
-        if hovering {
-            d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
-        } else {
-            d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_DEFAULT);
-        }
+        self.arrow_click(d)?;
+
         Ok(())
     }
 
-    pub fn office_ui_draw(
-        &mut self,
-        d: &mut RaylibDrawHandle,
-        thread: &RaylibThread,
-        mx: i32,
-        my: i32,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let ui_scale = config().ui_scale();
-
-        let ok = (config().real_width() as f32 / 1024.0).ceil();
-        let mut fuck = ui_scale as i32;
-        if (fuck & 1) == 0 {
-            fuck -= 1;
-        }
-        let what = ui_scale + (0.90 * fuck as f32);
-        let offx = &self.bg_offset_x * (what);
-        let s = Mutex::new(self);
-
-        d.start_imgui(|ui| {
-            ui.window("ui")
-                .resizable(false)
-                .movable(false)
-                .title_bar(false)
-                .bg_alpha(0.0)
-                .position([config().real_margin(), 0.0], ::imgui::Condition::Always)
-                .size(
-                    [config().real_width() as f32, config().real_height() as f32],
-                    ::imgui::Condition::Always,
-                )
-                .build(|| {
-                    let se = s.lock();
-
-                    ui.set_window_font_scale(config().ui_scale());
-
-                    se.draw_battery(ui.get_window_draw_list()).unwrap();
-                    se.draw_arrow(ui.get_window_draw_list()).unwrap();
-                    se.draw_time(ui.get_window_draw_list()).unwrap();
-                });
-            let office_part1 = s.lock().textures.misc.office_part1().clone();
-        });
-        Ok(())
-    }
     pub fn wallpaper_draw(&mut self, d: &mut RaylibDrawHandle, thread: &RaylibThread) {
         let mut d = d.begin_texture_mode(&thread, &mut self.wallpaper_framebuffer);
 

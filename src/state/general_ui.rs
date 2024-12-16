@@ -116,14 +116,14 @@ impl<'a> State<'a> {
         let bat_height = Self::bat_height();
         let bat_start = Self::bat_start();
         let bat_end = bat_start + bat_width as f32;
-        let bat_y = config().real_height() as f32 - (bat_height * 2.5);
+        let bat_y = config().real_height() as f32 - bat_height - (75.0 * config().ui_scale());
 
         // Inner bar size
         let bar_width = (self.gang.wilber.rage() * (bat_width as f32 / 100.0)) as i32;
         let bar_height = 100.0;
 
         draw_list.add_text(
-            [bat_start, bat_y - (20.0 * config().ui_scale())],
+            [bat_start, bat_y - (20.0 * config().ui_scale()) - bat_height],
             ImColor32::WHITE,
             "RAGE",
         );
@@ -137,8 +137,8 @@ impl<'a> State<'a> {
 
             draw_list
                 .add_line(
-                    [x, bat_y + off_y],
-                    [x, bat_y + 75.0 - off_y],
+                    [x, (bat_y + off_y) - bat_height],
+                    [x, (bat_y - off_y)],
                     ImColor32::from_rgb(255 - i as u8, 0, 0),
                 )
                 .build();
@@ -146,8 +146,8 @@ impl<'a> State<'a> {
 
         draw_list
             .add_rect(
-                [bat_start, bat_y],
-                [bat_end, bat_y + 75.0],
+                [bat_start, bat_y - bat_height],
+                [bat_end, bat_y],
                 ImColor32::WHITE,
             )
             .thickness(config().ui_scale() * 4.0)

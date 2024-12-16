@@ -47,7 +47,7 @@ impl Config {
         Self {
             emulated_dimensions,
             real_dimensions,
-            ui_scale: 1.0,
+            ui_scale: 2.0,
             fullscreen: true,
             dimensions_fn: fullscreen_dimensions_fn,
         }

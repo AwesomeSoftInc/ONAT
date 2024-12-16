@@ -26,8 +26,6 @@ impl<'a> State<'a> {
         &mut self,
         d: &mut RaylibDrawHandle,
         thread: &RaylibThread,
-        mx: i32,
-        my: i32,
         tex: Texture2D,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let alpha = self.title_alpha() as u8;
