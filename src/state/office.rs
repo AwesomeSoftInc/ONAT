@@ -261,10 +261,10 @@ impl<'a> State<'a> {
             // sound
             match self.jumpscarer {
                 MonsterName::Tux | MonsterName::GoldenTux => {
-                    self.audio.play_tux_jumpscare()?;
+                    self.audio.tux_jumpscare.play()?;
                 }
                 _ => {
-                    self.audio.play_regular_jumpscare()?;
+                    self.audio.regular_jumpscare.play()?;
                 }
             }
 
@@ -333,7 +333,7 @@ impl<'a> State<'a> {
                             Color::WHITE,
                         );
                     } else {
-                        self.audio.brownian_halt();
+                        self.audio.brownian_noise.halt();
 
                         if self.jumpscarer != MonsterName::GoldenTux {
                             self.screen = Screen::GameOver;
@@ -504,7 +504,7 @@ impl<'a> State<'a> {
         {
             self.mouse_pointer = true;
             if d.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
-                self.audio.play_plush()?;
+                self.audio.plush.play()?;
             }
         }
 
@@ -533,9 +533,9 @@ impl<'a> State<'a> {
                                 self.gang.tux.checked_camera = None;
                                 self.gang.tux.moved_to_hallway_at = SystemTime::now();
                             }
-                            self.audio.play_door_left().unwrap();
+                            self.audio.door.play_panned(self.pan_left, self.pan_right)?;
                         } else {
-                            self.audio.play_jammed().unwrap();
+                            self.audio.jammed.play()?;
                         }
                     } else if i == 1 && !self.right_door_shut {
                         if self.can_open_right_door {
@@ -551,9 +551,9 @@ impl<'a> State<'a> {
                                 self.gang.tux.checked_camera = None;
                                 self.gang.tux.moved_to_hallway_at = SystemTime::now();
                             }
-                            self.audio.play_door_right().unwrap();
+                            self.audio.door.play_panned(self.pan_left, self.pan_right)?;
                         } else {
-                            self.audio.play_jammed().unwrap();
+                            self.audio.jammed.play()?;
                         }
                     }
                 }

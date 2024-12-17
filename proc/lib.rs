@@ -6,6 +6,7 @@ use std::fs::{DirEntry, ReadDir};
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse::Parser;
+use syn::token::Impl;
 use syn::{parse_macro_input, ItemStruct};
 
 macro_rules! field_parse {
@@ -341,4 +342,72 @@ fn yeah(
         func(&asset)?;
     }
     Ok(())
+}
+
+#[proc_macro]
+pub fn audio_generate(_item: TokenStream) -> TokenStream {
+    || -> Result<TokenStream, Box<dyn std::error::Error>> {
+        let mut fin = String::new();
+
+        let mut struc_defs = String::new();
+        let mut impl_lets = String::new();
+        let mut impl_rets = String::new();
+        let mut impl_is_playing = String::new();
+
+        for asset in std::fs::read_dir("./audio")? {
+            let asset = asset?;
+            let path = asset.file_name().into_string().unwrap();
+            let name = path
+                .split("/")
+                .last()
+                .unwrap()
+                .to_string()
+                .replace(".ogg", "");
+
+            struc_defs += format!("pub {}: Sound,\n", name).as_str();
+
+            // impl_lets += format!(
+            //     "let {} = Sound::from_bytes(Box::new(*include_bytes!(\"../audio/{}\")))?;\n",
+            //     name, path
+            // )
+            // .as_str();
+
+            impl_lets +=
+                format!("let {} = Sound::from_file(\"./audio/{}\")?;\n", name, path).as_str();
+
+            impl_rets += format!("{},\n", name).as_str();
+
+            impl_is_playing +=
+                format!("self.{name}.halt_if_not_playing();\n", name = name).as_str();
+        }
+
+        fin += format!(
+            "pub struct Audio {{
+            ambient_playing: bool,
+            {}
+        }}
+            impl Audio {{
+                pub fn new() -> Result<Self, Box<dyn std::error::Error>> {{
+                    sdl2::mixer::open_audio(44000, AUDIO_F32, 2, 256)?;
+                    sdl2::mixer::allocate_channels(8);
+                    {}
+
+                    Ok(Self {{
+                    ambient_playing: false,
+        {}
+                    }})
+                }}
+
+                pub fn halt_not_playing(&mut self)  {{
+                    {}
+                }}
+            }}
+        ",
+            struc_defs, impl_lets, impl_rets, impl_is_playing
+        )
+        .as_str();
+
+        Ok(fin.parse()?)
+    }()
+    .unwrap()
 }

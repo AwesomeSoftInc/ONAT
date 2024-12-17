@@ -161,14 +161,14 @@ impl<'a> State<'a> {
         }
 
         if self.going_to_office_from_title && self.title_clicked.elapsed()?.as_secs() >= 5 {
-            self.audio.halt();
+            self.audio.halt_title(self.has_won);
         }
         if self.going_to_office_from_title && self.title_clicked.elapsed()?.as_secs() >= 6 {
             // state = State::new();
             self.screen = Screen::Office;
             self.win_time = SystemTime::now();
             self.going_to_office_from_title = false;
-            self.audio.play_brownian_noise()?;
+            self.audio.brownian_noise.play_loop()?;
         }
 
         if self.going_to_office_from_title {

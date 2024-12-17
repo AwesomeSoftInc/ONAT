@@ -76,7 +76,7 @@ impl<'a> State<'a> {
             }
             self.screen = Screen::TitleScreen;
             self.going_to_office_from_title = false;
-            self.audio.brownian_halt();
+            self.audio.brownian_noise.halt();
         }
         Ok(())
     }

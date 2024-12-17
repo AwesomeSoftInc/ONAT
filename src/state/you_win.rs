@@ -6,7 +6,7 @@ use super::{Screen, State};
 
 impl<'a> State<'a> {
     pub fn win_draw(&mut self, d: &mut RaylibDrawHandle) -> Result<(), Box<dyn std::error::Error>> {
-        self.audio.play_bells()?;
+        self.audio.bells.play()?;
         d.clear_background(Color::BLACK);
         let fb_a = {
             if self.screen == Screen::YouWin {

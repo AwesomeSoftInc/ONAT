@@ -115,7 +115,7 @@ impl<'a> State<'a> {
         for mons in inroom {
             mons.draw(self.textures, &mut d, 0.0, 0.0, 1.0, 1.0);
             if mons.move_timer() >= 1 || mons.time_in_room().elapsed()?.as_millis() <= 50 {
-                self.audio.play_noise()?;
+                self.audio.brownian_noise.play_loop()?;
                 d.draw_texture_pro(
                     &tex,
                     texture_rect!(tex),
@@ -184,7 +184,7 @@ impl<'a> State<'a> {
         }
 
         if millis > 50 && millis <= 60 {
-            self.audio.noise_halt();
+            self.audio.brownian_noise.halt();
         }
         Ok(())
     }

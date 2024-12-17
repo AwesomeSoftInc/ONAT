@@ -48,7 +48,7 @@ impl Wilber {
             self.rage += 0.1;
         } else {
             if self.stage <= 1 {
-                aud.play_wilber_channel(self.stage as usize).unwrap();
+                aud.play_wilbur(self.stage);
             }
             self.stage += 1;
             self.rage = 0.0;

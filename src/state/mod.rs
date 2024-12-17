@@ -114,6 +114,9 @@ pub struct State<'a> {
     pub door_buttons: Vec<Rectangle>,
 
     pub mouse_pointer: bool,
+
+    pub pan_left: u8,
+    pub pan_right: u8,
 }
 
 impl<'a> State<'a> {
@@ -249,6 +252,8 @@ impl<'a> State<'a> {
             plush_clickable,
             door_buttons,
             mouse_pointer: false,
+            pan_left: 0,
+            pan_right: 0,
         };
         Ok(state)
     }
@@ -291,7 +296,8 @@ impl<'a> State<'a> {
                 self.left_door_bypass_cooldown = false;
                 self.left_door_shut = false;
             } else {
-                self.audio.play_thud_left()?;
+                self.audio.door.halt();
+                self.audio.thud.play_panned(self.pan_left, self.pan_right)?;
                 self.left_door_bypass_cooldown = false;
 
                 self.left_door_last_shut = SystemTime::now() - Duration::from_secs(10);
@@ -308,7 +314,9 @@ impl<'a> State<'a> {
                 self.right_door_bypass_cooldown = false;
                 self.right_door_shut = false;
             } else {
-                self.audio.play_thud_right()?;
+                self.audio.door.halt();
+
+                self.audio.thud.play_panned(self.pan_left, self.pan_right)?;
                 self.right_door_bypass_cooldown = false;
                 self.right_door_last_shut = SystemTime::now() - Duration::from_secs(10);
             }
@@ -349,7 +357,7 @@ impl<'a> State<'a> {
         let is_over = self.gang.step(cur_time, &mut self.audio);
 
         if is_over && self.screen != Screen::YouWin {
-            self.audio.brownian_halt();
+            self.audio.brownian_noise.halt();
             self.has_won = true;
             self.screen = Screen::YouWin;
             self.win_time = SystemTime::now();
@@ -466,7 +474,7 @@ impl<'a> State<'a> {
                         if duration.as_nanos()
                             <= MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000000000
                         {
-                            self.audio.play_stinger()?;
+                            self.audio.stinger.play()?;
                         }
                     }
                 }
@@ -584,101 +592,31 @@ impl<'a> State<'a> {
         if right >= 191.0 {
             right = 191.0;
         }
-        let left = left as u8;
-        let right = right as u8;
-        if let Some(ch) = self.audio.left_channel_door {
-            ch.set_panning(left, 0)?;
-            if !ch.is_playing() {
-                self.audio.left_channel_door = None;
-            }
-        }
-        if let Some(ch) = self.audio.right_channel_door {
-            ch.set_panning(0, right)?;
-            if !ch.is_playing() {
-                self.audio.right_channel_door = None;
-            }
-        }
-        if let Some(ch) = self.audio.left_channel_thud {
-            ch.set_panning(left, 0)?;
-            if !ch.is_playing() {
-                self.audio.left_channel_thud = None;
-            }
-        }
-        if let Some(ch) = self.audio.right_channel_thud {
-            ch.set_panning(0, right)?;
-            if !ch.is_playing() {
-                self.audio.right_channel_thud = None;
-            }
-        }
-        if let Some(ch) = self.audio.noise_channel {
-            ch.set_volume(100);
-            if !ch.is_playing() {
-                self.audio.noise_channel = None;
-            }
-        }
-        if let Some(ch) = self.audio.monster_appear_channel {
-            if !ch.is_playing() {
-                self.audio.monster_appear_channel = None;
-            }
-        }
-        if let Some(ch) = self.audio.bells_channel {
-            if !ch.is_playing() {
-                self.audio.bells_channel = None;
-            }
-        }
-        if let Some(ch) = self.audio.ambient_channel {
-            if !ch.is_playing() {
-                self.audio.ambient_channel = None;
-            }
-        }
-        if let Some(ch) = self.audio.open_source_channel {
-            if !ch.is_playing() {
-                self.audio.open_source_channel = None;
-            }
-        }
-        if let Some(ch) = self.audio.jammed_channel {
-            if !ch.is_playing() {
-                self.audio.jammed_channel = None;
-            }
-        }
-        if let Some(ch) = self.audio.stinger_channel {
-            if !ch.is_playing() {
-                self.audio.stinger_channel = None;
-            }
-        }
-        if let Some(ch) = self.audio.plush_channel {
-            if !ch.is_playing() {
-                self.audio.plush_channel = None;
-            }
-        }
-        if let Some(ch) = self.audio.jumpscare_channel {
-            if !ch.is_playing() {
-                self.audio.jumpscare_channel = None;
-            }
-        }
-        if let Some(ch) = self.audio.wilber_channel {
-            if !ch.is_playing() {
-                self.audio.wilber_channel = None;
-            }
-        }
-        if let Some(ch) = self.audio.title_channel {
-            let mut volume = {
-                if self.going_to_office_from_title {
-                    (100.0 - (self.title_clicked.elapsed()?.as_millis() as f32 / (4000.0 / 100.0)))
-                        as i32
-                } else {
-                    100
-                }
-            };
-            if volume >= 100 {
-                volume = 100;
-            }
-            ch.set_volume(volume);
-            if !ch.is_playing() {
-                ch.set_volume(100);
-                self.audio.title_channel = None;
-            }
-        }
+        self.pan_left = left as u8;
+        self.pan_right = right as u8;
+
+        self.audio.halt_not_playing();
+
+        self.audio.play_ambience()?;
+
+        // if let Some(ch) = self.audio.title_channel {
+        //     let mut volume = {
+        //         if self.going_to_office_from_title {
+        //             (100.0 - (self.title_clicked.elapsed()?.as_millis() as f32 / (4000.0 / 100.0)))
+        //                 as i32
+        //         } else {
+        //             100
+        //         }
+        //     };
+        //     if volume >= 100 {
+        //         volume = 100;
+        //     }
+        //     ch.set_volume(volume);
+        //     if !ch.is_playing() {
+        //         ch.set_volume(100);
+        //         self.audio.title_channel = None;
+        //     }
+        // }
         Ok(())
     }
 
@@ -687,15 +625,15 @@ impl<'a> State<'a> {
     */
     pub fn audio_play_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if self.gang.wilber.active() && !self.wilber_snd_played {
-            self.audio.play_wilber()?;
+            self.audio.wilber_appear.play()?;
             self.wilber_snd_played = true;
         }
         if self.gang.tux.active() && !self.tux_snd_played {
-            self.audio.play_tux()?;
+            self.audio.tux_appears.play()?;
             self.tux_snd_played = true;
         }
         if self.gang.gogopher.active() && !self.gopher_snd_played {
-            self.audio.play_gopher()?;
+            self.audio.gopher.play()?;
             self.gopher_snd_played = true;
         }
         for mons in self.gang.in_room(Room::Office) {
@@ -766,7 +704,7 @@ impl<'a> State<'a> {
             && !self.getting_jumpscared
         {
             if rl.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
-                self.audio.play_camera_flip()?;
+                self.audio.camera_flip.play()?;
                 match self.screen {
                     Screen::Office => {
                         self.gang.golden_tux.deactivate();
