@@ -10,7 +10,6 @@ impl<'a> State<'a> {
         &mut self,
         d: &mut RaylibDrawHandle,
         thread: &RaylibThread,
-        tex: Texture2D,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
 
@@ -58,14 +57,6 @@ impl<'a> State<'a> {
             50.0,
             6.0,
             Color::RED,
-        );
-        d.draw_texture_pro(
-            &tex,
-            texture_rect!(tex),
-            Rectangle::new(0.0, 0.0, config().width() as f32, config().height() as f32),
-            Vector2::new(0.0, 0.0),
-            0.0,
-            Color::new(255, 255, 255, alpha as u8),
         );
 
         if gameover_time.as_secs() >= 15 {

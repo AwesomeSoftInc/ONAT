@@ -34,7 +34,6 @@ impl<'a> State<'a> {
         &mut self,
         d: &mut RaylibDrawHandle,
         thread: &RaylibThread,
-        tex: Texture2D,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
         d.clear_background(Color::BLACK);
@@ -116,36 +115,10 @@ impl<'a> State<'a> {
             mons.draw(self.textures, &mut d, 0.0, 0.0, 1.0, 1.0);
             if mons.move_timer() >= 1 || mons.time_in_room().elapsed()?.as_millis() <= 50 {
                 self.audio.brownian_noise.play_loop()?;
-                d.draw_texture_pro(
-                    &tex,
-                    texture_rect!(tex),
-                    Rectangle::new(
-                        0.0 + 0.0,
-                        0.0,
-                        config().width() as f32,
-                        config().height() as f32,
-                    ),
-                    Vector2::new(0.0, 0.0),
-                    0.0,
-                    Color::WHITE,
-                );
+
                 break;
             }
         }
-
-        d.draw_texture_pro(
-            &tex,
-            texture_rect!(tex),
-            Rectangle::new(
-                0.0 + 0.0,
-                0.0,
-                config().width() as f32,
-                config().height() as f32,
-            ),
-            Vector2::new(0.0, 0.0),
-            0.0,
-            Color::new(255, 255, 255, 48),
-        );
 
         if self.laptop_offset_y > 0.0 {
             let laptop = &*self.textures.misc.laptop();
@@ -168,19 +141,6 @@ impl<'a> State<'a> {
 
         if millis <= 50 {
             //self.audio.play_noise()?;
-            d.draw_texture_pro(
-                &tex,
-                texture_rect!(tex),
-                Rectangle::new(
-                    0.0 + 0.0,
-                    0.0,
-                    config().width() as f32,
-                    config().height() as f32,
-                ),
-                Vector2::new(0.0, 0.0),
-                0.0,
-                Color::WHITE,
-            );
         }
 
         if millis > 50 && millis <= 60 {

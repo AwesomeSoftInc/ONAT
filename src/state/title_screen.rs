@@ -26,7 +26,6 @@ impl<'a> State<'a> {
         &mut self,
         d: &mut RaylibDrawHandle,
         thread: &RaylibThread,
-        tex: Texture2D,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let alpha = self.title_alpha() as u8;
 
@@ -76,20 +75,6 @@ impl<'a> State<'a> {
             64.0,
             6.0,
             Color::new(255, 255, 255, alpha),
-        );
-
-        d.draw_texture_pro(
-            &tex,
-            texture_rect!(tex),
-            Rectangle::new(
-                0.0,
-                0.0,
-                config().width_raw() as f32,
-                config().height() as f32,
-            ),
-            Vector2::new(0.0, 0.0),
-            0.0,
-            Color::new(255, 255, 255, alpha / 8),
         );
 
         Ok(())

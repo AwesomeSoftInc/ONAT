@@ -97,6 +97,8 @@ pub struct State<'a> {
     pub wallpaper_shader: Shader,
     pub wallpaper_framebuffer: RenderTexture2D,
 
+    pub laptop_shader: Shader,
+
     pub tux_texture_hold: bool,
     pub tux_texture_hold_frames: i32,
     pub open_left_door_back_up: bool,
@@ -173,6 +175,9 @@ impl<'a> State<'a> {
         let wallpaper_shader =
             rl.load_shader_from_memory(&thread, None, Some(include_str!("../shader/crt.fs")));
 
+        let laptop_shader =
+            rl.load_shader_from_memory(&thread, None, Some(include_str!("../shader/laptop.fs")));
+
         let tux_texture_hold = false;
         let tux_texture_hold_frames = 0;
 
@@ -240,6 +245,7 @@ impl<'a> State<'a> {
             var_name,
             framebuffer,
             wallpaper_shader,
+            laptop_shader,
             wallpaper_framebuffer,
             tux_texture_hold,
             tux_texture_hold_frames,
@@ -386,7 +392,7 @@ impl<'a> State<'a> {
         mx: i32,
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let (_img, tex) = match self.screen {
+        /*let (_img, tex) = match self.screen {
             Screen::Camera | Screen::GameOver => {
                 let img = Image::gen_image_white_noise(320, 240, 0.1);
                 let tex = rl.load_texture_from_image(&thread, &img)?;
@@ -406,19 +412,19 @@ impl<'a> State<'a> {
                 let tex = rl.load_texture_from_image(&thread, &img)?;
                 (img, tex)
             }
-        };
+        };*/
 
         let mut d = rl.begin_mode2D(self.camera);
         d.clear_background(Color::BLACK);
 
         match self.screen {
-            Screen::TitleScreen => self.title_screen_draw(&mut d, &thread, tex)?,
+            Screen::TitleScreen => self.title_screen_draw(&mut d, &thread)?,
             Screen::Credits => self.credits_draw(&mut d, &thread)?,
-            Screen::GameOver => self.gameover_draw(&mut d, &thread, tex)?,
+            Screen::GameOver => self.gameover_draw(&mut d, &thread)?,
             Screen::YouWin => self.win_draw(&mut d)?,
             Screen::Office => self.office_draw(&mut d, &thread)?,
             Screen::CameraRebooting => self.camera_rebooting_draw(&mut d, &thread)?,
-            Screen::Camera => self.camera_draw(&mut d, &thread, tex)?,
+            Screen::Camera => self.camera_draw(&mut d, &thread)?,
             Screen::Settings => {}
         }
 
@@ -518,24 +524,60 @@ impl<'a> State<'a> {
             corrected_height = corrected_width * 0.75;
         }
 
-        d.draw_texture_pro(
-            &self.framebuffer,
-            Rectangle::new(
-                config().width() as f32,
-                0.0,
-                -config().width() as f32,
-                config().height() as f32,
-            ),
-            Rectangle::new(
-                (d.get_render_width() as f32 / 2.0) + rot,
-                (d.get_render_height() as f32 / 2.0) + rot,
-                corrected_width,
-                corrected_height,
-            ),
-            Vector2::new(corrected_width / 2.0, corrected_height / 2.0),
-            180.0 + rot,
-            Color::WHITE,
+        self.laptop_shader.set_shader_value(
+            self.laptop_shader.get_shader_location("rand"),
+            UNIX_EPOCH.elapsed()?.as_nanos() as i32,
         );
+
+        self.laptop_shader.set_shader_value(
+            self.laptop_shader.get_shader_location("width"),
+            d.get_render_width(),
+        );
+        self.laptop_shader.set_shader_value(
+            self.laptop_shader.get_shader_location("height"),
+            d.get_render_height(),
+        );
+        if self.screen != Screen::Office {
+            let mut d = d.begin_shader_mode(&mut self.laptop_shader);
+
+            d.draw_texture_pro(
+                &self.framebuffer,
+                Rectangle::new(
+                    config().width() as f32,
+                    0.0,
+                    -config().width() as f32,
+                    config().height() as f32,
+                ),
+                Rectangle::new(
+                    (d.get_render_width() as f32 / 2.0) + rot,
+                    (d.get_render_height() as f32 / 2.0) + rot,
+                    corrected_width,
+                    corrected_height,
+                ),
+                Vector2::new(corrected_width / 2.0, corrected_height / 2.0),
+                180.0 + rot,
+                Color::WHITE,
+            );
+        } else {
+            d.draw_texture_pro(
+                &self.framebuffer,
+                Rectangle::new(
+                    config().width() as f32,
+                    0.0,
+                    -config().width() as f32,
+                    config().height() as f32,
+                ),
+                Rectangle::new(
+                    (d.get_render_width() as f32 / 2.0) + rot,
+                    (d.get_render_height() as f32 / 2.0) + rot,
+                    corrected_width,
+                    corrected_height,
+                ),
+                Vector2::new(corrected_width / 2.0, corrected_height / 2.0),
+                180.0 + rot,
+                Color::WHITE,
+            );
+        }
 
         d.draw_fps(10, 10);
         Ok(())

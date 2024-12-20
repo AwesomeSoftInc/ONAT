@@ -6,7 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-raylib = { path = "./raylib-rs/raylib", features = ["imgui"] }
+raylib = { path = "./raylib-rs/raylib", features = ["imgui", "opengl_33"] }
 num = "0.4.1"
 num-derive = "0.4.1"
 num-traits = "0.2.17"
@@ -27,6 +27,7 @@ libc = "0.2.167"
 default = []
 no_camera_timer = []
 beastie_always_move = []
+
 [package.metadata.appimage]
 auto_link = true
 
