@@ -528,6 +528,10 @@ impl<'a> State<'a> {
             self.laptop_shader.get_shader_location("rand"),
             UNIX_EPOCH.elapsed()?.as_nanos() as i32,
         );
+        self.laptop_shader.set_shader_value(
+            self.laptop_shader.get_shader_location("test_value"),
+            self.test_value,
+        );
 
         self.laptop_shader.set_shader_value(
             self.laptop_shader.get_shader_location("width"),
@@ -604,7 +608,10 @@ impl<'a> State<'a> {
                     self.arrow_click(d)?;
                     self.camera_ui_draw(&mut d, &thread)?;
                 }
-                Screen::Credits | Screen::GameOver | Screen::YouWin | Screen::CameraRebooting => {}
+                Screen::Credits | Screen::GameOver | Screen::YouWin | Screen::CameraRebooting => {
+                    self.arrow_click(d)?;
+                    self.camera_ui_draw(&mut d, &thread)?;
+                }
                 Screen::Office => {
                     self.office_clickable(&mut d, mx, my)?;
                     self.office_ui_draw(&mut d, &thread)?;

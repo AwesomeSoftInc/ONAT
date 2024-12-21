@@ -18,7 +18,7 @@ impl<'a> State<'a> {
         } else {
             self.camera_booting = true;
             self.sel_camera = Room::Room1;
-            self.screen = Screen::Office;
+            self.screen = Screen::CameraRebooting;
         }
         if self.going_to_office {
             if self.laptop_offset_y < config().height() as f64 {
@@ -115,7 +115,6 @@ impl<'a> State<'a> {
             mons.draw(self.textures, &mut d, 0.0, 0.0, 1.0, 1.0);
             if mons.move_timer() >= 1 || mons.time_in_room().elapsed()?.as_millis() <= 50 {
                 self.audio.brownian_noise.play_loop()?;
-
                 break;
             }
         }
@@ -139,10 +138,6 @@ impl<'a> State<'a> {
 
         let millis = self.camera_last_changed.elapsed()?.as_millis();
 
-        if millis <= 50 {
-            //self.audio.play_noise()?;
-        }
-
         if millis > 50 && millis <= 60 {
             self.audio.brownian_noise.halt();
         }
@@ -158,6 +153,12 @@ impl<'a> State<'a> {
                 self.going_to_office = false;
             }
         }
+        if self.camera_timer <= 100.0 {
+            self.camera_timer += CAMERA_TIME;
+        } else {
+            self.camera_booting = false;
+            self.screen = Screen::Camera;
+        }
     }
 
     pub fn camera_rebooting_draw(
@@ -169,7 +170,6 @@ impl<'a> State<'a> {
         d.clear_background(Color::BLACK);
 
         if self.camera_timer <= 100.0 {
-            self.camera_timer += CAMERA_TIME;
             let x = ((config().width() as i32 / 2) as f32) - (TEXT_WIDTH / 2) as f32;
             let y = config().height() / 2;
 
@@ -181,9 +181,6 @@ impl<'a> State<'a> {
                 6.0,
                 Color::WHITE,
             );
-        } else {
-            self.camera_booting = false;
-            self.screen = Screen::Camera;
         }
         Ok(())
     }
