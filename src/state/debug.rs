@@ -32,11 +32,11 @@ impl State<'_> {
                             ui.menu("Place in Hallway", || {
                                 if ui.button("Stage 1") {
                                     se.gang.penny.set_room(Room::Room3);
-                                    se.gang.penny.set_progress_to_hallway(1);
+                                    se.gang.penny.set_progress_to_hallway(0);
                                 }
                                 if ui.button("Stage 2") {
                                     se.gang.penny.set_room(Room::Room3);
-                                    se.gang.penny.set_progress_to_hallway(2);
+                                    se.gang.penny.set_progress_to_hallway(1);
                                 }
                             });
                             if ui.button("Jumpscare") {
@@ -46,12 +46,12 @@ impl State<'_> {
                         ui.menu("Beastie", || {
                             ui.menu("Place in Hallway", || {
                                 if ui.button("Stage 1") {
-                                    se.gang.beastie.set_room(Room::Room3);
-                                    se.gang.beastie.set_progress_to_hallway(1);
+                                    se.gang.beastie.set_room(Room::Room5);
+                                    se.gang.beastie.set_progress_to_hallway(0);
                                 }
                                 if ui.button("Stage 2") {
-                                    se.gang.beastie.set_room(Room::Room3);
-                                    se.gang.beastie.set_progress_to_hallway(2);
+                                    se.gang.beastie.set_room(Room::Room5);
+                                    se.gang.beastie.set_progress_to_hallway(1);
                                 }
                             });
                             if ui.button("Jumpscare") {
