@@ -155,6 +155,7 @@ pub fn asset_fill(_item: TokenStream) -> TokenStream {
     let mut impl_structs: HashMap<String, Vec<String>> = HashMap::new();
     let mut fields = vec![];
     let mut functions: HashMap<String, Vec<String>> = HashMap::new();
+    let mut texfilter_set: HashMap<String, Vec<String>> = HashMap::new();
     let mut impl_fields = vec![];
     let mut define = vec![];
 
@@ -164,6 +165,7 @@ pub fn asset_fill(_item: TokenStream) -> TokenStream {
             assets,
             &mut fields,
             &mut functions,
+            &mut texfilter_set,
             &mut impl_fields,
             &mut define,
             &mut structs,
@@ -199,12 +201,16 @@ pub fn asset_fill(_item: TokenStream) -> TokenStream {
             fuck1, you1
         );
         for (k, v) in structs {
+            if let None = impl_structs.get(&k) {
+                continue;
+            }
             let fuck = v.join(",");
             you += &format!("pub struct {} {{{}}}\n", k, fuck);
 
             let thisimpl = impl_structs.get(&k).unwrap().join("\n");
             let thisdefine = define_structs.get(&k).unwrap().join(",\n");
             let thisfuncs = functions.get(&k).unwrap().join("\n");
+            let thisfilter = texfilter_set.get(&k).unwrap().join("\n");
             you += &format!(
                 "impl {} {{
                 pub fn new() -> Result<Self, Box<dyn Error>> {{
@@ -213,10 +219,13 @@ pub fn asset_fill(_item: TokenStream) -> TokenStream {
                         {}
                     }})
                 }}
-
                 {}
+
+                pub fn set_texture_filter(&self, rl: &mut RaylibHandle, thread: &RaylibThread, filter: TextureFilter) {{
+                    {}
+                }}
             }}",
-                k, thisimpl, thisdefine, thisfuncs
+                k, thisimpl, thisdefine, thisfuncs,thisfilter
             );
         }
         return you.parse().unwrap();
@@ -227,6 +236,7 @@ fn yeah(
     assets: ReadDir,
     fields: &mut Vec<String>,
     functions: &mut HashMap<String, Vec<String>>,
+    texfilter_set: &mut HashMap<String, Vec<String>>,
     impl_fields: &mut Vec<String>,
     define: &mut Vec<String>,
     structs: &mut HashMap<String, Vec<String>>,
@@ -254,18 +264,21 @@ fn yeah(
                 if let None = structs.get(&tex) {
                     structs.insert(tex.clone(), Vec::new());
                 }
+                if let None = impl_structs.get(&tex) {
+                    impl_structs.insert(tex.clone(), Vec::new());
+                }
                 if let None = define_structs.get(&tex) {
                     define_structs.insert(tex.clone(), Vec::new());
                 }
-                if let None = impl_structs.get(&tex) {
-                    impl_structs.insert(tex.clone(), Vec::new());
+                if let None = texfilter_set.get(&tex) {
+                    texfilter_set.insert(tex.clone(), Vec::new());
                 }
                 if let None = functions.get(&tex) {
                     functions.insert(tex.clone(), Vec::new());
                 }
                 let a = structs.get_mut(&tex).unwrap();
                 let b = define_structs.get_mut(&tex).unwrap();
-                let c = impl_structs.get_mut(&tex).unwrap();
+                let c = texfilter_set.get_mut(&tex).unwrap();
                 let d = functions.get_mut(&tex).unwrap();
 
                 let subdir = std::fs::read_dir(asset.path().to_str().unwrap().to_string())?;
@@ -285,14 +298,22 @@ fn yeah(
                         ));
                         b.push(format!("_set_{}: Mutex::new(false)", n.clone()));
 
+                        c.push(format!(
+                            "if *self._set_{n}.lock() {{
+                                self._{n}.lock().set_texture_filter(&thread, filter);
+                            }};\n",
+                            n = n,
+                        ));
+
                         d.push(format!(
                             "pub fn {n}(&self) -> MutexGuard<Texture2D> {{
                                 let set_{n} = *self._set_{n}.lock();
                                 if !set_{n} {{
                                     let {n} = unsafe {{
-                                        Texture2D::from_raw(ffi::LoadTextureFromImage(*Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec()).unwrap()))
+                                        let n = ffi::LoadTextureFromImage(*Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec()).unwrap());
+                                        ffi::SetTextureFilter(n, TextureFilter::TEXTURE_FILTER_BILINEAR as i32);
+                                        Texture2D::from_raw(n)
                                     }};
-                                    // {n}.set_texture_filter(&self.thread, TextureFilter::TEXTURE_FILTER_BILINEAR);
                                     *self._{n}.lock() = {n};
                                     *self._set_{n}.lock() = true;
                                 }};
@@ -315,6 +336,7 @@ fn yeah(
                     std::fs::read_dir(asset.path().to_str().unwrap().to_string())?,
                     fields,
                     functions,
+                    texfilter_set,
                     impl_fields,
                     define,
                     structs,

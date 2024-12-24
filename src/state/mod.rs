@@ -119,6 +119,8 @@ pub struct State<'a> {
 
     pub pan_left: u8,
     pub pan_right: u8,
+
+    pub cur_texture_filter: TextureFilter,
 }
 
 impl<'a> State<'a> {
@@ -260,6 +262,7 @@ impl<'a> State<'a> {
             mouse_pointer: false,
             pan_left: 0,
             pan_right: 0,
+            cur_texture_filter: TextureFilter::TEXTURE_FILTER_BILINEAR,
         };
         Ok(state)
     }
@@ -608,7 +611,8 @@ impl<'a> State<'a> {
                     self.arrow_click(d)?;
                     self.camera_ui_draw(&mut d, &thread)?;
                 }
-                Screen::Credits | Screen::GameOver | Screen::YouWin | Screen::CameraRebooting => {
+                Screen::Credits | Screen::GameOver | Screen::YouWin => {}
+                Screen::CameraRebooting => {
                     self.arrow_click(d)?;
                     self.camera_ui_draw(&mut d, &thread)?;
                 }

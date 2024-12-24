@@ -10,10 +10,30 @@ use raylib::prelude::*;
 impl State<'_> {
     pub fn settings_draw(
         &mut self,
-        d: &mut RaylibDrawHandle,
+        mut d: &mut RaylibDrawHandle,
         thread: &RaylibThread,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut back = AtomicBool::new(false);
+
+        let texturefilter = Mutex::new(None);
+
+        let filters = [
+            ("Bilinear", TextureFilter::TEXTURE_FILTER_BILINEAR),
+            ("Trilinear", TextureFilter::TEXTURE_FILTER_TRILINEAR),
+            (
+                "Anisotrpoic 4x",
+                TextureFilter::TEXTURE_FILTER_ANISOTROPIC_4X,
+            ),
+            (
+                "Anisotrpoic 8x",
+                TextureFilter::TEXTURE_FILTER_ANISOTROPIC_8X,
+            ),
+            (
+                "Anisotrpoic 16x",
+                TextureFilter::TEXTURE_FILTER_ANISOTROPIC_16X,
+            ),
+            ("Point", TextureFilter::TEXTURE_FILTER_POINT),
+        ];
         d.start_imgui(|ui| {
             ui.window("Settings")
                 .position(
@@ -34,12 +54,28 @@ impl State<'_> {
                     ui.slider("UI Scale", 0.1, 4.0, &mut scale);
                     config_mut().set_ui_scale(scale);
 
+                    ui.menu("Texture Filter", || {
+                        for filter in filters {
+                            if ui
+                                .menu_item_config(filter.0)
+                                .selected(self.cur_texture_filter == filter.1)
+                                .build()
+                            {
+                                *texturefilter.lock() = Some(filter.1)
+                            };
+                        }
+                    });
+
                     if ui.button("<- Back") {
                         back.store(true, std::sync::atomic::Ordering::Relaxed);
                     }
                 });
         });
 
+        if let Some(a) = *texturefilter.lock() {
+            self.textures.set_texture_filter(&mut d, &thread, a);
+            self.cur_texture_filter = a;
+        }
         if *back.get_mut() {
             self.screen = Screen::TitleScreen;
         }
