@@ -107,9 +107,9 @@ impl<'a> State<'a> {
                     Color::WHITE,
                 );
             }
-            let office_corners = &*self.textures.misc.office_corners();
+            let office_corners = &*self.textures.office.corners();
             a!(office_corners);
-            let door_left = &*self.textures.misc.door_left();
+            let door_left = &*self.textures.office.door_left();
             d.draw_texture_pro(
                 &door_left,
                 texture_rect!(door_left),
@@ -123,7 +123,7 @@ impl<'a> State<'a> {
                 0.0,
                 Color::WHITE,
             );
-            let door_right = &*self.textures.misc.door_right();
+            let door_right = &*self.textures.office.door_right();
             d.draw_texture_pro(
                 &door_right,
                 texture_rect!(door_right),
@@ -138,15 +138,15 @@ impl<'a> State<'a> {
                 Color::WHITE,
             );
 
-            let office_part1 = &*self.textures.misc.office_part1();
+            let office_part1 = &*self.textures.office.office_part1();
             a!(office_part1);
 
             if self.gang.wilber.active() {
                 let texture = &*match self.gang.wilber.stage {
-                    0 => self.textures.wilberPoster.poster(),
-                    1 => self.textures.wilberPoster.posterprogress1(),
-                    2 => self.textures.wilberPoster.posterprogress2(),
-                    _ => self.textures.wilberPoster.posterprogress3(),
+                    0 => self.textures.office.poster1(),
+                    1 => self.textures.office.poster2(),
+                    2 => self.textures.office.poster3(),
+                    _ => self.textures.office.postergameover(),
                 };
                 let time = match self.gang.wilber.time_since_appeared {
                     Some(a) => {
@@ -180,23 +180,23 @@ impl<'a> State<'a> {
             }
         }
 
-        let office_part2 = &*self.textures.misc.office_part2();
-        let button1 = &*self.textures.misc.button1();
-        let button2 = &*self.textures.misc.button2();
+        let office_part2 = &*self.textures.office.office_part2();
+        let button1 = &*self.textures.office.button_left();
+        let button2 = &*self.textures.office.button_right();
         a!(office_part2);
         a!(button1);
         a!(button2);
 
-        let door_light_left_on = &*self.textures.misc.door_light_left_on();
-        let door_light_left_off = &*self.textures.misc.door_light_left_off();
+        let door_light_left_on = &*self.textures.office.door_light_left_on();
+        let door_light_left_off = &*self.textures.office.door_light_left_off();
         if !self.can_open_left_door {
             a!(door_light_left_on);
         } else {
             a!(door_light_left_off);
         }
 
-        let door_light_right_on = &*self.textures.misc.door_light_right_on();
-        let door_light_right_off = &*self.textures.misc.door_light_right_off();
+        let door_light_right_on = &*self.textures.office.door_light_right_on();
+        let door_light_right_off = &*self.textures.office.door_light_right_off();
         if !self.can_open_right_door {
             a!(door_light_right_on);
         } else {
@@ -398,8 +398,8 @@ impl<'a> State<'a> {
                     }
                 }
                 MonsterName::Beastie => {
-                    let width = self.textures.beastie.slide().width;
-                    let height = self.textures.beastie.slide().height;
+                    let width = self.textures.bsd.slide().width;
+                    let height = self.textures.bsd.slide().height;
                     let cutoff = self.gameover_time.elapsed()?.as_millis() <= 500;
                     let x_offset = {
                         let o = self.gameover_time.elapsed()?.as_millis() as f32 * 2.0;
@@ -417,7 +417,7 @@ impl<'a> State<'a> {
                     let x = (config().width() as f32) - x_offset;
                     let y = config().height() as f32 - height as f32;
                     if cutoff {
-                        let slide = &*self.textures.beastie.slide();
+                        let slide = &*self.textures.bsd.slide();
                         d.draw_texture_pro(
                             &slide,
                             texture_rect!(slide),
@@ -590,88 +590,88 @@ impl<'a> State<'a> {
 pub fn get_jumpscare(id: MonsterName, textures: &Textures) -> Vec<MutexGuard<Texture2D>> {
     match id {
         MonsterName::Penny => vec![
-            textures.penny_jumpscare.frame1(),
-            textures.penny_jumpscare.frame2(),
-            textures.penny_jumpscare.frame3(),
-            textures.penny_jumpscare.frame4(),
-            textures.penny_jumpscare.frame5(),
-            textures.penny_jumpscare.frame6(),
-            textures.penny_jumpscare.frame7(),
-            textures.penny_jumpscare.frame8(),
-            textures.penny_jumpscare.frame9(),
-            textures.penny_jumpscare.frame10(),
-            textures.penny_jumpscare.frame11(),
-            textures.penny_jumpscare.frame12(),
-            textures.penny_jumpscare.frame13(),
-            textures.penny_jumpscare.frame14(),
-            textures.penny_jumpscare.frame15(),
-            textures.penny_jumpscare.frame16(),
-            textures.penny_jumpscare.frame17(),
-            textures.penny_jumpscare.frame18(),
-            textures.penny_jumpscare.frame19(),
+            textures.penny.jumpscare1(),
+            textures.penny.jumpscare2(),
+            textures.penny.jumpscare3(),
+            textures.penny.jumpscare4(),
+            textures.penny.jumpscare5(),
+            textures.penny.jumpscare6(),
+            textures.penny.jumpscare7(),
+            textures.penny.jumpscare8(),
+            textures.penny.jumpscare9(),
+            textures.penny.jumpscare10(),
+            textures.penny.jumpscare11(),
+            textures.penny.jumpscare12(),
+            textures.penny.jumpscare13(),
+            textures.penny.jumpscare14(),
+            textures.penny.jumpscare15(),
+            textures.penny.jumpscare16(),
+            textures.penny.jumpscare17(),
+            textures.penny.jumpscare18(),
+            textures.penny.jumpscare19(),
         ],
         MonsterName::Beastie => vec![
-            textures.beastie_jumpscare.frame1(),
-            textures.beastie_jumpscare.frame2(),
-            textures.beastie_jumpscare.frame3(),
-            textures.beastie_jumpscare.frame4(),
-            textures.beastie_jumpscare.frame5(),
-            textures.beastie_jumpscare.frame6(),
-            textures.beastie_jumpscare.frame7(),
-            textures.beastie_jumpscare.frame8(),
-            textures.beastie_jumpscare.frame9(),
-            textures.beastie_jumpscare.frame10(),
-            textures.beastie_jumpscare.frame11(),
-            textures.beastie_jumpscare.frame12(),
-            textures.beastie_jumpscare.frame13(),
-            textures.beastie_jumpscare.frame14(),
+            textures.bsd.jumpscare1(),
+            textures.bsd.jumpscare2(),
+            textures.bsd.jumpscare3(),
+            textures.bsd.jumpscare4(),
+            textures.bsd.jumpscare5(),
+            textures.bsd.jumpscare6(),
+            textures.bsd.jumpscare7(),
+            textures.bsd.jumpscare8(),
+            textures.bsd.jumpscare9(),
+            textures.bsd.jumpscare10(),
+            textures.bsd.jumpscare11(),
+            textures.bsd.jumpscare12(),
+            textures.bsd.jumpscare13(),
+            textures.bsd.jumpscare14(),
         ],
         MonsterName::Wilber => vec![
-            textures.wilber_jumpscare.frame1(),
-            textures.wilber_jumpscare.frame2(),
-            textures.wilber_jumpscare.frame3(),
-            textures.wilber_jumpscare.frame4(),
+            textures.wilbur.jumpscare1(),
+            textures.wilbur.jumpscare2(),
+            textures.wilbur.jumpscare3(),
+            textures.wilbur.jumpscare4(),
         ],
         MonsterName::GoGopher => vec![
-            textures.gopher_jumpscare.frame1(),
-            textures.gopher_jumpscare.frame2(),
-            textures.gopher_jumpscare.frame3(),
-            textures.gopher_jumpscare.frame4(),
-            textures.gopher_jumpscare.frame5(),
-            textures.gopher_jumpscare.frame6(),
-            textures.gopher_jumpscare.frame7(),
-            textures.gopher_jumpscare.frame8(),
-            textures.gopher_jumpscare.frame9(),
-            textures.gopher_jumpscare.frame10(),
+            textures.gopher.jumpscare1(),
+            textures.gopher.jumpscare2(),
+            textures.gopher.jumpscare3(),
+            textures.gopher.jumpscare4(),
+            textures.gopher.jumpscare5(),
+            textures.gopher.jumpscare6(),
+            textures.gopher.jumpscare7(),
+            textures.gopher.jumpscare8(),
+            textures.gopher.jumpscare9(),
+            textures.gopher.jumpscare10(),
         ],
         MonsterName::Tux => vec![
-            textures.tux_jumpscare_direct.frame1(),
-            textures.tux_jumpscare_direct.frame2(),
-            textures.tux_jumpscare_direct.frame3(),
-            textures.tux_jumpscare_direct.frame4(),
-            textures.tux_jumpscare_direct.frame5(),
-            textures.tux_jumpscare_direct.frame6(),
-            textures.tux_jumpscare_direct.frame7(),
-            textures.tux_jumpscare_direct.frame8(),
-            textures.tux_jumpscare_direct.frame9(),
-            textures.tux_jumpscare_direct.frame10(),
-            textures.tux_jumpscare_direct.frame11(),
-            textures.tux_jumpscare_direct.frame12(),
+            textures.tux.jumpscare1(),
+            textures.tux.jumpscare2(),
+            textures.tux.jumpscare3(),
+            textures.tux.jumpscare4(),
+            textures.tux.jumpscare5(),
+            textures.tux.jumpscare6(),
+            textures.tux.jumpscare7(),
+            textures.tux.jumpscare8(),
+            textures.tux.jumpscare9(),
+            textures.tux.jumpscare10(),
+            textures.tux.jumpscare11(),
+            textures.tux.jumpscare12(),
         ],
         MonsterName::Nolok => vec![],
         MonsterName::GoldenTux => vec![
-            textures.golden_tux_jumpscare_direct.frame1(),
-            textures.golden_tux_jumpscare_direct.frame2(),
-            textures.golden_tux_jumpscare_direct.frame3(),
-            textures.golden_tux_jumpscare_direct.frame4(),
-            textures.golden_tux_jumpscare_direct.frame5(),
-            textures.golden_tux_jumpscare_direct.frame6(),
-            textures.golden_tux_jumpscare_direct.frame7(),
-            textures.golden_tux_jumpscare_direct.frame8(),
-            textures.golden_tux_jumpscare_direct.frame9(),
-            textures.golden_tux_jumpscare_direct.frame10(),
-            textures.golden_tux_jumpscare_direct.frame11(),
-            textures.golden_tux_jumpscare_direct.frame12(),
+            textures.golden_tux.jumpscare1(),
+            textures.golden_tux.jumpscare2(),
+            textures.golden_tux.jumpscare3(),
+            textures.golden_tux.jumpscare4(),
+            textures.golden_tux.jumpscare5(),
+            textures.golden_tux.jumpscare6(),
+            textures.golden_tux.jumpscare7(),
+            textures.golden_tux.jumpscare8(),
+            textures.golden_tux.jumpscare9(),
+            textures.golden_tux.jumpscare10(),
+            textures.golden_tux.jumpscare11(),
+            textures.golden_tux.jumpscare12(),
         ],
         MonsterName::None => vec![],
     }

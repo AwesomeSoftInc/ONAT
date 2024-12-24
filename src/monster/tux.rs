@@ -103,12 +103,12 @@ impl Monster for Tux {
         match self.room {
             Room::Room1 => {
                 if self.active {
-                    Some(textures.tux.awake())
+                    Some(textures.tux.tuxawake())
                 } else {
-                    Some(textures.tux.inactive())
+                    Some(textures.tux.tuxidle())
                 }
             }
-            Room::Room3 | Room::Room5 => Some(textures.tux.slide()),
+            Room::Room3 | Room::Room5 => Some(textures.tux.slidingtux()),
             _ => None,
         }
     }

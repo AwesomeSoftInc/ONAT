@@ -45,7 +45,7 @@ impl Monster for GoldenTux {
 
     fn get_texture<'a>(&'a self, textures: &'a mut Textures) -> Option<MutexGuard<Texture2D>> {
         if self.active {
-            Some(textures.misc.golden_tux())
+            Some(textures.golden_tux.golden_tux())
         } else {
             None
         }

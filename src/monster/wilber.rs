@@ -69,13 +69,13 @@ impl Monster for Wilber {
     fn get_texture<'a>(&'a self, textures: &'a mut Textures) -> Option<MutexGuard<Texture2D>> {
         if self.active {
             match self.stage {
-                0 => Some(textures.wilber.progress1()),
-                1 => Some(textures.wilber.progress2()),
-                2 => Some(textures.wilber.progress3()),
+                0 => Some(textures.wilbur.wilburactive()),
+                1 => Some(textures.wilbur.wilburprogress()),
+                2 => Some(textures.wilbur.wilburfinal()),
                 _ => None,
             }
         } else {
-            Some(textures.wilber.inactive())
+            Some(textures.wilbur.wilburinactive())
         }
     }
 }

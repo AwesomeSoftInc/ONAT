@@ -41,20 +41,20 @@ impl Monster for Beastie {
         if self.active {
             match self.room {
                 Room::Room2 => match self.progress_to_hallway {
-                    0 => Some(textures.beastie.cam2stage1()),
-                    1 => Some(textures.beastie.cam2stage2()),
+                    0 => Some(textures.bsd.bsdhall1()),
+                    1 => Some(textures.bsd.bsdhall2()),
                     _ => None,
                 },
                 Room::Room5 => match self.progress_to_hallway {
-                    0 => Some(textures.beastie.cam5stage1()),
-                    1 => Some(textures.beastie.cam5stage2()),
+                    0 => Some(textures.bsd.bsdapproach1()),
+                    1 => Some(textures.bsd.bsdapproach2()),
                     _ => None,
                 },
                 Room::Office => {
                     if self.timer_until_office().elapsed().unwrap().as_secs()
                         >= MONSTER_TIME_OFFICE_WAIT_THING
                     {
-                        Some(textures.beastie.bsdatdoor())
+                        Some(textures.bsd.office())
                     } else {
                         None
                     }

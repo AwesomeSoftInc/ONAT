@@ -59,7 +59,7 @@ impl Monster for GoGopher {
                 if self.timer_until_office().elapsed().unwrap().as_secs()
                     >= MONSTER_TIME_OFFICE_WAIT_THING
                 {
-                    Some(textures.gopher.gopheroffice())
+                    Some(textures.gopher.office())
                 } else {
                     None
                 }

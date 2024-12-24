@@ -40,20 +40,20 @@ impl Monster for Penny {
         if self.active {
             match self.room {
                 Room::Room2 => match self.progress_to_hallway {
-                    0 => Some(textures.penny.cam2stage1()),
-                    1 => Some(textures.penny.cam2stage2()),
+                    0 => Some(textures.penny.pennyhall1()),
+                    1 => Some(textures.penny.pennyhall2()),
                     _ => None,
                 },
                 Room::Room3 => match self.progress_to_hallway {
-                    0 => Some(textures.penny.cam3stage1()),
-                    1 => Some(textures.penny.cam3stage2()),
+                    0 => Some(textures.penny.pennyarmcross()),
+                    1 => Some(textures.penny.pennysmoke()),
                     _ => None,
                 },
                 Room::Office => {
                     if self.timer_until_office().elapsed().unwrap().as_secs()
                         >= MONSTER_TIME_OFFICE_WAIT_THING
                     {
-                        Some(textures.penny.pennydoor())
+                        Some(textures.penny.office())
                     } else {
                         None
                     }

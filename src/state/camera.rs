@@ -44,30 +44,30 @@ impl<'a> State<'a> {
         }
 
         {
-            let textures = &self.textures.misc;
+            let textures = &self.textures;
 
             let texture = &*match self.sel_camera {
-                Room::Room1 => textures.cam1(),
-                Room::Room2 => textures.cam2(),
+                Room::Room1 => textures.rooms.tuxslair(),
+                Room::Room2 => textures.rooms.mainhall(),
                 Room::Room3 => {
                     if !self.skinman_appeared {
                         if self.skinman_chance <= 1 {
                             if self.camera_last_changed.elapsed()?.as_millis() <= 250 {
-                                textures.cam3_happyskinman()
+                                textures.rooms.bigtuxwatching_happyskinman()
                             } else {
                                 self.skinman_appeared = true;
-                                textures.cam3()
+                                textures.rooms.bigtuxwatching()
                             }
                         } else {
-                            textures.cam3()
+                            textures.rooms.bigtuxwatching()
                         }
                     } else {
-                        textures.cam3()
+                        textures.rooms.bigtuxwatching()
                     }
                 }
-                Room::Room4 => textures.cam4(),
-                Room::Room5 => textures.cam5(),
-                Room::Room6 => textures.cam6(),
+                Room::Room4 => textures.rooms.airduct(),
+                Room::Room5 => textures.rooms.otherhall(),
+                Room::Room6 => textures.rooms.drawingroom(),
                 _ => {
                     panic!("tried to draw unsupported room {:?}", self.sel_camera)
                 }
