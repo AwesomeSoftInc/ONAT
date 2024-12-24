@@ -13,6 +13,24 @@ use crate::{
 use parking_lot::{Mutex, MutexGuard};
 use raylib::prelude::*;
 
+macro_rules! office_texture_draw {
+    ($self:ident, $d:ident, $($val:tt).*) => {
+        $d.draw_texture_pro(
+            &$($val).*,
+            texture_rect!($($val).*),
+            Rectangle::new(
+                -$self.bg_offset_x,
+                0.0,
+                config().width() as f32 * 1.6,
+                config().height() as f32,
+            ),
+            Vector2::new(0.0, 0.0),
+            0.0,
+            Color::WHITE,
+        );
+    };
+}
+
 impl<'a> State<'a> {
     pub fn office_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         #[cfg(not(feature = "no_camera_timer"))]
@@ -72,23 +90,6 @@ impl<'a> State<'a> {
         let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
         d.clear_background(Color::BLACK);
 
-        macro_rules! a {
-                                ($($val:tt).*) => {
-                                    d.draw_texture_pro(
-                                        &$($val).*,
-                                        texture_rect!($($val).*),
-                                        Rectangle::new(
-                                            -self.bg_offset_x,
-                                            0.0,
-                                            config().width() as f32 * 1.6,
-                                            config().height() as f32,
-                                        ),
-                                        Vector2::new(0.0, 0.0),
-                                        0.0,
-                                        Color::WHITE,
-                                    );
-                                };
-                            }
         {
             {
                 let mut d = d.begin_shader_mode(&mut self.wallpaper_shader);
@@ -97,18 +98,18 @@ impl<'a> State<'a> {
                     &self.wallpaper_framebuffer,
                     Rectangle::new(tex.width as f32, 0.0, -tex.width as f32, tex.height as f32),
                     Rectangle::new(
-                        790.0 - self.bg_offset_x,
-                        720.0,
-                        config().width() as f32 / 3.5,
-                        config().height() as f32 / 3.5,
+                        1010.0 - self.bg_offset_x,
+                        730.0,
+                        config().width() as f32 / 4.0,
+                        config().height() as f32 / 4.0,
                     ),
-                    Vector2::new(640.0, 240.0),
+                    Vector2::new(320.0, 240.0),
                     180.0,
                     Color::WHITE,
                 );
             }
             let office_corners = &*self.textures.office.corners();
-            a!(office_corners);
+            office_texture_draw!(self, d, office_corners);
             let door_left = &*self.textures.office.door_left();
             d.draw_texture_pro(
                 &door_left,
@@ -139,7 +140,7 @@ impl<'a> State<'a> {
             );
 
             let office_part1 = &*self.textures.office.office_part1();
-            a!(office_part1);
+            office_texture_draw!(self, d, office_part1);
 
             if self.gang.wilber.active() {
                 let texture = &*match self.gang.wilber.stage {
@@ -183,24 +184,24 @@ impl<'a> State<'a> {
         let office_part2 = &*self.textures.office.office_part2();
         let button1 = &*self.textures.office.button_left();
         let button2 = &*self.textures.office.button_right();
-        a!(office_part2);
-        a!(button1);
-        a!(button2);
+        office_texture_draw!(self, d, office_part2);
+        office_texture_draw!(self, d, button1);
+        office_texture_draw!(self, d, button2);
 
         let door_light_left_on = &*self.textures.office.door_light_left_on();
         let door_light_left_off = &*self.textures.office.door_light_left_off();
         if !self.can_open_left_door {
-            a!(door_light_left_on);
+            office_texture_draw!(self, d, door_light_left_on);
         } else {
-            a!(door_light_left_off);
+            office_texture_draw!(self, d, door_light_left_off);
         }
 
         let door_light_right_on = &*self.textures.office.door_light_right_on();
         let door_light_right_off = &*self.textures.office.door_light_right_off();
         if !self.can_open_right_door {
-            a!(door_light_right_on);
+            office_texture_draw!(self, d, door_light_right_on);
         } else {
-            a!(door_light_right_off);
+            office_texture_draw!(self, d, door_light_right_off);
         }
 
         if self.laptop_offset_y < config().height() as f64 {
@@ -570,7 +571,7 @@ impl<'a> State<'a> {
     pub fn wallpaper_draw(&mut self, d: &mut RaylibDrawHandle, thread: &RaylibThread) {
         let mut d = d.begin_texture_mode(&thread, &mut self.wallpaper_framebuffer);
 
-        let wallpaper = &*self.textures.misc.wallpaper();
+        let wallpaper = &*self.textures.office.wallpaper();
 
         let center = Vector2::new((wallpaper.width / 2) as f32, (wallpaper.height / 2) as f32);
 
