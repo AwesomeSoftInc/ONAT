@@ -70,7 +70,7 @@ impl<'a> State<'a> {
 
         d.draw_text_ex(
             &self.font,
-            "A Moderately\nUncomfortable\nNight\nwith Tux",
+            "A Moderately Uncomfortable\nNight with Tux",
             Vector2::new(Self::title_x() as f32, Self::title_y() as f32),
             64.0,
             6.0,
