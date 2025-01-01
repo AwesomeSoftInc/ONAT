@@ -87,12 +87,22 @@ macro_rules! texture_rect {
 #[macro_export]
 macro_rules! style_push {
     ($ui:tt) => {
-        vec![
-            $ui.push_style_color(StyleColor::Button, [0.25, 0.25, 0.25, 1.0]),
-            $ui.push_style_color(StyleColor::ButtonHovered, [0.15, 0.15, 0.15, 1.0]),
-            $ui.push_style_color(StyleColor::ButtonActive, [0.05, 0.05, 0.05, 1.0]),
-            $ui.push_style_color(StyleColor::Separator, [0.0, 0.0, 0.0, 0.0]),
-        ]
+        (
+            vec![
+                $ui.push_style_color(::imgui::StyleColor::Button, [0.25, 0.25, 0.25, 1.0]),
+                $ui.push_style_color(::imgui::StyleColor::ButtonHovered, [0.15, 0.15, 0.15, 1.0]),
+                $ui.push_style_color(::imgui::StyleColor::ButtonActive, [0.05, 0.05, 0.05, 1.0]),
+                $ui.push_style_color(::imgui::StyleColor::Separator, [0.0, 0.0, 0.0, 0.0]),
+                $ui.push_style_color(::imgui::StyleColor::Border, [1.0, 0.25, 0.25, 1.0]),
+                $ui.push_style_color(::imgui::StyleColor::BorderShadow, [1.0, 0.25, 0.25, 1.0]),
+            ],
+            vec![
+                $ui.push_style_var(::imgui::StyleVar::WindowBorderSize(0.0)),
+                $ui.push_style_var(::imgui::StyleVar::ChildBorderSize(0.0)),
+                $ui.push_style_var(::imgui::StyleVar::PopupBorderSize(0.0)),
+                $ui.push_style_var(::imgui::StyleVar::FrameBorderSize(0.0)),
+            ],
+        )
     };
 }
 
@@ -100,7 +110,10 @@ macro_rules! style_push {
 #[macro_export]
 macro_rules! style_pop {
     ($styles:tt) => {
-        for style in $styles {
+        for style in $styles.0 {
+            style.pop();
+        }
+        for style in $styles.1 {
             style.pop();
         }
     };

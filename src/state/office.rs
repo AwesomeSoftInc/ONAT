@@ -9,6 +9,7 @@ use crate::{
     texture_rect,
     textures::Textures,
 };
+use crate::{style_pop, style_push};
 
 use parking_lot::{Mutex, MutexGuard};
 use raylib::prelude::*;
@@ -481,11 +482,14 @@ impl<'a> State<'a> {
                 .build(|| {
                     let se = s.lock();
 
+                    let styles = style_push!(ui);
                     ui.set_window_font_scale(config().ui_scale());
 
                     se.draw_battery(ui.get_window_draw_list()).unwrap();
                     se.draw_arrow(ui.get_window_draw_list()).unwrap();
                     se.draw_time(ui.get_window_draw_list()).unwrap();
+
+                    style_pop!(styles);
                 });
         });
         Ok(())

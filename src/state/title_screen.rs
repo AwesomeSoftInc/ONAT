@@ -110,7 +110,6 @@ impl<'a> State<'a> {
 
                     let styles = style_push!(ui);
                     let alpha_style = ui.push_style_color(StyleColor::Text, [1.0, 1.0, 1.0, alpha]);
-                    let bsize = ui.push_style_var(StyleVar::FrameBorderSize(0.0));
 
                     if ui.button("Start Game") {
                         goto_title.store(true, Ordering::Relaxed);
@@ -125,7 +124,6 @@ impl<'a> State<'a> {
                     };
 
                     style_pop!(styles);
-                    bsize.pop();
                     alpha_style.pop();
                 });
         });

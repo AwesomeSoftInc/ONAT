@@ -244,6 +244,7 @@ impl<'a> State<'a> {
                 )
                 .build(|| {
                     ui.set_window_font_scale(config().ui_scale());
+                    let styles = style_push!(ui);
 
                     se.draw_battery(ui.get_window_draw_list()).unwrap();
                     se.draw_arrow(ui.get_window_draw_list()).unwrap();
@@ -257,15 +258,14 @@ impl<'a> State<'a> {
                             Self::bat_start(),
                             config().real_height() as f32 - (bat_height * 3.0),
                         ]);
-                        let styles = style_push!(ui);
                         if ui.button_with_size(
                             "HEAT UP",
                             [Self::bat_width() as f32, bat_height as f32 / 2.0],
                         ) {
                             duct_heatup.store(true, Ordering::Relaxed);
                         }
-                        style_pop!(styles);
                     }
+                    style_pop!(styles);
                 });
         });
 
