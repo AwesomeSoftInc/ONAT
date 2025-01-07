@@ -38,6 +38,10 @@ impl State<'_> {
                                     se.gang.penny.set_room(Room::Room3);
                                     se.gang.penny.set_progress_to_hallway(1);
                                 }
+                                if ui.button("Stage 3") {
+                                    se.gang.penny.set_room(Room::Room3);
+                                    se.gang.penny.set_progress_to_hallway(2);
+                                }
                             });
                             if ui.button("Jumpscare") {
                                 se.debug_set_jumpscarer(MonsterName::Penny);
@@ -52,6 +56,10 @@ impl State<'_> {
                                 if ui.button("Stage 2") {
                                     se.gang.beastie.set_room(Room::Room5);
                                     se.gang.beastie.set_progress_to_hallway(1);
+                                }
+                                if ui.button("Stage 3") {
+                                    se.gang.beastie.set_room(Room::Room5);
+                                    se.gang.beastie.set_progress_to_hallway(2);
                                 }
                             });
                             if ui.button("Jumpscare") {

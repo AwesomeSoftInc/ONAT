@@ -379,55 +379,8 @@ impl<'a> State<'a> {
             _ => {}
         }
 
-        Ok(())
-    }
-
-    /**
-    Draw things from the state onto the window.
-
-    It is IMPERITIVE that anything that should be in `State::step` is in the right function, as the `State::draw_step` is called at an uncapped rate as opposed to 60 times a second. Vice versa applies.
-     */
-    pub fn draw_step(
-        &mut self,
-        rl: &mut RaylibDrawHandle,
-        thread: &RaylibThread,
-        mx: i32,
-        my: i32,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        /*let (_img, tex) = match self.screen {
-            Screen::Camera | Screen::GameOver => {
-                let img = Image::gen_image_white_noise(320, 240, 0.1);
-                let tex = rl.load_texture_from_image(&thread, &img)?;
-                (img, tex)
-            }
-            Screen::TitleScreen | Screen::Credits => {
-                let img = Image::gen_image_white_noise(
-                    config().width_raw() / 6,
-                    config().height() / 6,
-                    0.1,
-                );
-                let tex = rl.load_texture_from_image(&thread, &img)?;
-                (img, tex)
-            }
-            _ => {
-                let img = Image::gen_image_white_noise(1, 1, 0.0);
-                let tex = rl.load_texture_from_image(&thread, &img)?;
-                (img, tex)
-            }
-        };*/
-
-        let mut d = rl.begin_mode2D(self.camera);
-        d.clear_background(Color::BLACK);
-
-        match self.screen {
-            Screen::TitleScreen => self.title_screen_draw(&mut d, &thread)?,
-            Screen::Credits => self.credits_draw(&mut d, &thread)?,
-            Screen::GameOver => self.gameover_draw(&mut d, &thread)?,
-            Screen::YouWin => self.win_draw(&mut d)?,
-            Screen::Office => self.office_draw(&mut d, &thread)?,
-            Screen::CameraRebooting => self.camera_rebooting_draw(&mut d, &thread)?,
-            Screen::Camera => self.camera_draw(&mut d, &thread)?,
-            Screen::Settings => {}
+        if self.screen == Screen::TitleScreen || self.screen == Screen::GameOver {
+            return Ok(());
         }
 
         let inoffice = self.gang.in_room(Room::Office);
@@ -504,6 +457,58 @@ impl<'a> State<'a> {
                 }
             }
         }
+
+        Ok(())
+    }
+
+    /**
+    Draw things from the state onto the window.
+
+    It is IMPERITIVE that anything that should be in `State::step` is in the right function, as the `State::draw_step` is called at an uncapped rate as opposed to 60 times a second. Vice versa applies.
+     */
+    pub fn draw_step(
+        &mut self,
+        rl: &mut RaylibDrawHandle,
+        thread: &RaylibThread,
+        mx: i32,
+        my: i32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        /*let (_img, tex) = match self.screen {
+            Screen::Camera | Screen::GameOver => {
+                let img = Image::gen_image_white_noise(320, 240, 0.1);
+                let tex = rl.load_texture_from_image(&thread, &img)?;
+                (img, tex)
+            }
+            Screen::TitleScreen | Screen::Credits => {
+                let img = Image::gen_image_white_noise(
+                    config().width_raw() / 6,
+                    config().height() / 6,
+                    0.1,
+                );
+                let tex = rl.load_texture_from_image(&thread, &img)?;
+                (img, tex)
+            }
+            _ => {
+                let img = Image::gen_image_white_noise(1, 1, 0.0);
+                let tex = rl.load_texture_from_image(&thread, &img)?;
+                (img, tex)
+            }
+        };*/
+
+        let mut d = rl.begin_mode2D(self.camera);
+        d.clear_background(Color::BLACK);
+
+        match self.screen {
+            Screen::TitleScreen => self.title_screen_draw(&mut d, &thread)?,
+            Screen::Credits => self.credits_draw(&mut d, &thread)?,
+            Screen::GameOver => self.gameover_draw(&mut d, &thread)?,
+            Screen::YouWin => self.win_draw(&mut d)?,
+            Screen::Office => self.office_draw(&mut d, &thread)?,
+            Screen::CameraRebooting => self.camera_rebooting_draw(&mut d, &thread)?,
+            Screen::Camera => self.camera_draw(&mut d, &thread)?,
+            Screen::Settings => {}
+        }
+
         let rot = {
             if self.screen == Screen::Office && self.jumpscarer == MonsterName::Tux
                 || self.jumpscarer == MonsterName::GoldenTux
@@ -631,6 +636,10 @@ impl<'a> State<'a> {
      Sets up audio based on the bg_offset_x, state, etc.
     */
     pub fn audio_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        if self.screen == Screen::TitleScreen || self.screen == Screen::GameOver {
+            return Ok(());
+        }
+
         let panner = self.bg_offset_x / 3.0;
         let mut left = 191.0 - panner;
         if left <= 64.0 {
@@ -653,24 +662,6 @@ impl<'a> State<'a> {
 
         self.audio.play_ambience()?;
 
-        // if let Some(ch) = self.audio.title_channel {
-        //     let mut volume = {
-        //         if self.going_to_office_from_title {
-        //             (100.0 - (self.title_clicked.elapsed()?.as_millis() as f32 / (4000.0 / 100.0)))
-        //                 as i32
-        //         } else {
-        //             100
-        //         }
-        //     };
-        //     if volume >= 100 {
-        //         volume = 100;
-        //     }
-        //     ch.set_volume(volume);
-        //     if !ch.is_playing() {
-        //         ch.set_volume(100);
-        //         self.audio.title_channel = None;
-        //     }
-        // }
         Ok(())
     }
 
