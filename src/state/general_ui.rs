@@ -101,7 +101,7 @@ impl<'a> State<'a> {
     ) -> Result<(), Box<dyn std::error::Error>> {
         draw_list.add_text(
             [
-                config().real_width_raw() as f32 - config().real_margin() - font_off,
+                config().real_width_raw() as f32 - config().real_margin() - font_off - 50.0,
                 50.0,
             ],
             ImColor32::WHITE,

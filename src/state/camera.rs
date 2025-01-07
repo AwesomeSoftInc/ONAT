@@ -207,7 +207,7 @@ impl<'a> State<'a> {
             ui.window("Rooms")
                 .position(
                     [
-                        config().real_width_raw() as f32 - config().real_margin() - 350.0,
+                        config().real_width_raw() as f32 - config().real_margin() - 400.0,
                         config().real_height() as f32 - 700.0,
                     ],
                     Condition::Always,
