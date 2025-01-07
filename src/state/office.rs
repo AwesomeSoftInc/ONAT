@@ -263,10 +263,14 @@ impl<'a> State<'a> {
             // sound
             match self.jumpscarer {
                 MonsterName::Tux | MonsterName::GoldenTux => {
-                    self.audio.tux_jumpscare.play()?;
+                    if !self.audio.tux_jumpscare.is_playing() {
+                        self.audio.tux_jumpscare.play()?;
+                    }
                 }
                 _ => {
-                    self.audio.regular_jumpscare.play()?;
+                    if !self.audio.regular_jumpscare.is_playing() {
+                        self.audio.regular_jumpscare.play()?;
+                    }
                 }
             }
 
@@ -547,9 +551,13 @@ impl<'a> State<'a> {
                                 self.gang.tux.checked_camera = None;
                                 self.gang.tux.moved_to_hallway_at = SystemTime::now();
                             }
-                            self.audio.door.play_panned(self.pan_left, self.pan_right)?;
+                            self.audio
+                                .door
+                                .play_reserved(0, self.pan_left, self.pan_right)?;
                         } else {
-                            self.audio.jammed.play()?;
+                            self.audio
+                                .jammed
+                                .play_reserved(0, self.pan_left, self.pan_right)?;
                         }
                     } else if i == 1 && !self.right_door_shut {
                         if self.can_open_right_door {
@@ -565,9 +573,13 @@ impl<'a> State<'a> {
                                 self.gang.tux.checked_camera = None;
                                 self.gang.tux.moved_to_hallway_at = SystemTime::now();
                             }
-                            self.audio.door.play_panned(self.pan_left, self.pan_right)?;
+                            self.audio
+                                .door
+                                .play_reserved(10, self.pan_left, self.pan_right)?;
                         } else {
-                            self.audio.jammed.play()?;
+                            self.audio
+                                .jammed
+                                .play_reserved(1, self.pan_left, self.pan_right)?;
                         }
                     }
                 }

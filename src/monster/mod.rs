@@ -355,8 +355,9 @@ impl Gang {
             self.tux.can_move = true;
             self.tux.ai_level = 10;
             self.five_am_checked = true;
-
-            aud.open_source_closed_casket.play().unwrap();
+            if !aud.open_source_closed_casket.is_playing() {
+                aud.open_source_closed_casket.play().unwrap();
+            }
         }
 
         return hours == 6;

@@ -114,7 +114,9 @@ impl<'a> State<'a> {
         for mons in inroom {
             mons.draw(self.textures, &mut d, 0.0, 0.0, 1.0, 1.0);
             if mons.move_timer() >= 1 || mons.time_in_room().elapsed()?.as_millis() <= 50 {
-                self.audio.brownian_noise.play_loop()?;
+                if !self.audio.brownian_noise.is_playing() {
+                    self.audio.brownian_noise.play_loop()?;
+                }
                 break;
             }
         }

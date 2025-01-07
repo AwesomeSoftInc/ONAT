@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use proc::audio_generate;
 use rand::{thread_rng, Rng};
 use sdl2::mixer::{Channel, Chunk, AUDIO_F32};
@@ -5,7 +7,7 @@ use sdl2::mixer::{Channel, Chunk, AUDIO_F32};
 pub struct Sound {
     path: String,
     chunk: Chunk,
-    channel: Option<Channel>,
+    channels: HashMap<usize, Channel>,
 }
 
 impl Sound {
@@ -15,7 +17,7 @@ impl Sound {
         Ok(Self {
             path: path.to_string(),
             chunk,
-            channel: None,
+            channels: HashMap::new(),
         })
     }
 
@@ -29,51 +31,89 @@ impl Sound {
     // }
 
     pub fn play(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if let None = self.channel {
-            self.channel = Some(sdl2::mixer::Channel::all().play(&self.chunk, 0)?);
+        self.channels.insert(
+            self.channels.len(),
+            sdl2::mixer::Channel::all().play(&self.chunk, 0)?,
+        );
+        Ok(())
+    }
+
+    pub fn play_reserved(
+        &mut self,
+        idx: usize,
+        left: u8,
+        right: u8,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if let None = self.channels.get(&idx) {
+            if let Some(ch) = self
+                .channels
+                .insert(idx, sdl2::mixer::Channel::all().play(&self.chunk, 0)?)
+            {
+                ch.set_panning(left, right)?;
+            };
+        }
+        Ok(())
+    }
+
+    pub fn play_loop_reserved(&mut self, idx: usize) -> Result<(), Box<dyn std::error::Error>> {
+        if let None = self.channels.get(&idx) {
+            self.channels
+                .insert(idx, sdl2::mixer::Channel::all().play(&self.chunk, -1)?);
         }
         Ok(())
     }
 
     pub fn play_panned(&mut self, left: u8, right: u8) -> Result<(), Box<dyn std::error::Error>> {
-        if let None = self.channel {
-            let ch = sdl2::mixer::Channel::all().play(&self.chunk, 0)?;
+        if let Some(ch) = self.channels.insert(
+            self.channels.len(),
+            sdl2::mixer::Channel::all().play(&self.chunk, 0)?,
+        ) {
             ch.set_panning(left, right)?;
-            self.channel = Some(ch);
         }
         Ok(())
     }
 
     pub fn play_loop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if let None = self.channel {
-            self.channel = Some(sdl2::mixer::Channel::all().play(&self.chunk, -1)?);
-        }
+        self.channels.insert(
+            self.channels.len(),
+            sdl2::mixer::Channel::all().play(&self.chunk, -1)?,
+        );
         Ok(())
     }
 
     pub fn halt(&mut self) {
-        if let Some(ch) = self.channel {
-            ch.halt();
+        let mut to_remove = vec![];
+        for channel in self.channels.clone() {
+            channel.1.halt();
+            to_remove.push(channel.0);
         }
-        self.channel = None;
+        for idx in to_remove {
+            self.channels.remove(&idx);
+        }
     }
 
     pub fn halt_if_not_playing(&mut self) {
-        if let Some(ch) = self.channel {
-            if !ch.is_playing() {
-                ch.halt();
-                ch.pause();
-                self.channel = None;
+        let mut to_remove = vec![];
+        for channel in self.channels.clone() {
+            if !channel.1.is_playing() {
+                channel.1.halt();
+                to_remove.push(channel.0);
             }
+        }
+        for idx in to_remove {
+            self.channels.remove(&idx);
         }
     }
 
     pub fn is_playing(&mut self) -> bool {
-        if let Some(ch) = self.channel {
-            return ch.is_playing();
-        } else {
-            return false;
+        let mut playing = false;
+        for ch in &mut self.channels {
+            if ch.1.is_playing() {
+                playing = true;
+                break;
+            }
         }
+        return playing;
     }
 }
 
@@ -82,10 +122,13 @@ audio_generate!();
 // Helper functions for certain audio.
 impl Audio {
     pub fn play_wilbur(&mut self, stage: u8) -> Result<(), Box<dyn std::error::Error>> {
-        match stage {
-            0 => self.wilbur1.play()?,
-            1 => self.wilbur2.play()?,
-            _ => self.wilbur3.play()?,
+        let snd = match stage {
+            0 => &mut self.wilbur1,
+            1 => &mut self.wilbur2,
+            _ => &mut self.wilbur3,
+        };
+        if !snd.is_playing() {
+            snd.play()?
         }
 
         Ok(())
@@ -93,10 +136,15 @@ impl Audio {
 
     pub fn play_title(&mut self, has_won: bool) -> Result<(), Box<dyn std::error::Error>> {
         if has_won {
-            self.revenant_party.play_loop()
+            if !self.revenant_party.is_playing() {
+                self.revenant_party.play_loop()?;
+            }
         } else {
-            self.fuck_you_tux.play_loop()
+            if !self.fuck_you_tux.is_playing() {
+                self.fuck_you_tux.play_loop()?;
+            }
         }
+        Ok(())
     }
 
     pub fn halt_title(&mut self, has_won: bool) {
@@ -108,45 +156,47 @@ impl Audio {
     }
 
     pub fn play_tainted(&mut self, note: usize) -> Result<(), Box<dyn std::error::Error>> {
-        match note {
-            0 => self.note1.play()?,
-            1 => self.note2.play()?,
-            2 => self.note3.play()?,
-            3 => self.note4.play()?,
-            4 => self.note5.play()?,
-            5 => self.note6.play()?,
-            6 => self.note7.play()?,
-            7 => self.note8.play()?,
-            8 => self.note9.play()?,
-            9 => self.note10.play()?,
-            10 => self.note11.play()?,
-            11 => self.note12.play()?,
-            12 => self.note13.play()?,
-            13 => self.note14.play()?,
-            14 => self.note15.play()?,
-            15 => self.note16.play()?,
-            16 => self.note17.play()?,
-            17 => self.note18.play()?,
-            18 => self.note19.play()?,
-            19 => self.note20.play()?,
-            20 => self.note21.play()?,
-            21 => self.note22.play()?,
-            22 => self.note23.play()?,
-            23 => self.note24.play()?,
-            24 => self.note25.play()?,
-            25 => self.note26.play()?,
-            26 => self.note27.play()?,
-            27 => self.note28.play()?,
-            28 => self.note29.play()?,
-            29 => self.note30.play()?,
-            30 => self.note31.play()?,
-            31 => self.note32.play()?,
-            32 => self.note33.play()?,
-            33 => self.note34.play()?,
-            34 => self.note35.play()?,
-            35 => self.note36.play()?,
-            36 => self.note37.play()?,
-            _ => {}
+        let snd = match note {
+            0 => &mut self.note1,
+            1 => &mut self.note2,
+            2 => &mut self.note3,
+            3 => &mut self.note4,
+            4 => &mut self.note5,
+            5 => &mut self.note6,
+            6 => &mut self.note7,
+            7 => &mut self.note8,
+            8 => &mut self.note9,
+            9 => &mut self.note10,
+            10 => &mut self.note11,
+            11 => &mut self.note12,
+            12 => &mut self.note13,
+            13 => &mut self.note14,
+            14 => &mut self.note15,
+            15 => &mut self.note16,
+            16 => &mut self.note17,
+            17 => &mut self.note18,
+            18 => &mut self.note19,
+            19 => &mut self.note20,
+            20 => &mut self.note21,
+            21 => &mut self.note22,
+            22 => &mut self.note23,
+            23 => &mut self.note24,
+            24 => &mut self.note25,
+            25 => &mut self.note26,
+            26 => &mut self.note27,
+            27 => &mut self.note28,
+            28 => &mut self.note29,
+            29 => &mut self.note30,
+            30 => &mut self.note31,
+            31 => &mut self.note32,
+            32 => &mut self.note33,
+            33 => &mut self.note34,
+            34 => &mut self.note35,
+            35 => &mut self.note36,
+            _ => &mut self.note37,
+        };
+        if !snd.is_playing() {
+            snd.play();
         }
 
         Ok(())

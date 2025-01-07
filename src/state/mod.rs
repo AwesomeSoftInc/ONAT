@@ -80,10 +80,6 @@ pub struct State<'a> {
     pub going_to_office_from_title: bool,
     pub title_clicked: SystemTime,
 
-    pub wilber_snd_played: bool,
-    pub tux_snd_played: bool,
-    pub gopher_snd_played: bool,
-
     pub jumpscare_counter: usize,
     pub getting_jumpscared: bool,
     pub jumpscarer: MonsterName,
@@ -238,9 +234,6 @@ impl<'a> State<'a> {
             jumpscare_counter: 0,
             getting_jumpscared: false,
             jumpscarer: MonsterName::None,
-            wilber_snd_played: false,
-            tux_snd_played: false,
-            gopher_snd_played: false,
             has_won: false,
             textures,
             scroll_amount,
@@ -306,7 +299,9 @@ impl<'a> State<'a> {
                 self.left_door_shut = false;
             } else {
                 self.audio.door.halt();
-                self.audio.thud.play_panned(self.pan_left, self.pan_right)?;
+                self.audio
+                    .thud
+                    .play_reserved(0, self.pan_left, self.pan_right)?;
                 self.left_door_bypass_cooldown = false;
 
                 self.left_door_last_shut = SystemTime::now() - Duration::from_secs(10);
@@ -325,7 +320,9 @@ impl<'a> State<'a> {
             } else {
                 self.audio.door.halt();
 
-                self.audio.thud.play_panned(self.pan_left, self.pan_right)?;
+                self.audio
+                    .thud
+                    .play_reserved(1, self.pan_left, self.pan_right)?;
                 self.right_door_bypass_cooldown = false;
                 self.right_door_last_shut = SystemTime::now() - Duration::from_secs(10);
             }
@@ -483,7 +480,9 @@ impl<'a> State<'a> {
                         if duration.as_nanos()
                             <= MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000000000
                         {
-                            self.audio.stinger.play()?;
+                            if !self.audio.stinger.is_playing() {
+                                self.audio.stinger.play()?;
+                            }
                         }
                     }
                 }
@@ -677,17 +676,20 @@ impl<'a> State<'a> {
     Plays audio based on relevant factors.
     */
     pub fn audio_play_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if self.gang.wilber.active() && !self.wilber_snd_played {
-            self.audio.wilber_appear.play()?;
-            self.wilber_snd_played = true;
+        if self.gang.wilber.active() {
+            if !self.audio.wilber_appear.is_playing() {
+                self.audio.wilber_appear.play()?;
+            }
         }
-        if self.gang.tux.active() && !self.tux_snd_played {
-            self.audio.tux_appears.play()?;
-            self.tux_snd_played = true;
+        if self.gang.tux.active() {
+            if !self.audio.tux_appears.is_playing() {
+                self.audio.tux_appears.play()?;
+            }
         }
-        if self.gang.gogopher.active() && !self.gopher_snd_played {
-            self.audio.gopher.play()?;
-            self.gopher_snd_played = true;
+        if self.gang.gogopher.active() {
+            if !self.audio.gopher.is_playing() {
+                self.audio.gopher.play()?;
+            }
         }
         for mons in self.gang.in_room(Room::Office) {
             if mons.active() {
@@ -757,7 +759,9 @@ impl<'a> State<'a> {
             && !self.getting_jumpscared
         {
             if rl.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
-                self.audio.camera_flip.play()?;
+                if !self.audio.camera_flip.is_playing() {
+                    self.audio.camera_flip.play()?;
+                }
                 match self.screen {
                     Screen::Office => {
                         self.gang.golden_tux.deactivate();

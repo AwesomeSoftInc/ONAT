@@ -151,7 +151,9 @@ impl<'a> State<'a> {
             self.screen = Screen::Office;
             self.win_time = SystemTime::now();
             self.going_to_office_from_title = false;
-            self.audio.brownian_noise.play_loop()?;
+            if !self.audio.brownian_noise.is_playing() {
+                self.audio.brownian_noise.play_loop()?;
+            }
         }
 
         if self.going_to_office_from_title {
