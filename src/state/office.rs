@@ -339,8 +339,6 @@ impl<'a> State<'a> {
                             Color::WHITE,
                         );
                     } else {
-                        self.audio.brownian_noise.halt();
-
                         if self.jumpscarer != MonsterName::GoldenTux {
                             self.screen = Screen::GameOver;
                         } else {
@@ -555,9 +553,7 @@ impl<'a> State<'a> {
                                 .door
                                 .play_reserved(0, self.pan_left, self.pan_right)?;
                         } else {
-                            self.audio
-                                .jammed
-                                .play_reserved(0, self.pan_left, self.pan_right)?;
+                            self.audio.jammed.play()?;
                         }
                     } else if i == 1 && !self.right_door_shut {
                         if self.can_open_right_door {
@@ -575,11 +571,9 @@ impl<'a> State<'a> {
                             }
                             self.audio
                                 .door
-                                .play_reserved(10, self.pan_left, self.pan_right)?;
-                        } else {
-                            self.audio
-                                .jammed
                                 .play_reserved(1, self.pan_left, self.pan_right)?;
+                        } else {
+                            self.audio.jammed.play()?;
                         }
                     }
                 }

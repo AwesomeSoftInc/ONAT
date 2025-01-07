@@ -410,8 +410,7 @@ pub fn audio_generate(_item: TokenStream) -> TokenStream {
         }}
             impl Audio {{
                 pub fn new() -> Result<Self, Box<dyn std::error::Error>> {{
-                    sdl2::mixer::open_audio(44000, AUDIO_F32, 2, 256)?;
-                    sdl2::mixer::allocate_channels(256);
+                    audio_init()?;
                     {}
 
                     Ok(Self {{

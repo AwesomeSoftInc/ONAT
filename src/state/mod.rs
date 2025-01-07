@@ -79,6 +79,7 @@ pub struct State<'a> {
     pub going_to_camera: bool,
     pub going_to_office_from_title: bool,
     pub title_clicked: SystemTime,
+    pub title_fade_skip: bool,
 
     pub jumpscare_counter: usize,
     pub getting_jumpscared: bool,
@@ -231,6 +232,7 @@ impl<'a> State<'a> {
             going_to_office: false,
             going_to_office_from_title: false,
             title_clicked: SystemTime::now(),
+            title_fade_skip: false,
             jumpscare_counter: 0,
             getting_jumpscared: false,
             jumpscarer: MonsterName::None,
@@ -759,9 +761,7 @@ impl<'a> State<'a> {
             && !self.getting_jumpscared
         {
             if rl.is_mouse_button_released(MouseButton::MOUSE_BUTTON_LEFT) {
-                if !self.audio.camera_flip.is_playing() {
-                    self.audio.camera_flip.play()?;
-                }
+                self.audio.camera_flip.play()?;
                 match self.screen {
                     Screen::Office => {
                         self.gang.golden_tux.deactivate();

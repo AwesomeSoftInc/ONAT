@@ -91,6 +91,7 @@ impl<'a> State<'a> {
 
         let alpha = self.title_alpha() / 255.0;
 
+        self.audio.title_volume(self.has_won, alpha)?;
         d.start_imgui(|ui| {
             ui.window("Menu")
                 .position(
@@ -108,8 +109,7 @@ impl<'a> State<'a> {
                 .build(|| {
                     ui.set_window_font_scale(config().ui_scale());
 
-                    let styles = style_push!(ui);
-                    let alpha_style = ui.push_style_color(StyleColor::Text, [1.0, 1.0, 1.0, alpha]);
+                    let styles = style_push!(ui, alpha);
 
                     if ui.button("Start Game") {
                         goto_title.store(true, Ordering::Relaxed);
@@ -124,7 +124,6 @@ impl<'a> State<'a> {
                     };
 
                     style_pop!(styles);
-                    alpha_style.pop();
                 });
         });
 
@@ -143,16 +142,16 @@ impl<'a> State<'a> {
             return Ok(());
         }
 
-        if self.going_to_office_from_title && self.title_clicked.elapsed()?.as_secs() >= 5 {
-            self.audio.halt_title(self.has_won);
-        }
-        if self.going_to_office_from_title && self.title_clicked.elapsed()?.as_secs() >= 6 {
-            // state = State::new();
-            self.screen = Screen::Office;
-            self.win_time = SystemTime::now();
-            self.going_to_office_from_title = false;
-            if !self.audio.brownian_noise.is_playing() {
+        if self.going_to_office_from_title {
+            let elapsed = self.title_clicked.elapsed()?.as_secs_f32();
+            if (elapsed >= 5.0 && elapsed <= 5.5) || self.title_fade_skip {
+                self.audio.halt_title(self.has_won);
+            }
+            if elapsed >= 6.0 {
                 self.audio.brownian_noise.play_loop()?;
+                self.screen = Screen::Office;
+                self.win_time = SystemTime::now();
+                self.going_to_office_from_title = false;
             }
         }
 

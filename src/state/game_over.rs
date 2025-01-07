@@ -14,17 +14,6 @@ impl<'a> State<'a> {
         let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
 
         let gameover_time = self.gameover_time.elapsed()?;
-        let alpha = {
-            if gameover_time.as_secs() < 1 {
-                255
-            } else {
-                if gameover_time.as_secs() <= 5 {
-                    255 - ((gameover_time.as_millis() as i32 - 1000) / 20)
-                } else {
-                    0
-                }
-            }
-        };
 
         let nolok_text = format!("TIP: Awakening Nolok\nfrom the\ndepths of\nunused content\nhell is not\nadvised. The\ngame will\ncrash in\n{} seconds.",15 - gameover_time.as_secs());
         let text = match self.jumpscarer {
@@ -59,6 +48,8 @@ impl<'a> State<'a> {
             Color::RED,
         );
 
+        self.audio.brownian_noise.halt();
+
         if gameover_time.as_secs() >= 15 {
             if self.jumpscarer == MonsterName::Nolok {
                 #[allow(deref_nullptr)]
@@ -67,7 +58,6 @@ impl<'a> State<'a> {
             }
             self.screen = Screen::TitleScreen;
             self.going_to_office_from_title = false;
-            self.audio.brownian_noise.halt();
         }
         Ok(())
     }

@@ -74,6 +74,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     state.title_clicked = SystemTime::now();
                 } else {
                     state.title_clicked = UNIX_EPOCH;
+                    state.title_fade_skip = true;
                 }
             }
         }
