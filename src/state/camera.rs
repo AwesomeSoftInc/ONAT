@@ -206,25 +206,61 @@ impl<'a> State<'a> {
 
             ui.window("Rooms")
                 .position(
-                    [config().real_margin() + 20.0, 20.0],
-                    Condition::FirstUseEver,
+                    [
+                        config().real_width_raw() as f32 - config().real_margin() - 350.0,
+                        config().real_height() as f32 - 700.0,
+                    ],
+                    Condition::Always,
                 )
-                .size([0.0, 0.0], Condition::Always)
+                .movable(false)
+                .resizable(false)
+                .title_bar(false)
+                .size([400.0, 600.0], Condition::Always)
+                .draw_background(false)
                 .build(|| {
                     let room_buttons = vec![
-                        ("Tux", &goto_cam1),
-                        ("Penny+Beastie", &goto_cam2),
-                        ("Left Hallway", &goto_cam3),
-                        ("Right Hallway", &goto_cam5),
-                        ("Gopher Vent", &goto_cam4),
-                        ("Wilbur's Room", &goto_cam6),
+                        ("CAM 6", Some(&goto_cam6), [25.0, 25.0]),
+                        ("CAM 1", Some(&goto_cam1), [150.0, 150.0]),
+                        ("CAM 2", Some(&goto_cam2), [150.0, 250.0]),
+                        ("CAM 3", Some(&goto_cam3), [50.0, 500.0]),
+                        ("CAM 4", Some(&goto_cam4), [150.0, 425.0]),
+                        ("CAM 5", Some(&goto_cam5), [250.0, 500.0]),
+                        ("OFFICE", None, [150.0, 500.0]),
                     ];
                     ui.set_window_font_scale(config().ui_scale());
-                    let styles = style_push!(ui);
+                    let styles = (
+                        vec![
+                            ui.push_style_color(::imgui::StyleColor::FrameBg, [0.0, 0.0, 0.0, 0.0]),
+                            ui.push_style_color(
+                                ::imgui::StyleColor::WindowBg,
+                                [0.0, 0.0, 0.0, 0.0],
+                            ),
+                            ui.push_style_color(
+                                ::imgui::StyleColor::Separator,
+                                [0.0, 0.0, 0.0, 0.0],
+                            ),
+                            ui.push_style_color(
+                                ::imgui::StyleColor::Button,
+                                [0.25, 0.25, 0.25, 1.0],
+                            ),
+                            ui.push_style_color(
+                                ::imgui::StyleColor::ButtonHovered,
+                                [0.50, 0.50, 0.50, 1.0],
+                            ),
+                            ui.push_style_color(
+                                ::imgui::StyleColor::ButtonActive,
+                                [0.75, 0.75, 0.75, 1.0],
+                            ),
+                        ],
+                        vec![ui.push_style_var(::imgui::StyleVar::FramePadding([2.0, 2.0]))],
+                    );
 
-                    for (title, value) in room_buttons {
-                        if ui.button(title) {
-                            value.store(true, Ordering::Relaxed);
+                    for (title, value, position) in room_buttons {
+                        ui.set_cursor_pos(position);
+                        if ui.button_with_size(title, [100.0, 75.0]) {
+                            if let Some(value) = value {
+                                value.store(true, Ordering::Relaxed);
+                            }
                             ui.separator();
                         };
                     }
@@ -237,9 +273,12 @@ impl<'a> State<'a> {
                 .movable(false)
                 .title_bar(false)
                 .bg_alpha(0.0)
-                .position([config().real_margin(), 0.0], ::imgui::Condition::Always)
+                .position([0.0, 0.0], ::imgui::Condition::Always)
                 .size(
-                    [config().real_width() as f32, config().real_height() as f32],
+                    [
+                        config().real_width_raw() as f32 + config().real_margin(),
+                        config().real_height() as f32,
+                    ],
                     ::imgui::Condition::Always,
                 )
                 .build(|| {
@@ -248,7 +287,14 @@ impl<'a> State<'a> {
 
                     se.draw_battery(ui.get_window_draw_list()).unwrap();
                     se.draw_arrow(ui.get_window_draw_list()).unwrap();
-                    se.draw_time(ui.get_window_draw_list()).unwrap();
+
+                    ui.set_window_font_scale(config().ui_scale() * 2.0);
+                    let time = format!("{}:00AM", se.time().unwrap());
+                    let font_off = ui.calc_text_size(time.clone())[0];
+                    se.draw_time(&time, font_off, ui.get_window_draw_list())
+                        .unwrap();
+                    ui.set_window_font_scale(config().ui_scale());
+
                     if se.sel_camera == Room::Room6 && se.gang.wilber.active() {
                         se.draw_rage(ui.get_window_draw_list()).unwrap();
                     }

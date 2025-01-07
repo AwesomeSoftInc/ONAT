@@ -28,9 +28,11 @@ impl<'a> State<'a> {
             "BATTERY",
         );
 
+        let roundness = config().ui_scale() * 2.50;
+
         for i in 0..bar_width {
             let x = bat_start + i as f32;
-            let mut off_y = (10.0 - i as f32).clamp(0.0, bar_height);
+            let mut off_y = (roundness - i as f32).clamp(0.0, bar_height);
             if i >= bat_width - 10 {
                 off_y += (i - (bat_width - 10)) as f32;
             }
@@ -50,15 +52,15 @@ impl<'a> State<'a> {
                 [bat_end, bat_y],
                 ImColor32::WHITE,
             )
-            .thickness(config().ui_scale() * 4.0)
-            .rounding(config().ui_scale() * 4.50)
+            .thickness(config().ui_scale() * 2.0)
+            .rounding(roundness)
             .build();
 
         Ok(())
     }
 
     pub fn draw_arrow(&self, draw_list: DrawListMut<'_>) -> Result<(), Box<dyn std::error::Error>> {
-        let center = config().real_margin() + (config().real_width() as f32 / 2.0);
+        let center = config().real_width_raw() as f32 / 2.0;
         let width = config().real_width() as f32 / 4.0;
         let bottom = config().real_height() as f32;
 
@@ -91,16 +93,15 @@ impl<'a> State<'a> {
         Ok(())
     }
 
-    pub fn draw_time(&self, draw_list: DrawListMut<'_>) -> Result<(), Box<dyn std::error::Error>> {
-        let time = self.time()?;
-
-        let time = format!("{}:00AM", time);
-        let font_size = 16.0 * config().ui_scale();
+    pub fn draw_time(
+        &self,
+        time: &str,
+        font_off: f32,
+        draw_list: DrawListMut<'_>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         draw_list.add_text(
             [
-                (config().real_margin() + config().real_width() as f32)
-                    - self.font.measure_text(&time, font_size * 2.0, 3.0).x
-                    - 50.0,
+                config().real_width_raw() as f32 - config().real_margin() - font_off,
                 50.0,
             ],
             ImColor32::WHITE,
@@ -150,22 +151,22 @@ impl<'a> State<'a> {
                 [bat_end, bat_y],
                 ImColor32::WHITE,
             )
-            .thickness(config().ui_scale() * 4.0)
-            .rounding(config().ui_scale() * 4.50)
+            .thickness(config().ui_scale() * 2.0)
+            .rounding(config().ui_scale() * 2.50)
             .build();
 
         Ok(())
     }
 
     pub fn bat_width() -> i32 {
-        (70 * config().ui_scale() as i32).clamp(0, 255)
+        128
     }
 
     pub fn bat_height() -> f32 {
-        30.0 * config().ui_scale()
+        50.0
     }
 
     pub fn bat_start() -> f32 {
-        config().real_margin() + config().width() as f32 / 32.0
+        config().real_margin() + 50.0
     }
 }

@@ -1,7 +1,7 @@
 use std::sync::{LazyLock, OnceLock};
 
 use raylib::{
-    ffi::{GetRenderHeight, GetRenderWidth},
+    ffi::{self, GetRenderHeight, GetRenderWidth},
     window::{get_current_monitor_index, get_monitor_height, get_monitor_width},
     RaylibHandle,
 };
@@ -75,9 +75,6 @@ impl Config {
     pub fn real_margin(&self) -> f32 {
         (self.dimensions_fn)(self).margin
     }
-    pub fn real_ratio(&self) -> f32 {
-        (self.dimensions_fn)(self).ratio
-    }
 
     pub fn ui_scale(&self) -> f32 {
         self.ui_scale
@@ -108,15 +105,8 @@ pub fn config_mut<'a>() -> &'a mut Config {
 }
 
 fn calculate_dimensions() -> Dimensions {
-    let mut monitor_width = get_monitor_width(get_current_monitor_index());
-    let mut monitor_height = get_monitor_height(get_current_monitor_index());
-
-    if monitor_width <= 1024 {
-        monitor_width = 1024;
-    }
-    if monitor_height <= 768 {
-        monitor_height = 768;
-    }
+    let monitor_width = get_monitor_width(get_current_monitor_index());
+    let monitor_height = get_monitor_height(get_current_monitor_index());
 
     let default_ratio = monitor_width as f32 / monitor_height as f32;
     let desired_ratio = 4.0 / 3.0;

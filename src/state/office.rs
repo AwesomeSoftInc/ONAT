@@ -474,9 +474,12 @@ impl<'a> State<'a> {
                 .movable(false)
                 .title_bar(false)
                 .bg_alpha(0.0)
-                .position([config().real_margin(), 0.0], ::imgui::Condition::Always)
+                .position([0.0, 0.0], ::imgui::Condition::Always)
                 .size(
-                    [config().real_width() as f32, config().real_height() as f32],
+                    [
+                        config().real_width_raw() as f32 + config().real_margin(),
+                        config().real_height() as f32,
+                    ],
                     ::imgui::Condition::Always,
                 )
                 .build(|| {
@@ -487,7 +490,13 @@ impl<'a> State<'a> {
 
                     se.draw_battery(ui.get_window_draw_list()).unwrap();
                     se.draw_arrow(ui.get_window_draw_list()).unwrap();
-                    se.draw_time(ui.get_window_draw_list()).unwrap();
+
+                    ui.set_window_font_scale(config().ui_scale() * 2.0);
+
+                    let time = format!("{}:00AM", se.time().unwrap());
+                    let font_off = ui.calc_text_size(time.clone())[0];
+                    se.draw_time(&time, font_off, ui.get_window_draw_list())
+                        .unwrap();
 
                     style_pop!(styles);
                 });
