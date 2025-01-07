@@ -503,15 +503,18 @@ impl<'a> State<'a> {
             Screen::Credits => self.credits_draw(&mut d, &thread)?,
             Screen::GameOver => self.gameover_draw(&mut d, &thread)?,
             Screen::YouWin => self.win_draw(&mut d)?,
-            Screen::Office => self.office_draw(&mut d, &thread)?,
+            Screen::Office => {
+                self.office_draw(&mut d, &thread)?;
+            }
             Screen::CameraRebooting => self.camera_rebooting_draw(&mut d, &thread)?,
             Screen::Camera => self.camera_draw(&mut d, &thread)?,
             Screen::Settings => {}
         }
 
         let rot = {
-            if self.screen == Screen::Office && self.jumpscarer == MonsterName::Tux
-                || self.jumpscarer == MonsterName::GoldenTux
+            if self.screen == Screen::Office
+                && (self.jumpscarer == MonsterName::Tux
+                    || self.jumpscarer == MonsterName::GoldenTux)
             {
                 let r = thread_rng().gen_range(-5..5);
                 r as f32

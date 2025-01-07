@@ -259,7 +259,17 @@ impl<'a> State<'a> {
                 }
             }
         }
+
+        Ok(())
+    }
+
+    pub fn office_draw_capped(
+        &mut self,
+        d: &mut RaylibDrawHandle,
+        thread: &RaylibThread,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if self.getting_jumpscared {
+            d.set_target_fps(60);
             // sound
             match self.jumpscarer {
                 MonsterName::Tux | MonsterName::GoldenTux => {
@@ -458,11 +468,12 @@ impl<'a> State<'a> {
                     self.gameover_time = SystemTime::now();
                 }
             }
+        } else {
+            d.set_target_fps(0);
         }
 
         Ok(())
     }
-
     pub fn office_ui_draw(
         &mut self,
         d: &mut RaylibDrawHandle,

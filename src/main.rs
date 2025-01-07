@@ -1,6 +1,6 @@
 use raylib::prelude::*;
 
-use state::State;
+use state::{Screen, State};
 use std::{
     error::Error,
     process::exit,
@@ -100,6 +100,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let (mx, my) = state.mouse_position(&mut rl)?;
 
+        let mut play_jumpscare = false;
         if state.timer.elapsed()?.as_millis() >= 1000 / 60 {
             state.timer = SystemTime::now();
 
@@ -115,6 +116,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             state.audio_step()?;
             state.audio_play_step()?;
+            play_jumpscare = true;
         }
 
         let mut d = rl.begin_drawing(&thread);
@@ -124,6 +126,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_POINTING_HAND);
         } else {
             d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_DEFAULT);
+        }
+        if state.screen == Screen::Office {
+            state.office_draw_capped(&mut d, &thread)?;
         }
     }
 
