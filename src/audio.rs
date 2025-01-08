@@ -4,6 +4,8 @@ use proc::audio_generate;
 use rand::{thread_rng, Rng};
 use sdl2::mixer::{Channel, Chunk, AUDIO_F32};
 
+use crate::config::config;
+
 fn audio_init() -> Result<(), Box<dyn std::error::Error>> {
     sdl2::mixer::open_audio(44000, AUDIO_F32, 2, 1024)?;
     sdl2::mixer::allocate_channels(1024);
@@ -147,14 +149,15 @@ impl Audio {
     }
 
     pub fn play_title(&mut self, has_won: bool) -> Result<(), Box<dyn std::error::Error>> {
-        let snd = if has_won {
-            &mut self.revenant_party
+        if has_won {
+            if !self.revenant_party.is_playing() && !config().night_2() {
+                self.revenant_party.play_loop()?;
+            }
         } else {
-            &mut self.fuck_you_tux
+            if !self.fuck_you_tux.is_playing() {
+                self.fuck_you_tux.play_loop()?;
+            }
         };
-        if !snd.is_playing() {
-            snd.play_loop()?;
-        }
         Ok(())
     }
 

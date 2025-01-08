@@ -3,7 +3,10 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-use crate::{config::config, style_pop, style_push, texture_rect};
+use crate::{
+    config::{config, config_mut},
+    style_pop, style_push, texture_rect,
+};
 
 use super::{Screen, State};
 use ::imgui::StyleColor;
@@ -85,6 +88,7 @@ impl<'a> State<'a> {
         d: &mut RaylibDrawHandle,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut goto_title = AtomicBool::new(false);
+        let mut goto_night2 = AtomicBool::new(false);
         let mut goto_settings = AtomicBool::new(false);
 
         let mut goto_credits = AtomicBool::new(false);
@@ -115,6 +119,14 @@ impl<'a> State<'a> {
                         goto_title.store(true, Ordering::Relaxed);
                     };
                     ui.separator();
+                    // if config().night_2_unlocked() {
+                    let red = ui.push_style_color(StyleColor::Text, [1.0, 0.25, 0.25, 1.0]);
+                    if ui.button("Night 2") {
+                        goto_night2.store(true, Ordering::Relaxed);
+                    };
+                    red.pop();
+                    // }
+                    ui.separator();
                     if ui.button("Options") {
                         goto_settings.store(true, Ordering::Relaxed);
                     };
@@ -128,6 +140,13 @@ impl<'a> State<'a> {
         });
 
         if *goto_title.get_mut() {
+            config_mut().set_night_2(false);
+            self.reset_and_goto_title = true;
+            return Ok(());
+        }
+
+        if *goto_night2.get_mut() {
+            config_mut().set_night_2(true);
             self.reset_and_goto_title = true;
             return Ok(());
         }

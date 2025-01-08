@@ -348,6 +348,8 @@ impl<'a> State<'a> {
                         }
 
                         self.gameover_time = SystemTime::now();
+                        self.audio.open_source_closed_casket.halt();
+                        self.audio.night2.halt();
                     }
                     self.jumpscare_counter += 1;
                 }
@@ -399,6 +401,8 @@ impl<'a> State<'a> {
                                 self.screen = Screen::GameOver;
 
                                 self.gameover_time = SystemTime::now();
+                                self.audio.open_source_closed_casket.halt();
+                                self.audio.night2.halt();
                             }
                         }
                     }
@@ -451,6 +455,8 @@ impl<'a> State<'a> {
                         } else {
                             self.screen = Screen::GameOver;
                             self.gameover_time = SystemTime::now();
+                            self.audio.open_source_closed_casket.halt();
+                            self.audio.night2.halt();
                         }
                         self.jumpscare_counter += 1;
                     }
@@ -458,6 +464,8 @@ impl<'a> State<'a> {
                 _ => {
                     self.screen = Screen::GameOver;
                     self.gameover_time = SystemTime::now();
+                    self.audio.open_source_closed_casket.halt();
+                    self.audio.night2.halt();
                 }
             }
         } else {

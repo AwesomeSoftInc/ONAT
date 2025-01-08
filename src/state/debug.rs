@@ -164,6 +164,11 @@ impl State<'_> {
                         se.sel_camera = Room::Room1;
                         se.screen = Screen::Office;
                     }
+
+                    let mut off = se.gang.hour_offset as i32;
+                    if ui.input_int("Hour", &mut off).build() {
+                        se.gang.hour_offset = off as u64;
+                    };
                 });
         });
         Ok(())

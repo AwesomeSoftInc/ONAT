@@ -140,7 +140,7 @@ impl<'a> State<'a> {
 
         let millis = self.camera_last_changed.elapsed()?.as_millis();
 
-        self.camera_changing = millis <= 50;
+        self.camera_changing = millis <= 50 && self.screen != Screen::GameOver;
         if self.camera_changing {
             if !self.audio.noise.is_playing() {
                 self.audio.noise.play()?;

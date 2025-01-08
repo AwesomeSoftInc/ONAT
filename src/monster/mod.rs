@@ -252,6 +252,7 @@ pub struct Gang {
     pub golden_tux: GoldenTux,
 
     since_last_move: SystemTime,
+
     moved: bool,
     pub one_am_checked: bool,
     pub two_am_checked: bool,
@@ -273,6 +274,7 @@ impl Gang {
             nolok: Nolok::new(),
             golden_tux: GoldenTux::new(),
             since_last_move: SystemTime::now(),
+
             moved: true,
             one_am_checked: false,
             two_am_checked: false,
@@ -355,8 +357,14 @@ impl Gang {
             self.tux.can_move = true;
             self.tux.ai_level = 10;
             self.five_am_checked = true;
-            if !aud.open_source_closed_casket.is_playing() {
-                aud.open_source_closed_casket.play().unwrap();
+            if config().night_2() {
+                if !aud.night2.is_playing() {
+                    aud.night2.play().unwrap();
+                }
+            } else {
+                if !aud.open_source_closed_casket.is_playing() {
+                    aud.open_source_closed_casket.play().unwrap();
+                }
             }
         }
 
@@ -391,6 +399,9 @@ impl Gang {
     }
 
     fn ai_level_increase(&mut self) {
+        if config().night_2() {
+            return;
+        }
         self.penny.ai_level += 2;
         self.beastie.ai_level += 3;
         // self.wilber.ai_level += 3;

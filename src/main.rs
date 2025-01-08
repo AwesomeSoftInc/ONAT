@@ -1,3 +1,4 @@
+use monster::Monster;
 use raylib::prelude::*;
 
 use state::{Screen, State};
@@ -77,6 +78,22 @@ fn main() -> Result<(), Box<dyn Error>> {
                     state.title_fade_skip = true;
                 }
             }
+
+            if config().night_2() {
+                state.gang.penny.activate();
+                state.gang.beastie.activate();
+                state.gang.gogopher.activate();
+                state.gang.tux.activate();
+                state.gang.wilber.activate();
+
+                state.gang.penny.ai_level = 10;
+                state.gang.beastie.ai_level = 10;
+                state.gang.gogopher.ai_level = 10;
+                state.gang.tux.ai_level = 10;
+                state.gang.wilber.ai_level = 10;
+
+                state.gang.wilber.time_since_appeared = Some(SystemTime::now());
+            }
         }
 
         if rl.is_key_pressed(KeyboardKey::KEY_F11) && !fullscreened {
@@ -100,7 +117,6 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         let (mx, my) = state.mouse_position(&mut rl)?;
 
-        let mut play_jumpscare = false;
         if state.timer.elapsed()?.as_millis() >= 1000 / 60 {
             state.timer = SystemTime::now();
 
@@ -114,11 +130,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             state.audio_step()?;
 
-            if state.screen != Screen::TitleScreen {
+            if state.screen != Screen::TitleScreen
+                || (state.screen == Screen::YouWin && config().night_2())
+            {
                 state.step(&mut rl, &thread, mx, my)?;
                 state.audio_play_step()?;
             }
-            play_jumpscare = true;
         }
 
         let mut d = rl.begin_drawing(&thread);

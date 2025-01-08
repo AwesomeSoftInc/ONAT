@@ -24,9 +24,15 @@ pub struct Config {
     // The UI scale.
     ui_scale: f32,
 
+    // Night 2 on
+    night_2: bool,
+
     // Fullscreen?
     fullscreen: bool,
     dimensions_fn: fn(&Self) -> Dimensions,
+
+    // Night 2 unlocked?
+    night_2_unlocked: bool,
 }
 
 impl Config {
@@ -50,6 +56,8 @@ impl Config {
             ui_scale: 2.0,
             fullscreen: true,
             dimensions_fn: fullscreen_dimensions_fn,
+            night_2: false,
+            night_2_unlocked: false,
         }
     }
 
@@ -92,6 +100,21 @@ impl Config {
         } else {
             self.dimensions_fn = windowed_dimensions_fn;
         }
+    }
+
+    pub fn night_2_unlocked(&self) -> bool {
+        self.night_2_unlocked
+    }
+
+    pub fn unlock_night_2(&mut self) {
+        self.night_2_unlocked = true;
+    }
+
+    pub fn night_2(&self) -> bool {
+        self.night_2
+    }
+    pub fn set_night_2(&mut self, val: bool) {
+        self.night_2 = val;
     }
 }
 

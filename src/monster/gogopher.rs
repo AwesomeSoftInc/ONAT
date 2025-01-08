@@ -6,7 +6,7 @@ use std::time::SystemTime;
 use rand::{thread_rng, Rng};
 
 use super::{Monster, MonsterName, DEFAULT_AI_LEVEL, MONSTER_TIME_OFFICE_WAIT_THING};
-use crate::{enums::Room, textures::Textures};
+use crate::{config::config, enums::Room, textures::Textures};
 
 const DUCT_THING: u16 = 1000;
 
@@ -77,7 +77,7 @@ impl Monster for GoGopher {
         height_offset: f32,
     ) {
         if self.room == Room::Office {
-            self._draw(textures, rl, x_offset + 75.0, -200.0, 1.6, 1.6);
+            self._draw(textures, rl, x_offset + 75.0, -200.0, 1.5, 1.5);
         } else {
             self._draw(
                 textures,
@@ -97,7 +97,13 @@ impl Monster for GoGopher {
         if self.duct_heat_timer == 0 {
             match self.room {
                 Room::None => {
-                    let coin_flip = thread_rng().gen_range(0..5000);
+                    let coin_flip = {
+                        if config().night_2() {
+                            thread_rng().gen_range(0..500)
+                        } else {
+                            thread_rng().gen_range(0..5000)
+                        }
+                    };
                     if coin_flip <= 1 {
                         self.set_room(Room::Room4)
                     }

@@ -12,7 +12,7 @@ impl<'a> State<'a> {
     ) -> Result<(), Box<dyn std::error::Error>> {
         let num = self.time()?;
 
-        if !self.audio.bells.is_playing() {
+        if !self.audio.bells.is_playing() && !config().night_2() {
             self.audio.bells.play()?;
         }
 
@@ -33,7 +33,13 @@ impl<'a> State<'a> {
             }
         };
 
-        if self.win_time.elapsed()?.as_secs() >= 20 {
+        if self.win_time.elapsed()?.as_secs() >= {
+            if config().night_2() {
+                14
+            } else {
+                20
+            }
+        } {
             self.screen = Screen::Credits;
             self.going_to_office_from_title = false;
         }
@@ -61,7 +67,7 @@ impl<'a> State<'a> {
 
         d.draw_text_ex(
             &self.font,
-            ":00AM",
+            " :00AM",
             Vector2::new(x as f32 + text_len as f32, y as f32),
             font_size as f32,
             6.0,

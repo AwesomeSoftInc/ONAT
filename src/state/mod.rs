@@ -9,6 +9,7 @@ mod title_screen;
 mod you_win;
 
 use ::core::f32;
+use std::alloc::System;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rand::{thread_rng, Rng};
@@ -40,6 +41,7 @@ pub enum Screen {
 pub struct State<'a> {
     pub audio: &'a mut Audio,
     pub screen: Screen,
+    pub last_screen: Screen,
     pub bg_offset_x: f32,
     pub laptop_offset_y: f64,
     pub sel_camera: Room,
@@ -108,8 +110,6 @@ pub struct State<'a> {
     pub font: Font,
 
     pub reset_and_goto_title: bool,
-
-    pub test_value: f32,
 
     pub plush_clickable: Rectangle,
     pub door_buttons: Vec<Rectangle>,
@@ -213,6 +213,7 @@ impl<'a> State<'a> {
             audio,
 
             screen,
+            last_screen: Screen::Office,
             bg_offset_x,
             laptop_offset_y,
 
@@ -262,7 +263,6 @@ impl<'a> State<'a> {
             camera: camera,
             font: font,
             reset_and_goto_title: false,
-            test_value: 0.90,
             plush_clickable,
             door_buttons,
             mouse_pointer: false,
@@ -311,6 +311,15 @@ impl<'a> State<'a> {
             }
         }
 
+        let cur_time = self.ingame_time.duration_since(UNIX_EPOCH)?;
+
+        match self.screen {
+            Screen::Office => self.office_step()?,
+            Screen::Camera => self.camera_step(),
+            Screen::CameraRebooting => self.camera_rebooting_step(),
+            _ => {}
+        }
+
         if self.left_door_last_shut.elapsed()?.as_secs() >= 5 {
             if !self.left_door_bypass_cooldown {
                 self.can_open_left_door = false;
@@ -354,13 +363,11 @@ impl<'a> State<'a> {
         if self.open_left_door_back_up {
             self.left_door_last_shut = SystemTime::now() - Duration::from_secs(4);
 
-            //audio.play_sound_multi(&metal_left);
             self.left_door_bypass_cooldown = true;
             self.open_left_door_back_up = false;
         }
         if self.open_right_door_back_up {
             self.right_door_last_shut = SystemTime::now() - Duration::from_secs(4);
-            //audio.play_sound_multi(&metal_right);
             self.right_door_bypass_cooldown = true;
             self.open_right_door_back_up = false;
         }
@@ -377,26 +384,22 @@ impl<'a> State<'a> {
             self.gang.gogopher.duct_heat_timer -= 1;
         }
 
-        let cur_time = self.ingame_time.duration_since(UNIX_EPOCH)?;
-
         let is_over = self.gang.step(cur_time, &mut self.audio) || self.force_win;
 
-        if is_over && self.screen != Screen::YouWin {
+        if is_over && !self.has_won {
             self.audio.brownian_noise.halt();
+            self.audio.open_source_closed_casket.halt();
             self.has_won = true;
+            self.last_screen = Screen::YouWin;
             self.screen = Screen::YouWin;
             self.win_time = SystemTime::now();
             return Ok(());
         }
 
-        match self.screen {
-            Screen::Office => self.office_step()?,
-            Screen::Camera => self.camera_step(),
-            Screen::CameraRebooting => self.camera_rebooting_step(),
-            _ => {}
-        }
-
-        if self.screen == Screen::TitleScreen || self.screen == Screen::GameOver {
+        if self.screen == Screen::TitleScreen
+            || self.screen == Screen::GameOver
+            || self.screen == Screen::YouWin
+        {
             return Ok(());
         }
 
@@ -490,28 +493,6 @@ impl<'a> State<'a> {
         mx: i32,
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        /*let (_img, tex) = match self.screen {
-            Screen::Camera | Screen::GameOver => {
-                let img = Image::gen_image_white_noise(320, 240, 0.1);
-                let tex = rl.load_texture_from_image(&thread, &img)?;
-                (img, tex)
-            }
-            Screen::TitleScreen | Screen::Credits => {
-                let img = Image::gen_image_white_noise(
-                    config().width_raw() / 6,
-                    config().height() / 6,
-                    0.1,
-                );
-                let tex = rl.load_texture_from_image(&thread, &img)?;
-                (img, tex)
-            }
-            _ => {
-                let img = Image::gen_image_white_noise(1, 1, 0.0);
-                let tex = rl.load_texture_from_image(&thread, &img)?;
-                (img, tex)
-            }
-        };*/
-
         let mut d = rl.begin_mode2D(self.camera);
         d.clear_background(Color::BLACK);
 
@@ -612,6 +593,16 @@ impl<'a> State<'a> {
             );
         }
 
+        let win_alpha = if self.screen == Screen::YouWin {
+            if config().night_2() {
+                self.win_time.elapsed()?.as_secs_f32() * 0.07142857142
+            } else {
+                self.win_time.elapsed()?.as_secs_f32() * 0.5
+            }
+        } else {
+            0.0
+        };
+
         d.draw_texture_pro(
             &self.you_win_framebuffer,
             Rectangle::new(
@@ -628,7 +619,7 @@ impl<'a> State<'a> {
             ),
             Vector2::new(corrected_width / 2.0, corrected_height / 2.0),
             180.0 + rot,
-            Color::WHITE.alpha(self.win_time.elapsed()?.as_secs_f32() * 0.5),
+            Color::WHITE.alpha(win_alpha),
         );
 
         d.draw_fps(10, 10);
@@ -656,7 +647,8 @@ impl<'a> State<'a> {
                     self.arrow_click(d)?;
                     self.camera_ui_draw(&mut d, &thread)?;
                 }
-                Screen::Credits | Screen::GameOver | Screen::YouWin => {}
+                Screen::Credits | Screen::GameOver => {}
+                Screen::YouWin => {}
                 Screen::CameraRebooting => {
                     self.arrow_click(d)?;
                     self.camera_ui_draw(&mut d, &thread)?;
@@ -679,6 +671,9 @@ impl<'a> State<'a> {
             return Ok(());
         }
         if self.screen == Screen::GameOver {
+            return Ok(());
+        }
+        if self.screen == Screen::YouWin {
             return Ok(());
         }
         let panner = self.bg_offset_x / 3.0;
@@ -710,19 +705,23 @@ impl<'a> State<'a> {
     Plays audio based on relevant factors.
     */
     pub fn audio_play_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if self.gang.wilber.active() {
+        if self.screen == Screen::TitleScreen || self.screen == Screen::GameOver {
+            return Ok(());
+        }
+
+        if self.gang.wilber.active() && !config().night_2() {
             if !self.audio.wilber_appear.is_playing() && !self.wilbur_snd_played {
                 self.audio.wilber_appear.play()?;
                 self.wilbur_snd_played = true;
             }
         }
-        if self.gang.tux.active() {
+        if self.gang.tux.active() && !config().night_2() {
             if !self.audio.tux_appears.is_playing() && !self.tux_snd_played {
                 self.audio.tux_appears.play()?;
                 self.tux_snd_played = true;
             }
         }
-        if self.gang.gogopher.active() {
+        if self.gang.gogopher.active() && !config().night_2() {
             if !self.audio.gopher.is_playing() && !self.gopher_snd_played {
                 self.audio.gopher.play()?;
                 self.gopher_snd_played = true;
