@@ -260,14 +260,6 @@ impl<'a> State<'a> {
             }
         }
 
-        Ok(())
-    }
-
-    pub fn office_draw_capped(
-        &mut self,
-        d: &mut RaylibDrawHandle,
-        thread: &RaylibThread,
-    ) -> Result<(), Box<dyn std::error::Error>> {
         if self.getting_jumpscared {
             d.set_target_fps(60);
             // sound
@@ -297,15 +289,15 @@ impl<'a> State<'a> {
                         MonsterName::Penny => {
                             let x_offset = {
                                 if self.gameover_time.elapsed()?.as_millis() <= 150 {
-                                    8.5 * (self.gameover_time.elapsed()?.as_millis() as f32)
+                                    9.5 * (self.gameover_time.elapsed()?.as_millis() as f32)
                                 } else {
-                                    150.0 * 8.5
+                                    150.0 * 9.5
                                 }
                             };
                             (
                                 (config().width() as f32),
                                 config().height() as f32 / 1.5,
-                                -config().width() as f32 + x_offset + 0.0,
+                                -config().width() as f32 + x_offset,
                                 config().height() as f32 - (config().height() as f32 / 1.5),
                                 30,
                             )
@@ -418,13 +410,13 @@ impl<'a> State<'a> {
                     let x_offset = {
                         let o = self.gameover_time.elapsed()?.as_millis() as f32 * 2.0;
                         let w = config().width() as f32 + 0.0;
-                        if o <= w / 4.0 {
+                        if o <= w / 2.0 {
                             o
                         } else {
                             if cutoff {
-                                w / 4.0
-                            } else {
                                 w / 2.0
+                            } else {
+                                w
                             }
                         }
                     };

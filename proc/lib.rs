@@ -298,12 +298,14 @@ fn yeah(
                         ));
                         b.push(format!("_set_{}: Mutex::new(false)", n.clone()));
 
-                        c.push(format!(
-                            "if *self._set_{n}.lock() {{
-                                self._{n}.lock().set_texture_filter(&thread, filter);
-                            }};\n",
-                            n = n,
-                        ));
+                        if !n.starts_with("jumpscare") {
+                            c.push(format!(
+                                "if *self._set_{n}.lock() {{
+                                    self._{n}.lock().set_texture_filter(&thread, filter);
+                                }};\n",
+                                n = n,
+                            ));
+                        }
 
                         d.push(format!(
                             "pub fn {n}(&self) -> MutexGuard<Texture2D> {{
@@ -311,7 +313,7 @@ fn yeah(
                                 if !set_{n} {{
                                     let {n} = unsafe {{
                                         let n = ffi::LoadTextureFromImage(*Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec()).unwrap());
-                                        ffi::SetTextureFilter(n, TextureFilter::TEXTURE_FILTER_BILINEAR as i32);
+                                        {filter}
                                         Texture2D::from_raw(n)
                                     }};
                                     *self._{n}.lock() = {n};
@@ -321,6 +323,11 @@ fn yeah(
                             }}",
                             n = n,
                             b = format!("../assets/{name}/{n}.png", n=n),
+                            filter = if !n.starts_with("jumpscare") {
+                                "ffi::SetTextureFilter(n, TextureFilter::TEXTURE_FILTER_BILINEAR as i32);"
+                            } else {
+                                ""
+                            }
                         ));
                     }
                 }

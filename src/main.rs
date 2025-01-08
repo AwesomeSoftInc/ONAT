@@ -127,9 +127,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         } else {
             d.set_mouse_cursor(MouseCursor::MOUSE_CURSOR_DEFAULT);
         }
-        if state.screen == Screen::Office {
-            state.office_draw_capped(&mut d, &thread)?;
-        }
     }
 
     Ok(())
