@@ -118,6 +118,10 @@ pub struct State<'a> {
     pub pan_right: u8,
 
     pub cur_texture_filter: TextureFilter,
+
+    pub wilbur_snd_played: bool,
+    pub tux_snd_played: bool,
+    pub gopher_snd_played: bool,
 }
 
 impl<'a> State<'a> {
@@ -258,6 +262,9 @@ impl<'a> State<'a> {
             pan_left: 0,
             pan_right: 0,
             cur_texture_filter: TextureFilter::TEXTURE_FILTER_BILINEAR,
+            tux_snd_played: false,
+            gopher_snd_played: false,
+            wilbur_snd_played: false,
         };
         Ok(state)
     }
@@ -673,18 +680,21 @@ impl<'a> State<'a> {
     */
     pub fn audio_play_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if self.gang.wilber.active() {
-            if !self.audio.wilber_appear.is_playing() {
+            if !self.audio.wilber_appear.is_playing() && !self.wilbur_snd_played {
                 self.audio.wilber_appear.play()?;
+                self.wilbur_snd_played = true;
             }
         }
         if self.gang.tux.active() {
-            if !self.audio.tux_appears.is_playing() {
+            if !self.audio.tux_appears.is_playing() && !self.tux_snd_played {
                 self.audio.tux_appears.play()?;
+                self.tux_snd_played = true;
             }
         }
         if self.gang.gogopher.active() {
-            if !self.audio.gopher.is_playing() {
+            if !self.audio.gopher.is_playing() && !self.gopher_snd_played {
                 self.audio.gopher.play()?;
+                self.gopher_snd_played = true;
             }
         }
         for mons in self.gang.in_room(Room::Office) {
