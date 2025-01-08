@@ -12,7 +12,7 @@ uniform vec4 colDiffuse;
 uniform int rand;
 
 uniform int width;
-uniform float test_value;
+uniform int camera_changing;
 
 // Output fragment color
 out vec4 finalColor;
@@ -46,7 +46,13 @@ float noise(vec3 p, float scale){
 
 void main() {
   vec4 tex = texture2D(texture0, fragTexCoord);
-  float n = noise(vec3(fragTexCoord.x, fragTexCoord.y, rand / 1000000.0), width / ((width / 1440.0) * 4)) / 8.0;
-  finalColor.rgb = tex.rgb - n;
+
+  if (camera_changing == 1) {
+    float n = noise(vec3(fragTexCoord.x, fragTexCoord.y, rand / 1000000.0), width / ((width / 1440.0) * 4));
+    finalColor.rgb = vec3(n,n,n);
+  } else {
+    float n = noise(vec3(fragTexCoord.x, fragTexCoord.y, rand / 1000000.0), width / ((width / 1440.0) * 4)) / 8.0;
+    finalColor.rgb = tex.rgb - n;
+  }
   finalColor.a = 1.0;
 }

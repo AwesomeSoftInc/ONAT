@@ -122,6 +122,8 @@ pub struct State<'a> {
     pub wilbur_snd_played: bool,
     pub tux_snd_played: bool,
     pub gopher_snd_played: bool,
+
+    pub camera_changing: bool,
 }
 
 impl<'a> State<'a> {
@@ -265,6 +267,7 @@ impl<'a> State<'a> {
             tux_snd_played: false,
             gopher_snd_played: false,
             wilbur_snd_played: false,
+            camera_changing: false,
         };
         Ok(state)
     }
@@ -548,8 +551,8 @@ impl<'a> State<'a> {
             UNIX_EPOCH.elapsed()?.as_nanos() as i32,
         );
         self.laptop_shader.set_shader_value(
-            self.laptop_shader.get_shader_location("test_value"),
-            self.test_value,
+            self.laptop_shader.get_shader_location("camera_changing"),
+            self.camera_changing as i32,
         );
 
         self.laptop_shader.set_shader_value(

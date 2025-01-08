@@ -1,4 +1,6 @@
+use std::alloc::System;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::SystemTime;
 
 use super::{Screen, State};
 use crate::config::config;
@@ -113,11 +115,8 @@ impl<'a> State<'a> {
         let inroom = self.gang.in_room(self.sel_camera.clone());
         for mons in inroom {
             mons.draw(self.textures, &mut d, 0.0, 0.0, 1.0, 1.0);
-            if mons.move_timer() >= 1 || mons.time_in_room().elapsed()?.as_millis() <= 50 {
-                if !self.audio.brownian_noise.is_playing() {
-                    self.audio.brownian_noise.play_loop()?;
-                }
-                break;
+            if mons.time_in_room().elapsed()?.as_millis() <= 50 {
+                self.camera_last_changed = SystemTime::now();
             }
         }
 
@@ -140,8 +139,11 @@ impl<'a> State<'a> {
 
         let millis = self.camera_last_changed.elapsed()?.as_millis();
 
-        if millis > 50 && millis <= 60 {
-            self.audio.brownian_noise.halt();
+        self.camera_changing = millis <= 50;
+        if self.camera_changing {
+            if !self.audio.noise.is_playing() {
+                self.audio.noise.play()?;
+            }
         }
         Ok(())
     }
@@ -317,23 +319,29 @@ impl<'a> State<'a> {
                 });
         });
 
-        if *goto_cam1.get_mut() {
+        if *goto_cam1.get_mut() && self.sel_camera != Room::Room1 {
             self.sel_camera = Room::Room1;
+            self.camera_last_changed = SystemTime::now();
         }
-        if *goto_cam2.get_mut() {
+        if *goto_cam2.get_mut() && self.sel_camera != Room::Room2 {
             self.sel_camera = Room::Room2;
+            self.camera_last_changed = SystemTime::now();
         }
-        if *goto_cam3.get_mut() {
+        if *goto_cam3.get_mut() && self.sel_camera != Room::Room3 {
             self.sel_camera = Room::Room3;
+            self.camera_last_changed = SystemTime::now();
         }
-        if *goto_cam4.get_mut() {
+        if *goto_cam4.get_mut() && self.sel_camera != Room::Room4 {
             self.sel_camera = Room::Room4;
+            self.camera_last_changed = SystemTime::now();
         }
-        if *goto_cam5.get_mut() {
+        if *goto_cam5.get_mut() && self.sel_camera != Room::Room5 {
             self.sel_camera = Room::Room5;
+            self.camera_last_changed = SystemTime::now();
         }
-        if *goto_cam6.get_mut() {
+        if *goto_cam6.get_mut() && self.sel_camera != Room::Room6 {
             self.sel_camera = Room::Room6;
+            self.camera_last_changed = SystemTime::now();
         }
         if *duct_heatup.get_mut() {
             self.gang.gogopher.duct_heat_timer = 250;
