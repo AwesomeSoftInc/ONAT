@@ -94,6 +94,8 @@ pub struct State<'a> {
     pub wallpaper_shader: Shader,
     pub wallpaper_framebuffer: RenderTexture2D,
 
+    pub you_win_framebuffer: RenderTexture2D,
+
     pub laptop_shader: Shader,
 
     pub tux_texture_hold: bool,
@@ -124,6 +126,8 @@ pub struct State<'a> {
     pub gopher_snd_played: bool,
 
     pub camera_changing: bool,
+
+    pub force_win: bool,
 }
 
 impl<'a> State<'a> {
@@ -176,7 +180,8 @@ impl<'a> State<'a> {
         let framebuffer =
             rl.load_render_texture(&thread, config().width() as u32, config().height() as u32)?;
         let wallpaper_framebuffer = rl.load_render_texture(&thread, 640, 480)?;
-
+        let you_win_framebuffer =
+            rl.load_render_texture(&thread, config().width() as u32, config().height() as u32)?;
         let wallpaper_shader =
             rl.load_shader_from_memory(&thread, None, Some(include_str!("../shader/crt.fs")));
 
@@ -268,6 +273,8 @@ impl<'a> State<'a> {
             gopher_snd_played: false,
             wilbur_snd_played: false,
             camera_changing: false,
+            force_win: false,
+            you_win_framebuffer,
         };
         Ok(state)
     }
@@ -372,7 +379,7 @@ impl<'a> State<'a> {
 
         let cur_time = self.ingame_time.duration_since(UNIX_EPOCH)?;
 
-        let is_over = self.gang.step(cur_time, &mut self.audio);
+        let is_over = self.gang.step(cur_time, &mut self.audio) || self.force_win;
 
         if is_over && self.screen != Screen::YouWin {
             self.audio.brownian_noise.halt();
@@ -512,7 +519,7 @@ impl<'a> State<'a> {
             Screen::TitleScreen => self.title_screen_draw(&mut d, &thread)?,
             Screen::Credits => self.credits_draw(&mut d, &thread, mx, my)?,
             Screen::GameOver => self.gameover_draw(&mut d, &thread)?,
-            Screen::YouWin => self.win_draw(&mut d)?,
+            Screen::YouWin => self.win_draw(&mut d, &thread)?,
             Screen::Office => {
                 self.office_draw(&mut d, &thread)?;
             }
@@ -604,6 +611,25 @@ impl<'a> State<'a> {
                 Color::WHITE,
             );
         }
+
+        d.draw_texture_pro(
+            &self.you_win_framebuffer,
+            Rectangle::new(
+                config().width() as f32,
+                0.0,
+                -config().width() as f32,
+                config().height() as f32,
+            ),
+            Rectangle::new(
+                (d.get_render_width() as f32 / 2.0) + rot,
+                (d.get_render_height() as f32 / 2.0) + rot,
+                corrected_width,
+                corrected_height,
+            ),
+            Vector2::new(corrected_width / 2.0, corrected_height / 2.0),
+            180.0 + rot,
+            Color::WHITE.alpha(self.win_time.elapsed()?.as_secs_f32() * 0.5),
+        );
 
         d.draw_fps(10, 10);
         Ok(())

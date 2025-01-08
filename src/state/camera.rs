@@ -30,6 +30,12 @@ impl<'a> State<'a> {
                 self.going_to_office = false;
             }
         }
+
+        if self.sel_camera == Room::Room6 {
+            self.gang.wilber.rage_decrement();
+        } else {
+            self.gang.wilber.rage_increment(&mut self.audio);
+        }
     }
 
     pub fn camera_draw(
@@ -104,11 +110,6 @@ impl<'a> State<'a> {
                     0.0,
                     Color::WHITE,
                 );
-            }
-            if self.sel_camera == Room::Room6 {
-                self.gang.wilber.rage_decrement();
-            } else {
-                self.gang.wilber.rage_increment(&mut self.audio);
             }
         }
 
@@ -306,11 +307,13 @@ impl<'a> State<'a> {
                         let bat_height = Self::bat_height();
                         ui.set_cursor_pos([
                             Self::bat_start(),
-                            config().real_height() as f32 - (bat_height * 3.0),
+                            (config().real_height() as f32 - bat_height)
+                                - (50.0 * config().ui_scale())
+                                - bat_height,
                         ]);
                         if ui.button_with_size(
                             "HEAT UP",
-                            [Self::bat_width() as f32, bat_height as f32 / 2.0],
+                            [Self::bat_width() as f32, bat_height as f32],
                         ) {
                             duct_heatup.store(true, Ordering::Relaxed);
                         }

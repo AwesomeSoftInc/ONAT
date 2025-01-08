@@ -5,21 +5,20 @@ use crate::config::config;
 use super::{Screen, State};
 
 impl<'a> State<'a> {
-    pub fn win_draw(&mut self, d: &mut RaylibDrawHandle) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn win_draw(
+        &mut self,
+        d: &mut RaylibDrawHandle,
+        thread: &RaylibThread,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let num = self.time()?;
+
         if !self.audio.bells.is_playing() {
             self.audio.bells.play()?;
         }
-        d.clear_background(Color::BLACK);
-        let fb_a = {
-            if self.screen == Screen::YouWin {
-                255.0 - (self.win_time.elapsed()?.as_secs_f32() * 128.0)
-            } else {
-                255.0
-            }
-        } as u8;
 
         let font_size = config().width() / 7;
-        let x = config().width() / 2;
+        let x = (config().width() / 2)
+            - (d.measure_text(format!("{}:00AM", font_size).as_str(), font_size) / 3);
         let y = (config().height() / 2) - (font_size / 2);
         let y_ = {
             if self.win_time.elapsed()?.as_secs() < 1 {
@@ -34,20 +33,27 @@ impl<'a> State<'a> {
             }
         };
 
-        let num = self.time()?;
+        if self.win_time.elapsed()?.as_secs() >= 20 {
+            self.screen = Screen::Credits;
+            self.going_to_office_from_title = false;
+        }
+        let mut d = d.begin_texture_mode(&thread, &mut self.you_win_framebuffer);
+        d.clear_background(Color::BLACK);
 
         d.draw_text_ex(
             &self.font,
             format!("{}", num - 1).as_str(),
-            Vector2::new(x as f32 - (8.0 * 5.0), y_),
+            Vector2::new(x as f32, y_),
             font_size as f32,
             6.0,
             Color::WHITE,
         );
+        let text = format!("{}", num);
+        let text_len = d.measure_text(text.as_str(), font_size);
         d.draw_text_ex(
             &self.font,
-            format!("{}", num).as_str(),
-            Vector2::new(x as f32 - (8.0 * 5.0), y_ + (font_size as f32 * 1.0)),
+            text.as_str(),
+            Vector2::new(x as f32, y_ + (font_size as f32 * 1.0)),
             font_size as f32,
             6.0,
             Color::WHITE,
@@ -55,8 +61,8 @@ impl<'a> State<'a> {
 
         d.draw_text_ex(
             &self.font,
-            " :00AM",
-            Vector2::new(x as f32, y as f32),
+            ":00AM",
+            Vector2::new(x as f32 + text_len as f32, y as f32),
             font_size as f32,
             6.0,
             Color::WHITE,
@@ -75,39 +81,7 @@ impl<'a> State<'a> {
             font_size,
             Color::BLACK,
         );
-        d.draw_texture_pro(
-            &self.framebuffer,
-            Rectangle::new(
-                self.framebuffer.width() as f32,
-                0.0,
-                -self.framebuffer.width() as f32,
-                self.framebuffer.height() as f32,
-            ),
-            Rectangle::new(
-                self.framebuffer.width() as f32 / 2.0,
-                self.framebuffer.height() as f32 / 2.0,
-                self.framebuffer.width() as f32,
-                self.framebuffer.height() as f32,
-            ),
-            Vector2::new(
-                self.framebuffer.width() as f32 / 2.0,
-                self.framebuffer.height() as f32 / 2.0,
-            ),
-            180.0,
-            Color::new(255, 255, 255, fb_a),
-        );
-        d.draw_rectangle(0, 0, 0.0 as i32, config().height() as i32, Color::BLACK);
-        d.draw_rectangle(
-            config().width() + 0.0 as i32 + 1,
-            0,
-            0.0 as i32,
-            config().height() as i32,
-            Color::BLACK,
-        );
-        if self.win_time.elapsed()?.as_secs() >= 20 {
-            self.screen = Screen::Credits;
-            self.going_to_office_from_title = false;
-        }
+
         Ok(())
     }
 }

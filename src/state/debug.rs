@@ -153,6 +153,10 @@ impl State<'_> {
                         });
                     });
 
+                    if ui.menu_item("Win Button") {
+                        se.force_win = true;
+                    }
+
                     ui.slider("Battery", 0.0, 100.0, &mut se.camera_timer);
                     ui.slider("Tainted", 0.0, 100.0, &mut se.tainted);
                     if se.camera_timer == 0.0 {
