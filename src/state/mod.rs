@@ -510,7 +510,7 @@ impl<'a> State<'a> {
 
         match self.screen {
             Screen::TitleScreen => self.title_screen_draw(&mut d, &thread)?,
-            Screen::Credits => self.credits_draw(&mut d, &thread)?,
+            Screen::Credits => self.credits_draw(&mut d, &thread, mx, my)?,
             Screen::GameOver => self.gameover_draw(&mut d, &thread)?,
             Screen::YouWin => self.win_draw(&mut d)?,
             Screen::Office => {
@@ -649,7 +649,7 @@ impl<'a> State<'a> {
      Sets up audio based on the bg_offset_x, state, etc.
     */
     pub fn audio_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if self.screen != Screen::TitleScreen && self.screen != Screen::GameOver {
+        if self.screen != Screen::TitleScreen {
             let panner = self.bg_offset_x / 3.0;
             let mut left = 191.0 - panner;
             if left <= 64.0 {

@@ -9,6 +9,8 @@ impl<'a> State<'a> {
         &mut self,
         d: &mut RaylibDrawHandle,
         thread: &RaylibThread,
+        mx: i32,
+        my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
         let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
 
@@ -43,7 +45,7 @@ impl<'a> State<'a> {
             6.0,
             Color::new(255, 255, 255, 255),
         );
-        let cx = config().width_raw() - (config().width_raw() / 4);
+        let cx = config().width() - d.measure_text("Back to Title Screen", 48);
         let cy = config().height() - 48;
         d.draw_text_ex(
             &self.font,
@@ -53,11 +55,11 @@ impl<'a> State<'a> {
             6.0,
             Color::WHITE,
         );
-        // if d.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
-        //     if mx >= cx && my >= cy {
-        //         self.screen = Screen::TitleScreen;
-        //     }
-        // }
+        if d.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
+            if mx >= cx && my >= cy {
+                self.screen = Screen::TitleScreen;
+            }
+        }
         Ok(())
     }
 }
