@@ -130,9 +130,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             state.audio_step()?;
 
-            if state.screen != Screen::TitleScreen
-                || (state.screen == Screen::YouWin && config().night_2())
-            {
+            if !state.screen.is_passive() {
                 state.step(&mut rl, &thread, mx, my)?;
                 state.audio_play_step()?;
             }

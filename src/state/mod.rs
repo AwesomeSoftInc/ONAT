@@ -38,6 +38,16 @@ pub enum Screen {
     Settings,
 }
 
+impl Screen {
+    pub fn is_passive(&self) -> bool {
+        return *self == Screen::TitleScreen
+            || *self == Screen::YouWin
+            || *self == Screen::GameOver
+            || *self == Screen::Credits
+            || *self == Screen::Settings;
+    }
+}
+
 pub struct State<'a> {
     pub audio: &'a mut Audio,
     pub screen: Screen,
@@ -396,10 +406,7 @@ impl<'a> State<'a> {
             return Ok(());
         }
 
-        if self.screen == Screen::TitleScreen
-            || self.screen == Screen::GameOver
-            || self.screen == Screen::YouWin
-        {
+        if self.screen.is_passive() {
             return Ok(());
         }
 
@@ -667,13 +674,7 @@ impl<'a> State<'a> {
      Sets up audio based on the bg_offset_x, state, etc.
     */
     pub fn audio_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if self.screen == Screen::TitleScreen {
-            return Ok(());
-        }
-        if self.screen == Screen::GameOver {
-            return Ok(());
-        }
-        if self.screen == Screen::YouWin {
+        if self.screen.is_passive() {
             return Ok(());
         }
         let panner = self.bg_offset_x / 3.0;
