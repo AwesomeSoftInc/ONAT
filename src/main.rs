@@ -112,10 +112,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             state.ingame_time += Duration::from_millis(36);
 
-            state.step(&mut rl, &thread, mx, my)?;
-
             state.audio_step()?;
-            state.audio_play_step()?;
+
+            if state.screen != Screen::TitleScreen {
+                state.step(&mut rl, &thread, mx, my)?;
+                state.audio_play_step()?;
+            }
             play_jumpscare = true;
         }
 

@@ -153,7 +153,7 @@ impl Audio {
             &mut self.fuck_you_tux
         };
         if !snd.is_playing() {
-            snd.play()?;
+            snd.play_loop()?;
         }
         Ok(())
     }
