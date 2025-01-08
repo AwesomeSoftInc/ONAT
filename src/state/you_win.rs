@@ -18,7 +18,7 @@ impl<'a> State<'a> {
 
         let font_size = config().width() / 7;
         let x = (config().width() / 2)
-            - (d.measure_text(format!("{}:00AM", font_size).as_str(), font_size) / 3);
+            - (d.measure_text(format!("{}:00AM", num).as_str(), font_size) / 2);
         let y = (config().height() / 2) - (font_size / 2);
         let y_ = {
             if self.win_time.elapsed()?.as_secs() < 1 {
