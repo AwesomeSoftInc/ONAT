@@ -649,31 +649,29 @@ impl<'a> State<'a> {
      Sets up audio based on the bg_offset_x, state, etc.
     */
     pub fn audio_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if self.screen == Screen::TitleScreen || self.screen == Screen::GameOver {
-            return Ok(());
-        }
+        if self.screen != Screen::TitleScreen && self.screen != Screen::GameOver {
+            let panner = self.bg_offset_x / 3.0;
+            let mut left = 191.0 - panner;
+            if left <= 64.0 {
+                left = 64.0;
+            }
+            if left >= 191.0 {
+                left = 191.0;
+            }
+            let mut right = panner;
+            if right <= 64.0 {
+                right = 64.0;
+            }
+            if right >= 191.0 {
+                right = 191.0;
+            }
+            self.pan_left = left as u8;
+            self.pan_right = right as u8;
 
-        let panner = self.bg_offset_x / 3.0;
-        let mut left = 191.0 - panner;
-        if left <= 64.0 {
-            left = 64.0;
-        }
-        if left >= 191.0 {
-            left = 191.0;
-        }
-        let mut right = panner;
-        if right <= 64.0 {
-            right = 64.0;
-        }
-        if right >= 191.0 {
-            right = 191.0;
-        }
-        self.pan_left = left as u8;
-        self.pan_right = right as u8;
+            self.audio.halt_not_playing();
 
-        self.audio.halt_not_playing();
-
-        self.audio.play_ambience()?;
+            self.audio.play_ambience()?;
+        }
 
         Ok(())
     }
