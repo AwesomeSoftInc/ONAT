@@ -18,7 +18,7 @@ use raylib::prelude::*;
 pub const CAMERA_TIME: f32 = 0.1;
 pub const DOOR_ANIM_SPEED: f32 = 100.0;
 
-use crate::config::config;
+use crate::config::{config, config_mut};
 use crate::{
     audio::Audio,
     enums::Room,
@@ -129,8 +129,6 @@ pub struct State<'a> {
     pub pan_left: u8,
     pub pan_right: u8,
 
-    pub cur_texture_filter: TextureFilter,
-
     pub wilbur_snd_played: bool,
     pub tux_snd_played: bool,
     pub gopher_snd_played: bool,
@@ -138,6 +136,11 @@ pub struct State<'a> {
     pub camera_changing: bool,
 
     pub force_win: bool,
+
+    pub bonzi_timer: SystemTime,
+    pub bonzi_swoosh_played: bool,
+    pub bonzi_thud_played: bool,
+    pub bonzi_played: bool,
 }
 
 impl<'a> State<'a> {
@@ -278,13 +281,16 @@ impl<'a> State<'a> {
             mouse_pointer: false,
             pan_left: 0,
             pan_right: 0,
-            cur_texture_filter: TextureFilter::TEXTURE_FILTER_BILINEAR,
             tux_snd_played: false,
             gopher_snd_played: false,
             wilbur_snd_played: false,
             camera_changing: false,
             force_win: false,
             you_win_framebuffer,
+            bonzi_timer: SystemTime::now(),
+            bonzi_swoosh_played: false,
+            bonzi_thud_played: false,
+            bonzi_played: false,
         };
         Ok(state)
     }
@@ -301,6 +307,30 @@ impl<'a> State<'a> {
         mx: i32,
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let bonzi_secs = self.bonzi_timer.elapsed().unwrap().as_secs_f32() - 5.0;
+        let on_tutorial = config().on_tutorial();
+
+        if on_tutorial {
+            if bonzi_secs >= 4.0 {
+                if !self.bonzi_swoosh_played {
+                    self.audio.swoosh.play()?;
+                    self.bonzi_swoosh_played = true;
+                }
+            }
+            if bonzi_secs >= 4.5 {
+                if !self.bonzi_thud_played {
+                    self.audio.thud.play()?;
+                    self.bonzi_thud_played = true;
+                }
+            }
+            if bonzi_secs >= 5.0 {
+                if !self.bonzi_played {
+                    self.audio.bonzi.play()?;
+                    self.bonzi_played = true;
+                }
+            }
+        }
+
         if self.camera_booting {
             self.camera_booting_timer += 0.01;
             if self.camera_booting_timer >= 250.0 {
@@ -394,6 +424,24 @@ impl<'a> State<'a> {
             self.gang.gogopher.duct_heat_timer -= 1;
         }
 
+        if rl.is_key_released(KeyboardKey::KEY_SPACE) {
+            config_mut().set_on_tutorial(false);
+            self.ingame_time = SystemTime::now();
+            self.bonzi_played = true;
+            self.bonzi_swoosh_played = true;
+            self.bonzi_thud_played = true;
+            self.audio.bonzi.halt();
+        }
+
+        if on_tutorial {
+            if bonzi_secs >= 51.0 {
+                config_mut().set_on_tutorial(false);
+                self.ingame_time = SystemTime::now();
+            } else {
+                return Ok(());
+            }
+        }
+
         let is_over = self.gang.step(cur_time, &mut self.audio) || self.force_win;
 
         if is_over && !self.has_won {
@@ -402,6 +450,7 @@ impl<'a> State<'a> {
             self.has_won = true;
             self.last_screen = Screen::YouWin;
             self.screen = Screen::YouWin;
+            config_mut().unlock_night_2();
             self.win_time = SystemTime::now();
             return Ok(());
         }
@@ -697,7 +746,9 @@ impl<'a> State<'a> {
 
         self.audio.halt_not_playing();
 
-        self.audio.play_ambience()?;
+        if !config().on_tutorial() {
+            self.audio.play_ambience()?;
+        }
 
         Ok(())
     }
@@ -747,11 +798,11 @@ impl<'a> State<'a> {
     /**
     Get the game's current hour.
     */
-    pub fn time(&self) -> Result<u64, Box<dyn std::error::Error>> {
+    pub fn time(&self) -> Result<i64, Box<dyn std::error::Error>> {
         let cur_time = self.ingame_time.duration_since(UNIX_EPOCH)?;
         let ct = self.gang.hours(cur_time);
-        if ct == 0 {
-            Ok(12)
+        if ct <= 0 {
+            Ok(12 + ct)
         } else {
             Ok(ct)
         }

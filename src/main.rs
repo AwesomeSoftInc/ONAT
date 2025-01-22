@@ -42,11 +42,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     config(); // initializes the CONFIG variable.
 
     let (mut rl, thread) = raylib::init()
-        .fullscreen()
         .resizable()
         .log_level(TraceLogLevel::LOG_WARNING)
         .title("ONAT")
         .build();
+
+    if config().fullscreen() {
+        rl.toggle_fullscreen();
+    }
 
     rl.set_window_icon(&Image::load_image_from_mem(
         ".png",
@@ -54,6 +57,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?);
     println!("loading audio...");
     let audio = Box::leak(Box::new(Audio::new()?));
+    audio.set_volume(config().volume() as i32);
+
     println!("loading textures...");
     let textures = Box::leak(Box::new(Textures::new()?));
 

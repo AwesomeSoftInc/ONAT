@@ -119,13 +119,13 @@ impl<'a> State<'a> {
                         goto_title.store(true, Ordering::Relaxed);
                     };
                     ui.separator();
-                    // if config().night_2_unlocked() {
-                    let red = ui.push_style_color(StyleColor::Text, [1.0, 0.25, 0.25, 1.0]);
-                    if ui.button("Night 2") {
-                        goto_night2.store(true, Ordering::Relaxed);
-                    };
-                    red.pop();
-                    // }
+                    if config().night_2_unlocked() {
+                        let red = ui.push_style_color(StyleColor::Text, [1.0, 0.25, 0.25, alpha]);
+                        if ui.button("Night 2") {
+                            goto_night2.store(true, Ordering::Relaxed);
+                        };
+                        red.pop();
+                    }
                     ui.separator();
                     if ui.button("Options") {
                         goto_settings.store(true, Ordering::Relaxed);

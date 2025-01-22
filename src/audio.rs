@@ -29,15 +29,6 @@ impl Sound {
         })
     }
 
-    // pub fn from_bytes(bytes: Box<[u8]>) -> Result<Self, Box<dyn std::error::Error>> {
-    //     let chunk = Chunk::from_raw_buffer(bytes)?;
-
-    //     Ok(Self {
-    //         chunk,
-    //         channel: None,
-    //     })
-    // }
-
     pub fn play(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.channels.insert(
             self.channels.len(),
@@ -124,6 +115,12 @@ impl Sound {
         return playing;
     }
 
+    pub fn volume(&mut self) -> i32 {
+        for ch in &mut self.channels {
+            return ch.1.get_volume();
+        }
+        return 0;
+    }
     pub fn set_volume(&mut self, volume: i32) -> () {
         for ch in &mut self.channels {
             ch.1.set_volume(volume);
@@ -171,7 +168,7 @@ impl Audio {
         } else {
             &mut self.fuck_you_tux
         };
-        snd.set_volume((volume * 100.0) as i32);
+        snd.set_volume((volume * config().volume() as f32) as i32);
         Ok(())
     }
 
@@ -263,3 +260,7 @@ impl Audio {
         Ok(())
     }
 }
+
+/*
+
+*/

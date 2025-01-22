@@ -167,7 +167,7 @@ impl State<'_> {
 
                     let mut off = se.gang.hour_offset as i32;
                     if ui.input_int("Hour", &mut off).build() {
-                        se.gang.hour_offset = off as u64;
+                        se.gang.hour_offset = off as i64;
                     };
                 });
         });

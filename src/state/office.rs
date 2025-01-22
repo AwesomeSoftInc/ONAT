@@ -511,6 +511,9 @@ impl<'a> State<'a> {
                     se.draw_time(&time, font_off, ui.get_window_draw_list())
                         .unwrap();
 
+                    if config().on_tutorial() {
+                        se.draw_bonzi_text(ui.get_window_draw_list()).unwrap();
+                    }
                     style_pop!(styles);
                 });
         });
@@ -603,8 +606,6 @@ impl<'a> State<'a> {
 
         let wallpaper = &*self.textures.office.wallpaper();
 
-        let center = Vector2::new((wallpaper.width / 2) as f32, (wallpaper.height / 2) as f32);
-
         d.draw_texture(&wallpaper, 0, 0, Color::WHITE);
 
         d.draw_rectangle(
@@ -614,6 +615,62 @@ impl<'a> State<'a> {
             50,
             Color::GREEN,
         );
+
+        if config().on_tutorial() {
+            let bonzi_secs = self.bonzi_timer.elapsed().unwrap().as_secs_f32() - 5.0;
+            if bonzi_secs >= 3.0 && bonzi_secs <= 51.0 {
+                let bonzi_frame = ((bonzi_secs - 3.0) * 12.5) as i32;
+                let bonzi = match bonzi_frame {
+                    0 => &*self.textures.bonzi.enter1(),
+                    1 => &*self.textures.bonzi.enter2(),
+                    2 => &*self.textures.bonzi.enter3(),
+                    3 => &*self.textures.bonzi.enter4(),
+                    4 => &*self.textures.bonzi.enter5(),
+                    5 => &*self.textures.bonzi.enter6(),
+                    6 => &*self.textures.bonzi.enter7(),
+                    7 => &*self.textures.bonzi.enter8(),
+                    8 => &*self.textures.bonzi.enter9(),
+                    9 => &*self.textures.bonzi.enter10(),
+                    10 => &*self.textures.bonzi.enter11(),
+                    11 => &*self.textures.bonzi.enter12(),
+                    12 => &*self.textures.bonzi.enter13(),
+                    13 => &*self.textures.bonzi.enter14(),
+                    14 => &*self.textures.bonzi.enter15(),
+                    15 => &*self.textures.bonzi.enter16(),
+                    16 => &*self.textures.bonzi.enter17(),
+                    17 => &*self.textures.bonzi.enter18(),
+                    18 => &*self.textures.bonzi.enter19(),
+                    19 => &*self.textures.bonzi.enter20(),
+                    20 => &*self.textures.bonzi.enter21(),
+                    21 => &*self.textures.bonzi.enter22(),
+                    22 => &*self.textures.bonzi.enter23(),
+                    23 => &*self.textures.bonzi.enter24(),
+                    24 => &*self.textures.bonzi.enter25(),
+                    25 => &*self.textures.bonzi.enter26(),
+                    _ => &*self.textures.bonzi.idle(),
+                };
+
+                let alpha = if bonzi_secs >= 49.0 {
+                    1.0 - (49.0 - bonzi_secs)
+                } else {
+                    1.0
+                };
+
+                d.draw_texture_pro(
+                    bonzi,
+                    texture_rect!(bonzi),
+                    Rectangle::new(
+                        0.0,
+                        0.0,
+                        bonzi.width as f32 * 2.0,
+                        bonzi.height as f32 * 2.0,
+                    ),
+                    Vector2::zero(),
+                    0.0,
+                    Color::WHITE.alpha(alpha),
+                );
+            }
+        }
     }
 }
 

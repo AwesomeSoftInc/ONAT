@@ -1,6 +1,4 @@
 use ::imgui::{DrawListMut, ImColor32};
-use parking_lot::Mutex;
-use raylib::prelude::*;
 
 use crate::config;
 
@@ -111,6 +109,19 @@ impl<'a> State<'a> {
         Ok(())
     }
 
+    pub fn draw_bonzi_text(
+        &self,
+        draw_list: DrawListMut<'_>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        draw_list.add_text(
+            [config().real_margin() + 50.0, 50.0],
+            ImColor32::WHITE,
+            self.bonzi_text(),
+        );
+
+        Ok(())
+    }
+
     pub fn draw_rage(&self, draw_list: DrawListMut<'_>) -> Result<(), Box<dyn std::error::Error>> {
         // Battery size
         let bat_width = Self::bat_width();
@@ -168,5 +179,46 @@ impl<'a> State<'a> {
 
     pub fn bat_start() -> f32 {
         config().real_margin() + 50.0
+    }
+
+    pub fn bonzi_text(&self) -> &str {
+        let time = self.bonzi_timer.elapsed().unwrap().as_secs_f32() - 10.0;
+        if time <= 0.0 {
+            ""
+        } else if time <= 2.0 {
+            "Well! Hello there!"
+        } else if time <= 5.0 {
+            "I don't believe we've been properly introduced."
+        } else if time <= 6.0 {
+            "I am Bonzi."
+        } else if time <= 8.0 {
+            "Tux wants you to play a little game!"
+        } else if time <= 12.0 {
+            "For the crime of using Windows,\nwe have locked you in this office."
+        } else if time <= 16.0 {
+            "Tux's followers will be coming\nshortly to deal with you."
+        } else if time <= 20.0 {
+            "When they come in, they will corrupt\nyour PC until they are able to attack."
+        } else if time <= 22.0 {
+            "You have doors you can shut on them,"
+        } else if time <= 26.0 {
+            "but they will open on their own\nand be jammed for a bit"
+        } else if time <= 28.0 {
+            "...that is, unless you are wise\nwith shutting them,"
+        } else if time <= 30.0 {
+            "as if they run into it"
+        } else if time <= 33.0 {
+            "they will unjam it before\nwalking back to their post."
+        } else if time <= 35.0 {
+            "You have 6 hours to fend them off."
+        } else if time <= 37.0 {
+            "A word of advice?"
+        } else if time <= 39.0 {
+            "Keep track of them on the\ncameras to shut the doors"
+        } else if time <= 43.0 {
+            "before they can start\ncorrupting anything."
+        } else {
+            "Have fun!"
+        }
     }
 }

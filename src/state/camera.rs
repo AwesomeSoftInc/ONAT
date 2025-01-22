@@ -298,6 +298,10 @@ impl<'a> State<'a> {
                     let font_off = ui.calc_text_size(time.clone())[0];
                     se.draw_time(&time, font_off, ui.get_window_draw_list())
                         .unwrap();
+                    if config().on_tutorial() {
+                        se.draw_bonzi_text(ui.get_window_draw_list()).unwrap();
+                    }
+
                     ui.set_window_font_scale(config().ui_scale());
 
                     if se.sel_camera == Room::Room6 && se.gang.wilber.active() {
@@ -318,6 +322,7 @@ impl<'a> State<'a> {
                             duct_heatup.store(true, Ordering::Relaxed);
                         }
                     }
+
                     style_pop!(styles);
                 });
         });

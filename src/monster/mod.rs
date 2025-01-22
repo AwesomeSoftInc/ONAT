@@ -260,7 +260,7 @@ pub struct Gang {
     pub four_am_checked: bool,
     pub five_am_checked: bool,
     pub tux_moved: bool,
-    pub hour_offset: u64,
+    pub hour_offset: i64,
 }
 
 impl Gang {
@@ -286,8 +286,12 @@ impl Gang {
         }
     }
 
-    pub fn hours(&self, time: Duration) -> u64 {
-        self.hour_offset + time.as_secs() / 200
+    pub fn hours(&self, time: Duration) -> i64 {
+        if config().on_tutorial() {
+            0
+        } else {
+            self.hour_offset + (time.as_secs() / 200) as i64
+        }
     }
     pub fn step(&mut self, time: Duration, aud: &mut Audio) -> bool {
         let hours = self.hours(time);

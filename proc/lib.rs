@@ -382,6 +382,7 @@ pub fn audio_generate(_item: TokenStream) -> TokenStream {
         let mut impl_lets = String::new();
         let mut impl_rets = String::new();
         let mut impl_is_playing = String::new();
+        let mut impl_volume = String::new();
 
         for asset in std::fs::read_dir("./audio")? {
             let asset = asset?;
@@ -408,6 +409,8 @@ pub fn audio_generate(_item: TokenStream) -> TokenStream {
 
             impl_is_playing +=
                 format!("self.{name}.halt_if_not_playing();\n", name = name).as_str();
+
+            impl_volume += format!("self.{name}.set_volume(volume);\n", name = name).as_str();
         }
 
         fin += format!(
@@ -429,9 +432,14 @@ pub fn audio_generate(_item: TokenStream) -> TokenStream {
                 pub fn halt_not_playing(&mut self)  {{
                     {}
                 }}
+
+                 pub fn set_volume(&mut self, volume: i32)  {{
+                    println!(\"volume set: {{}}\",volume);
+                    {}
+                }}
             }}
         ",
-            struc_defs, impl_lets, impl_rets, impl_is_playing
+            struc_defs, impl_lets, impl_rets, impl_is_playing, impl_volume
         )
         .as_str();
 

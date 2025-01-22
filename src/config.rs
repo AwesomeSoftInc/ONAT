@@ -1,10 +1,14 @@
-use std::sync::{LazyLock, OnceLock};
-
-use raylib::{
-    ffi::{self, GetRenderHeight, GetRenderWidth},
-    window::{get_current_monitor_index, get_monitor_height, get_monitor_width},
-    RaylibHandle,
+use std::{
+    fs::OpenOptions,
+    io::{Read, Write},
+    sync::OnceLock,
 };
+
+use raylib::prelude::*;
+
+use serde::{Deserialize, Serialize};
+
+use crate::textures::Textures;
 
 #[derive(Clone, Copy)]
 pub struct Dimensions {
@@ -14,29 +18,80 @@ pub struct Dimensions {
     margin: f32,
 }
 
+#[repr(u32)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
+pub enum WritableTextureFilter {
+    Point = TextureFilter::TEXTURE_FILTER_POINT as u32,
+    Bilinear = TextureFilter::TEXTURE_FILTER_BILINEAR as u32,
+    Trilinear = TextureFilter::TEXTURE_FILTER_TRILINEAR as u32,
+    Anisotrpoic4x = TextureFilter::TEXTURE_FILTER_ANISOTROPIC_4X as u32,
+    Anisotrpoic8x = TextureFilter::TEXTURE_FILTER_ANISOTROPIC_8X as u32,
+    Anisotrpoic16x = TextureFilter::TEXTURE_FILTER_ANISOTROPIC_16X as u32,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Writable {
+    ui_scale: f32,
+    fullscreen: bool,
+    night_2_unlocked: bool,
+    on_tutorial: bool,
+    texture_filter: WritableTextureFilter,
+    volume: i32,
+}
+
+impl Default for Writable {
+    fn default() -> Self {
+        Self {
+            ui_scale: 2.0,
+            fullscreen: true,
+            night_2_unlocked: false,
+            on_tutorial: true,
+            texture_filter: WritableTextureFilter::Bilinear,
+            volume: 100,
+        }
+    }
+}
+
 pub struct Config {
+    writable: Writable,
+
     // The framebuffer the user can set for the game.
     emulated_dimensions: Dimensions,
 
     // The real dimensions of the user's screen.
     real_dimensions: Dimensions,
 
-    // The UI scale.
-    ui_scale: f32,
-
-    // Night 2 on
+    // Night 2
     night_2: bool,
 
-    // Fullscreen?
-    fullscreen: bool,
     dimensions_fn: fn(&Self) -> Dimensions,
-
-    // Night 2 unlocked?
-    night_2_unlocked: bool,
 }
 
 impl Config {
     pub fn new() -> Self {
+        let cfg_dir = dirs::config_dir()
+            .expect("A standard config directory could not be found on your OS.")
+            .join(".onat");
+
+        std::fs::create_dir_all(cfg_dir.clone()).unwrap();
+        let cfg_path = cfg_dir.join("config.toml");
+        let mut cfg_file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .read(true)
+            .append(false)
+            .open(cfg_path)
+            .unwrap();
+
+        let mut buf = String::new();
+        cfg_file.read_to_string(&mut buf).unwrap();
+
+        let writable: Writable = toml::from_str(&mut buf).unwrap_or_else(|err| {
+            println!("[ERROR] {}", err.to_string());
+            Writable::default()
+        });
+        Self::write_static(&Writable::default());
+
         // Get the user's real screen dimensions.
         let (rl, _) = raylib::init().title("ONAT Screen Size checker").build();
         let real_dimensions = calculate_dimensions();
@@ -51,14 +106,102 @@ impl Config {
         };
 
         Self {
+            writable,
             emulated_dimensions,
             real_dimensions,
-            ui_scale: 2.0,
-            fullscreen: true,
             dimensions_fn: fullscreen_dimensions_fn,
             night_2: false,
-            night_2_unlocked: false,
         }
+    }
+
+    pub fn write_static(writable: &Writable) {
+        let cfg_dir = dirs::config_dir()
+            .expect("A standard config directory could not be found on your OS.")
+            .join(".onat");
+
+        std::fs::create_dir_all(cfg_dir.clone()).unwrap();
+        let cfg_path = cfg_dir.join("config.toml");
+
+        let mut file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .read(true)
+            .append(false)
+            .open(cfg_path)
+            .unwrap();
+
+        file.set_len(0).unwrap();
+
+        file.write(toml::to_string(writable).unwrap().as_bytes())
+            .unwrap();
+    }
+
+    pub fn write(&self) {
+        Self::write_static(&self.writable);
+    }
+
+    pub fn ui_scale(&self) -> f32 {
+        self.writable.ui_scale
+    }
+
+    pub fn fullscreen(&self) -> bool {
+        self.writable.fullscreen
+    }
+    pub fn night_2_unlocked(&self) -> bool {
+        self.writable.night_2_unlocked
+    }
+
+    pub fn on_tutorial(&self) -> bool {
+        self.writable.on_tutorial
+    }
+
+    pub fn set_ui_scale(&mut self, val: f32) {
+        self.writable.ui_scale = val;
+        self.write();
+    }
+
+    pub fn unlock_night_2(&mut self) {
+        self.writable.night_2_unlocked = true;
+        self.write();
+    }
+    pub fn set_on_tutorial(&mut self, val: bool) {
+        self.writable.on_tutorial = val;
+        self.write();
+    }
+
+    pub fn toggle_fullscreen(&mut self, rl: &mut RaylibHandle) {
+        rl.toggle_fullscreen();
+        self.writable.fullscreen = !self.writable.fullscreen;
+        if self.writable.fullscreen {
+            self.dimensions_fn = fullscreen_dimensions_fn;
+        } else {
+            self.dimensions_fn = windowed_dimensions_fn;
+        }
+
+        self.write();
+    }
+    pub fn set_fullscreen(&mut self, rl: &mut RaylibHandle, val: bool) {
+        self.writable.fullscreen = val;
+        if self.writable.fullscreen {
+            self.dimensions_fn = fullscreen_dimensions_fn;
+            if !rl.is_window_fullscreen() {
+                rl.toggle_fullscreen();
+            }
+        } else {
+            self.dimensions_fn = windowed_dimensions_fn;
+            if rl.is_window_fullscreen() {
+                rl.toggle_fullscreen();
+            }
+        }
+
+        self.write();
+    }
+
+    pub fn night_2(&self) -> bool {
+        self.night_2
+    }
+    pub fn set_night_2(&mut self, val: bool) {
+        self.night_2 = val;
     }
 
     pub fn width(&self) -> i32 {
@@ -84,37 +227,26 @@ impl Config {
         (self.dimensions_fn)(self).margin
     }
 
-    pub fn ui_scale(&self) -> f32 {
-        self.ui_scale
+    pub fn texture_filter(&self) -> TextureFilter {
+        unsafe { std::mem::transmute(self.writable.texture_filter) }
+    }
+    pub fn set_texture_filter(
+        &mut self,
+        textures: &mut Textures,
+        rl: &mut RaylibHandle,
+        thread: &RaylibThread,
+        val: TextureFilter,
+    ) {
+        textures.set_texture_filter(rl, thread, val);
+        self.writable.texture_filter = unsafe { std::mem::transmute(val) }
     }
 
-    pub fn set_ui_scale(&mut self, val: f32) {
-        self.ui_scale = val;
+    pub fn volume(&self) -> i32 {
+        self.writable.volume
     }
-
-    pub fn toggle_fullscreen(&mut self, rl: &mut RaylibHandle) {
-        rl.toggle_fullscreen();
-        self.fullscreen = !self.fullscreen;
-        if self.fullscreen {
-            self.dimensions_fn = fullscreen_dimensions_fn;
-        } else {
-            self.dimensions_fn = windowed_dimensions_fn;
-        }
-    }
-
-    pub fn night_2_unlocked(&self) -> bool {
-        self.night_2_unlocked
-    }
-
-    pub fn unlock_night_2(&mut self) {
-        self.night_2_unlocked = true;
-    }
-
-    pub fn night_2(&self) -> bool {
-        self.night_2
-    }
-    pub fn set_night_2(&mut self, val: bool) {
-        self.night_2 = val;
+    pub fn set_volume(&mut self, val: i32) {
+        self.writable.volume = val;
+        self.write();
     }
 }
 
@@ -154,8 +286,8 @@ fn fullscreen_dimensions_fn(se: &Config) -> Dimensions {
 
 fn windowed_dimensions_fn(_se: &Config) -> Dimensions {
     unsafe {
-        let monitor_width = GetRenderWidth();
-        let monitor_height = GetRenderHeight();
+        let monitor_width = ffi::GetRenderWidth();
+        let monitor_height = ffi::GetRenderHeight();
         let default_ratio = monitor_width as f32 / monitor_height as f32;
         let desired_ratio = 4.0 / 3.0;
         let ratio = 1.0 + (default_ratio - desired_ratio);
