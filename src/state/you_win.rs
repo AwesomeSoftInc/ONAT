@@ -1,6 +1,6 @@
 use raylib::prelude::*;
 
-use crate::config::config;
+use crate::{audio::audio_init, config::config};
 
 use super::{Screen, State};
 
@@ -40,6 +40,7 @@ impl<'a> State<'a> {
                 20
             }
         } {
+            audio_init(44100)?;
             self.screen = Screen::Credits;
             self.going_to_office_from_title = false;
         }

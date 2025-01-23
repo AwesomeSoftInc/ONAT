@@ -21,8 +21,9 @@ fn audio_set_status(val: &str) {
     *CUR_AUDIO_LOAD.lock() = String::from(val)
 }
 
-fn audio_init() -> Result<(), Box<dyn std::error::Error>> {
-    sdl2::mixer::open_audio(8192, AUDIO_F32, 2, 1024)?;
+pub fn audio_init(frequency: i32) -> Result<(), Box<dyn std::error::Error>> {
+    sdl2::mixer::close_audio();
+    sdl2::mixer::open_audio(frequency, AUDIO_F32, 2, 1024)?;
     sdl2::mixer::allocate_channels(1024);
     Ok(())
 }

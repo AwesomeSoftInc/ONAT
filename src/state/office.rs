@@ -1,6 +1,7 @@
 use std::time::{Duration, SystemTime};
 
 use super::{Screen, State};
+use crate::audio::audio_init;
 use crate::config::config;
 use crate::{
     enums::Room,
@@ -341,6 +342,7 @@ impl<'a> State<'a> {
                             Color::WHITE,
                         );
                     } else {
+                        audio_init(44100)?;
                         if self.jumpscarer != MonsterName::GoldenTux {
                             self.screen = Screen::GameOver;
                         } else {

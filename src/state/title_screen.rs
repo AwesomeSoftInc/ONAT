@@ -4,8 +4,9 @@ use std::{
 };
 
 use crate::{
+    audio::audio_init,
     config::{config, config_mut},
-    style_pop, style_push, texture_rect,
+    init_audio, style_pop, style_push, texture_rect,
 };
 
 use super::{Screen, State};
@@ -165,6 +166,7 @@ impl<'a> State<'a> {
             let elapsed = self.title_clicked.elapsed()?.as_secs_f32();
             if (elapsed >= 5.0 && elapsed <= 5.5) || self.title_fade_skip {
                 self.audio.halt_title(self.has_won);
+                audio_init(8192);
             }
             if elapsed >= 6.0 {
                 self.audio.brownian_noise.play_loop()?;
