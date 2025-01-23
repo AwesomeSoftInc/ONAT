@@ -14,6 +14,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use rand::{thread_rng, Rng};
 use raylib::prelude::*;
+use sdl2::mixer::AUDIO_F32;
 
 pub const CAMERA_TIME: f32 = 0.1;
 pub const DOOR_ANIM_SPEED: f32 = 100.0;
@@ -138,9 +139,13 @@ pub struct State<'a> {
     pub force_win: bool,
 
     pub bonzi_timer: SystemTime,
+    pub bonzi_play_timer: SystemTime,
     pub bonzi_swoosh_played: bool,
     pub bonzi_thud_played: bool,
     pub bonzi_played: bool,
+    pub bonzi_wait_for: f32,
+    pub bonzi_idx: usize,
+    pub bonzi_line: String,
 }
 
 impl<'a> State<'a> {
@@ -150,7 +155,7 @@ impl<'a> State<'a> {
     pub fn new(
         rl: &mut RaylibHandle,
         thread: &RaylibThread,
-        audio: &'static mut Audio,
+        audio: &'a mut Audio,
         textures: &'a mut Textures,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let screen = Screen::TitleScreen;
@@ -288,9 +293,13 @@ impl<'a> State<'a> {
             force_win: false,
             you_win_framebuffer,
             bonzi_timer: SystemTime::now(),
+            bonzi_play_timer: SystemTime::now(),
             bonzi_swoosh_played: false,
             bonzi_thud_played: false,
             bonzi_played: false,
+            bonzi_wait_for: 1.0,
+            bonzi_idx: 0,
+            bonzi_line: String::new(),
         };
         Ok(state)
     }
@@ -324,9 +333,21 @@ impl<'a> State<'a> {
                 }
             }
             if bonzi_secs >= 5.0 {
-                if !self.bonzi_played {
-                    self.audio.bonzi.play()?;
-                    self.bonzi_played = true;
+                let elapsed = self.bonzi_play_timer.elapsed()?.as_secs_f32();
+                if let Some(snd) = self.audio.tts.get_mut(self.bonzi_idx) {
+                    if elapsed >= self.bonzi_wait_for {
+                        snd.2.play()?;
+                        self.bonzi_wait_for = snd.1 as f32 / 10240.0;
+                        self.bonzi_play_timer = SystemTime::now();
+                        self.bonzi_idx += 1;
+                        self.bonzi_line = snd.0.clone();
+                    }
+                }
+                if self.bonzi_idx == self.audio.tts.len()
+                    && self.bonzi_play_timer.elapsed()?.as_secs() >= 3
+                {
+                    // Consider us finished.
+                    config_mut().set_on_tutorial(false);
                 }
             }
         }
@@ -430,16 +451,10 @@ impl<'a> State<'a> {
             self.bonzi_played = true;
             self.bonzi_swoosh_played = true;
             self.bonzi_thud_played = true;
-            self.audio.bonzi.halt();
         }
 
         if on_tutorial {
-            if bonzi_secs >= 51.0 {
-                config_mut().set_on_tutorial(false);
-                self.ingame_time = SystemTime::now();
-            } else {
-                return Ok(());
-            }
+            return Ok(());
         }
 
         let is_over = self.gang.step(cur_time, &mut self.audio) || self.force_win;

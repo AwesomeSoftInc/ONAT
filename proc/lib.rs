@@ -416,15 +416,22 @@ pub fn audio_generate(_item: TokenStream) -> TokenStream {
         fin += format!(
             "pub struct Audio {{
             ambient_playing: bool,
+            pub tts: Vec<(String,usize,Sound)>,
             {}
         }}
             impl Audio {{
                 pub fn new() -> Result<Self, Box<dyn std::error::Error>> {{
+                    std::thread::spawn(|| {{
+                        tts_generate().unwrap();
+                    }});
                     audio_init()?;
                     {}
 
+                    let tts = tts_fetch()?;
+
                     Ok(Self {{
                     ambient_playing: false,
+                    tts,
         {}
                     }})
                 }}

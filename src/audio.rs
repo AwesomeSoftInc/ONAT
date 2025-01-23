@@ -1,29 +1,153 @@
-use std::collections::HashMap;
+use std::{
+    cell::RefCell, collections::HashMap, fs::File, io::Read, path::PathBuf, sync::Arc,
+    time::SystemTime,
+};
 
+use parking_lot::Mutex;
+use piper_rs::synth::PiperSpeechSynthesizer;
 use proc::audio_generate;
 use rand::{thread_rng, Rng};
 use sdl2::mixer::{Channel, Chunk, AUDIO_F32};
 
 use crate::config::config;
 
+static CUR_AUDIO_LOAD: Mutex<String> = Mutex::new(String::new());
+
+pub fn audio_load_status() -> String {
+    CUR_AUDIO_LOAD.lock().clone()
+}
+
+fn audio_set_status(val: &str) {
+    *CUR_AUDIO_LOAD.lock() = String::from(val)
+}
+
 fn audio_init() -> Result<(), Box<dyn std::error::Error>> {
-    sdl2::mixer::open_audio(44000, AUDIO_F32, 2, 1024)?;
+    sdl2::mixer::open_audio(8192, AUDIO_F32, 2, 1024)?;
     sdl2::mixer::allocate_channels(1024);
     Ok(())
 }
 
+fn file_get_value(file: &mut File, val: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let mut buf = String::new();
+    file.read_to_string(&mut buf)?;
+
+    // get all the lines starting with the key
+    let name_lines = buf
+        .lines()
+        .filter(|f| f.to_lowercase().replace(" ", "").starts_with(val))
+        .map(|f| f.to_string())
+        .collect::<Vec<_>>();
+
+    // Get the first one we found and seperate each end of the equals side.
+    let parts = name_lines.first().unwrap().split("=").collect::<Vec<_>>();
+
+    let name = parts.last().unwrap().replace("\"", "");
+
+    Ok(name)
+}
+
+fn os_name() -> Result<String, Box<dyn std::error::Error>> {
+    #[cfg(target_os = "windows")]
+    {
+        Ok("Windows".to_string())
+    }
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(mut file) = File::open("/etc/os-release") {
+            return Ok(file_get_value(&mut file, "name=")?);
+        } else if let Ok(mut file) = File::open("/etc/lsb-release") {
+            return Ok(file_get_value(&mut file, "distrib_id=")?);
+        } else {
+            return Ok("some shitfuck version of Linux that nobody's ever heard of".to_string());
+        }
+    }
+}
+
+static TTS: Mutex<Option<Vec<(String, usize, Vec<f32>)>>> = Mutex::new(None);
+
+fn tts_generate() -> Result<(), Box<dyn std::error::Error>> {
+    let model = piper_rs::from_config_path(&PathBuf::new().join("tts").join("bonzi.json"))?;
+    if let Some(speakers) = model.get_speakers()? {
+        if let Some(first_key) = speakers.keys().collect::<Vec<_>>().first() {
+            if let Some(err) = model.set_speaker(**first_key) {
+                return Err(Box::new(err));
+            };
+        }
+    };
+
+    let synth = Arc::new(PiperSpeechSynthesizer::new(model)?);
+
+    let crime = format!("For the crime of using {},", os_name()?);
+
+    let sentences = vec!["Well!".to_string(),"Hello there!".to_string(),"I don't believe we've been properly introduced.".to_string(),"I am Bonzi.".to_string(),"Tux wants you to play a little game!".to_string(),crime,"we have locked you in this office.".to_string(),"Tux's followers will be coming shortly to deal with you.".to_string(),"When they come in, they will corrupt your PC\nuntil they are able to attack.".to_string(),"You have doors you can shut on them,\nbut they will open on their own and be jammed for a bit".to_string(),"that is, unless you are wise with shutting them,".to_string(),"as if they run into it, they will unjam it".to_string(),"before walking back to their post.".to_string(),"You have 6 hours to fend them off.".to_string(),"A word of advice?".to_string(),"Keep track of them on the cameras to shut\nthe doors before they can start corrupting anything.".to_string(),"Have fun!".to_string()];
+
+    let s = Box::leak(Box::new(sentences.clone()));
+    let outs = Arc::new(Mutex::new(Vec::new()));
+
+    s.iter().for_each(|f| {
+        let st = f.to_string();
+        let mut threads = vec![];
+        let synth = synth.clone();
+        let outs = outs.clone();
+        threads.push(std::thread::spawn(move || {
+            let ou = synth
+                .synthesize_lazy(f.to_string(), None)
+                .unwrap()
+                .filter(|f| f.is_ok())
+                .flat_map(|f| f.unwrap())
+                .collect::<Vec<_>>();
+            outs.lock().push((st, ou.len(), ou))
+        }));
+
+        for f in threads.into_iter() {
+            f.join().unwrap();
+        }
+    });
+
+    let outs = outs.lock().iter().map(|f| f.clone()).collect::<Vec<_>>();
+
+    *TTS.lock() = Some(outs);
+
+    Ok(())
+}
+
+fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>> {
+    audio_set_status("generating TTS");
+    let mut time = SystemTime::now();
+    loop {
+        if time.elapsed()?.as_millis() >= 250 {
+            if let Some(tts) = TTS.lock().clone() {
+                return Ok(tts
+                    .iter()
+                    .map(|f| {
+                        let chunk = Chunk::from_raw_buffer(f.2.clone().into()).unwrap();
+
+                        (f.0.clone(), f.1, Sound::from_chunk(chunk).unwrap())
+                    })
+                    .collect::<Vec<_>>());
+            };
+            time = SystemTime::now();
+        }
+    }
+}
+
 pub struct Sound {
-    path: String,
     chunk: Chunk,
     channels: HashMap<usize, Channel>,
 }
 
 impl Sound {
+    fn from_chunk(chunk: Chunk) -> Result<Self, Box<dyn std::error::Error>> {
+        Ok(Self {
+            chunk,
+            channels: HashMap::new(),
+        })
+    }
     pub fn from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        audio_set_status(format!("Loading {}", path).as_str());
         let chunk = Chunk::from_file(path)?;
 
         Ok(Self {
-            path: path.to_string(),
             chunk,
             channels: HashMap::new(),
         })

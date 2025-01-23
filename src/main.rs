@@ -1,8 +1,11 @@
+use audio::audio_load_status;
 use monster::Monster;
+use parking_lot::Mutex;
 use raylib::prelude::*;
 
 use state::{Screen, State};
 use std::{
+    alloc::System,
     error::Error,
     process::exit,
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -33,6 +36,13 @@ unsafe extern "C" fn handler(signum: libc::c_int) {
     exit(0);
 }
 
+static mut AUDIO: Mutex<Option<Audio>> = Mutex::new(None);
+fn init_audio() {
+    let mut aud = Audio::new().unwrap();
+    aud.set_volume(config().volume() as i32);
+    unsafe { *AUDIO.lock() = Some(aud) };
+}
+
 #[error_window::main]
 fn main() -> Result<(), Box<dyn Error>> {
     unsafe {
@@ -56,13 +66,40 @@ fn main() -> Result<(), Box<dyn Error>> {
         &include_bytes!("../assets/misc/icon.png").to_vec(),
     )?);
     println!("loading audio...");
-    let audio = Box::leak(Box::new(Audio::new()?));
-    audio.set_volume(config().volume() as i32);
+
+    std::thread::spawn(|| {
+        init_audio();
+    });
+
+    let mut time = SystemTime::now();
+
+    loop {
+        // Every 250 milliseconds check if the audio is still being initialized.
+        // If it's not,display a status message. Otherwise, break.
+        if time.elapsed()?.as_millis() >= 250 {
+            if unsafe { AUDIO.lock().is_none() } {
+                let status = audio_load_status();
+                let mut d = rl.begin_drawing(&thread);
+                d.clear_background(Color::BLACK);
+                d.draw_text(
+                    status.as_str(),
+                    config().real_margin() as i32,
+                    0,
+                    32,
+                    Color::WHITE,
+                );
+            } else {
+                break;
+            }
+            time = SystemTime::now();
+        }
+    }
 
     println!("loading textures...");
     let textures = Box::leak(Box::new(Textures::new()?));
 
-    let mut state = State::new(&mut rl, &thread, audio, textures)?;
+    let mut audio = unsafe { AUDIO.lock() };
+    let mut state = State::new(&mut rl, &thread, audio.as_mut().unwrap(), textures)?;
 
     let mut fullscreened = false;
     let mut remembered_x = rl.get_window_position().x;

@@ -618,7 +618,7 @@ impl<'a> State<'a> {
 
         if config().on_tutorial() {
             let bonzi_secs = self.bonzi_timer.elapsed().unwrap().as_secs_f32() - 5.0;
-            if bonzi_secs >= 3.0 && bonzi_secs <= 51.0 {
+            if bonzi_secs >= 3.0 {
                 let bonzi_frame = ((bonzi_secs - 3.0) * 12.5) as i32;
                 let bonzi = match bonzi_frame {
                     0 => &*self.textures.bonzi.enter1(),
@@ -650,12 +650,6 @@ impl<'a> State<'a> {
                     _ => &*self.textures.bonzi.idle(),
                 };
 
-                let alpha = if bonzi_secs >= 49.0 {
-                    1.0 - (49.0 - bonzi_secs)
-                } else {
-                    1.0
-                };
-
                 d.draw_texture_pro(
                     bonzi,
                     texture_rect!(bonzi),
@@ -667,7 +661,7 @@ impl<'a> State<'a> {
                     ),
                     Vector2::zero(),
                     0.0,
-                    Color::WHITE.alpha(alpha),
+                    Color::WHITE,
                 );
             }
         }
