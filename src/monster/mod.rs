@@ -59,6 +59,8 @@ pub trait Monster {
     fn set_timer_until_office(&mut self, val: SystemTime);
     fn time_in_room(&mut self) -> SystemTime;
     fn reset_time_in_room(&mut self);
+    fn stinger_played(&self) -> bool;
+    fn set_stinger_played(&mut self, val: bool);
 
     // fn move_after_timer(&mut self) -> bool;
     fn set_move_after_timer(&mut self, val: bool);
@@ -188,6 +190,7 @@ pub trait Monster {
         self.set_progress_to_hallway(0);
         let rao = self.room_after_office();
         self.set_room(rao);
+        self.set_stinger_played(false);
         self.room_after_office()
     }
 }

@@ -27,6 +27,7 @@ impl Nolok {
             time_in_room: SystemTime::now(),
 
             move_after_timer: true,
+            stinger_played: false,
         }
     }
 }
@@ -54,12 +55,14 @@ impl Monster for Nolok {
                 self.set_entered_from_left(true);
                 self.set_room(Room::Office);
                 self.set_last_scared_at(SystemTime::now());
+                self.set_stinger_played(false);
                 return true;
             }
             Room::Room5 => {
                 self.set_entered_from_right(true);
                 self.set_room(Room::Office);
                 self.set_last_scared_at(SystemTime::now());
+                self.set_stinger_played(false);
                 return true;
             }
             _ => {

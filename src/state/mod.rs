@@ -19,6 +19,7 @@ use sdl2::mixer::AUDIO_F32;
 pub const CAMERA_TIME: f32 = 0.1;
 pub const DOOR_ANIM_SPEED: f32 = 100.0;
 
+use crate::audio::audio_init;
 use crate::config::{config, config_mut};
 use crate::{
     audio::Audio,
@@ -146,6 +147,8 @@ pub struct State<'a> {
     pub bonzi_wait_for: f32,
     pub bonzi_idx: usize,
     pub bonzi_line: String,
+
+    pub gogopher_stinger_played: bool,
 }
 
 impl<'a> State<'a> {
@@ -300,6 +303,7 @@ impl<'a> State<'a> {
             bonzi_wait_for: 1.0,
             bonzi_idx: 0,
             bonzi_line: String::new(),
+            gogopher_stinger_played: false,
         };
         Ok(state)
     }
@@ -337,7 +341,7 @@ impl<'a> State<'a> {
                 if let Some(snd) = self.audio.tts.get_mut(self.bonzi_idx) {
                     if elapsed >= self.bonzi_wait_for {
                         snd.2.play()?;
-                        self.bonzi_wait_for = snd.1 as f32 / 10240.0;
+                        self.bonzi_wait_for = snd.1 as f32 / 132300.0;
                         self.bonzi_play_timer = SystemTime::now();
                         self.bonzi_idx += 1;
                         self.bonzi_line = snd.0.clone();
@@ -389,7 +393,7 @@ impl<'a> State<'a> {
             } else {
                 self.audio.door.halt();
                 self.audio
-                    .thud
+                    .door_thud
                     .play_reserved(0, self.pan_left, self.pan_right)?;
                 self.left_door_bypass_cooldown = false;
 
@@ -410,7 +414,7 @@ impl<'a> State<'a> {
                 self.audio.door.halt();
 
                 self.audio
-                    .thud
+                    .door_thud
                     .play_reserved(1, self.pan_left, self.pan_right)?;
                 self.right_door_bypass_cooldown = false;
                 self.right_door_last_shut = SystemTime::now() - Duration::from_secs(10);
@@ -445,14 +449,6 @@ impl<'a> State<'a> {
             self.gang.gogopher.duct_heat_timer -= 1;
         }
 
-        if rl.is_key_released(KeyboardKey::KEY_SPACE) {
-            config_mut().set_on_tutorial(false);
-            self.ingame_time = SystemTime::now();
-            self.bonzi_played = true;
-            self.bonzi_swoosh_played = true;
-            self.bonzi_thud_played = true;
-        }
-
         if on_tutorial {
             return Ok(());
         }
@@ -481,8 +477,10 @@ impl<'a> State<'a> {
                 let duration: &Duration = &mons.timer_until_office().elapsed()?;
 
                 let is_tux = mons.id() == MonsterName::Tux || mons.id() == MonsterName::GoldenTux;
+                let is_gopher = mons.id() == MonsterName::GoGopher;
 
-                if is_tux
+                if is_gopher
+                    || is_tux
                     || duration.as_millis() >= (MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000) - 500
                 {
                     let var_name = MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000000000;
@@ -523,12 +521,11 @@ impl<'a> State<'a> {
                     }
 
                     if do_flickering {
-                        if duration.as_nanos()
-                            <= MONSTER_TIME_OFFICE_WAIT_THING as u128 * 1000000000
-                        {
+                        if !mons.stinger_played() {
                             if !self.audio.stinger.is_playing() {
                                 self.audio.stinger.play()?;
                             }
+                            mons.set_stinger_played(true);
                         }
                     }
                 }

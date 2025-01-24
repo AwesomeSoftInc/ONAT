@@ -209,7 +209,8 @@ impl<'a> State<'a> {
         d.start_imgui(|ui| {
             let se = s.lock();
 
-            ui.window("Rooms")
+            let mut builder = ui
+                .window("Rooms")
                 .position(
                     [
                         config().real_width_raw() as f32 - config().real_margin() - 400.0,
@@ -219,21 +220,60 @@ impl<'a> State<'a> {
                 )
                 .movable(false)
                 .resizable(false)
+                .title_bar(false);
+
+            if se.sel_camera != Room::Room4 {
+                builder = builder.focused(true);
+            }
+
+            // We need to draw the ui here as well because we're another imgui element and can't have two frames at once.
+            ui.window("ui")
+                .resizable(false)
+                .movable(false)
                 .title_bar(false)
-                .focused(true)
-                .size([400.0, 600.0], Condition::Always)
-                .draw_background(false)
+                .bg_alpha(0.0)
+                .focused(false)
+                .position([0.0, 0.0], ::imgui::Condition::Always)
+                .size(
+                    [
+                        config().real_width_raw() as f32 + config().real_margin(),
+                        config().real_height() as f32,
+                    ],
+                    ::imgui::Condition::Always,
+                )
                 .build(|| {
-                    let room_buttons = vec![
-                        ("CAM 6", Some(&goto_cam6), [25.0, 25.0]),
-                        ("CAM 1", Some(&goto_cam1), [150.0, 150.0]),
-                        ("CAM 2", Some(&goto_cam2), [150.0, 250.0]),
-                        ("CAM 3", Some(&goto_cam3), [50.0, 500.0]),
-                        ("CAM 4", Some(&goto_cam4), [150.0, 425.0]),
-                        ("CAM 5", Some(&goto_cam5), [250.0, 500.0]),
-                        ("OFFICE", None, [150.0, 500.0]),
-                    ];
                     ui.set_window_font_scale(config().ui_scale());
+                    let styles = style_push!(ui);
+
+                    se.draw_battery(ui.get_window_draw_list()).unwrap();
+                    se.draw_arrow(ui.get_window_draw_list()).unwrap();
+
+                    ui.set_window_font_scale(config().ui_scale() * 2.0);
+                    let time = format!("{}:00AM", se.time().unwrap());
+                    let font_off = ui.calc_text_size(time.clone())[0];
+                    se.draw_time(&time, font_off, ui.get_window_draw_list())
+                        .unwrap();
+                    if config().on_tutorial() {
+                        se.draw_bonzi_text(ui.get_window_draw_list()).unwrap();
+                    }
+
+                    ui.set_window_font_scale(config().ui_scale());
+
+                    if se.sel_camera == Room::Room6 && se.gang.wilber.active() {
+                        se.draw_rage(ui.get_window_draw_list()).unwrap();
+                    }
+                    let off_x = (config().real_width_raw() as f32 - config().real_margin() as f32)
+                        - (200.0 * config().ui_scale());
+                    let off_y = (config().real_height() as f32) - (350.0 * config().ui_scale());
+                    let room_buttons = vec![
+                        ("CAM 6", Some(&goto_cam6), [off_x + 25.0, off_y + 25.0]),
+                        ("CAM 1", Some(&goto_cam1), [off_x + 150.0, off_y + 150.0]),
+                        ("CAM 2", Some(&goto_cam2), [off_x + 150.0, off_y + 250.0]),
+                        ("CAM 3", Some(&goto_cam3), [off_x + 50.0, off_y + 500.0]),
+                        ("CAM 4", Some(&goto_cam4), [off_x + 150.0, off_y + 425.0]),
+                        ("CAM 5", Some(&goto_cam5), [off_x + 250.0, off_y + 500.0]),
+                        ("OFFICE", None, [off_x + 150.0, off_y + 500.0]),
+                    ];
                     let styles = (
                         vec![
                             ui.push_style_color(::imgui::StyleColor::FrameBg, [0.0, 0.0, 0.0, 0.0]),
@@ -270,44 +310,7 @@ impl<'a> State<'a> {
                             ui.separator();
                         };
                     }
-                    style_pop!(styles);
-                });
 
-            // We need to draw the ui here as well because we're another imgui element and can't have two frames at once.
-            ui.window("ui")
-                .resizable(false)
-                .movable(false)
-                .title_bar(false)
-                .bg_alpha(0.0)
-                .position([0.0, 0.0], ::imgui::Condition::Always)
-                .size(
-                    [
-                        config().real_width_raw() as f32 + config().real_margin(),
-                        config().real_height() as f32,
-                    ],
-                    ::imgui::Condition::Always,
-                )
-                .build(|| {
-                    ui.set_window_font_scale(config().ui_scale());
-                    let styles = style_push!(ui);
-
-                    se.draw_battery(ui.get_window_draw_list()).unwrap();
-                    se.draw_arrow(ui.get_window_draw_list()).unwrap();
-
-                    ui.set_window_font_scale(config().ui_scale() * 2.0);
-                    let time = format!("{}:00AM", se.time().unwrap());
-                    let font_off = ui.calc_text_size(time.clone())[0];
-                    se.draw_time(&time, font_off, ui.get_window_draw_list())
-                        .unwrap();
-                    if config().on_tutorial() {
-                        se.draw_bonzi_text(ui.get_window_draw_list()).unwrap();
-                    }
-
-                    ui.set_window_font_scale(config().ui_scale());
-
-                    if se.sel_camera == Room::Room6 && se.gang.wilber.active() {
-                        se.draw_rage(ui.get_window_draw_list()).unwrap();
-                    }
                     if se.sel_camera == Room::Room4 && se.gang.gogopher.active() {
                         let bat_height = Self::bat_height();
                         ui.set_cursor_pos([
@@ -323,7 +326,6 @@ impl<'a> State<'a> {
                             duct_heatup.store(true, Ordering::Relaxed);
                         }
                     }
-
                     style_pop!(styles);
                 });
         });

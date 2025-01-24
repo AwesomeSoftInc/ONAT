@@ -90,7 +90,7 @@ impl Config {
             println!("[ERROR] {}", err.to_string());
             Writable::default()
         });
-        Self::write_static(&Writable::default());
+        Self::write_static(&writable);
 
         // Get the user's real screen dimensions.
         let (rl, _) = raylib::init().title("ONAT Screen Size checker").build();

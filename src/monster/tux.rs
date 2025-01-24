@@ -41,6 +41,7 @@ impl Tux {
             checked_camera: None,
 
             move_after_timer: true,
+            stinger_played: false,
         }
     }
 }
@@ -108,7 +109,13 @@ impl Monster for Tux {
                     Some(textures.tux.tuxidle())
                 }
             }
-            Room::Room3 | Room::Room5 => Some(textures.tux.slidingtux()),
+            Room::Room3 | Room::Room5 => {
+                if config().night_2() {
+                    Some(textures.tux.slidingtuxnight2())
+                } else {
+                    Some(textures.tux.slidingtux())
+                }
+            }
             _ => None,
         }
     }
@@ -157,6 +164,7 @@ impl Monster for Tux {
                 self.set_timer_until_office(SystemTime::now());
                 self.set_room(Room::Office);
                 self.can_move = false;
+                self.set_stinger_played(true);
             }
             _ => {}
         }

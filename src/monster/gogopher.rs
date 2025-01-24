@@ -37,6 +37,7 @@ impl GoGopher {
             move_timer: 0,
             time_in_room: SystemTime::now(),
             move_after_timer: true,
+            stinger_played: false,
         }
     }
 }
@@ -55,15 +56,7 @@ impl Monster for GoGopher {
                     None
                 }
             }
-            Room::Office => {
-                if self.timer_until_office().elapsed().unwrap().as_secs()
-                    >= MONSTER_TIME_OFFICE_WAIT_THING
-                {
-                    Some(textures.gopher.office())
-                } else {
-                    None
-                }
-            }
+            Room::Office => Some(textures.gopher.office()),
             _ => None,
         }
     }
@@ -119,11 +112,13 @@ impl Monster for GoGopher {
                     }
                     if self.duct_heat_timer >= (DUCT_THING / 2) {
                         self.set_room(Room::None);
+                        self.set_stinger_played(false);
                     }
                 }
                 Room::Office => {
                     if self.duct_heat_timer >= (DUCT_THING / 2) {
                         self.set_room(Room::None);
+                        self.set_stinger_played(false);
                         self.set_last_scared_at(SystemTime::now());
                     }
                 }
@@ -132,6 +127,7 @@ impl Monster for GoGopher {
         } else {
             self.duct_timer = 0;
             self.set_room(Room::None);
+            self.set_stinger_played(false);
         }
     }
 }

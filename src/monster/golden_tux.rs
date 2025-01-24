@@ -31,6 +31,7 @@ impl GoldenTux {
             appeared: SystemTime::now(),
             time_in_room: SystemTime::now(),
             move_after_timer: true,
+            stinger_played: false,
         }
     }
 }

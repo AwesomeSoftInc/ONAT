@@ -1,5 +1,5 @@
 use std::{
-    cell::RefCell, collections::HashMap, fs::File, io::Read, path::PathBuf, sync::Arc,
+    cell::RefCell, collections::HashMap, fmt::format, fs::File, io::Read, path::PathBuf, sync::Arc,
     time::SystemTime,
 };
 
@@ -66,7 +66,7 @@ fn os_name() -> Result<String, Box<dyn std::error::Error>> {
 
 static TTS: Mutex<Option<Vec<(String, usize, Vec<f32>)>>> = Mutex::new(None);
 
-fn tts_generate() -> Result<(), Box<dyn std::error::Error>> {
+fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>> {
     let model = piper_rs::from_config_path(&PathBuf::new().join("tts").join("bonzi.json"))?;
     if let Some(speakers) = model.get_speakers()? {
         if let Some(first_key) = speakers.keys().collect::<Vec<_>>().first() {
@@ -83,53 +83,31 @@ fn tts_generate() -> Result<(), Box<dyn std::error::Error>> {
     let sentences = vec!["Well!".to_string(),"Hello there!".to_string(),"I don't believe we've been properly introduced.".to_string(),"I am Bonzi.".to_string(),"Tux wants you to play a little game!".to_string(),crime,"we have locked you in this office.".to_string(),"Tux's followers will be coming shortly to deal with you.".to_string(),"When they come in, they will corrupt your PC\nuntil they are able to attack.".to_string(),"You have doors you can shut on them,\nbut they will open on their own and be jammed for a bit".to_string(),"that is, unless you are wise with shutting them,".to_string(),"as if they run into it, they will unjam it".to_string(),"before walking back to their post.".to_string(),"You have 6 hours to fend them off.".to_string(),"A word of advice?".to_string(),"Keep track of them on the cameras to shut\nthe doors before they can start corrupting anything.".to_string(),"Have fun!".to_string()];
 
     let s = Box::leak(Box::new(sentences.clone()));
-    let outs = Arc::new(Mutex::new(Vec::new()));
+    let mut outs = Vec::new();
 
-    s.iter().for_each(|f| {
+    let bonzi_dir = PathBuf::new().join("audio").join("bonzi");
+    let _ = std::fs::create_dir(bonzi_dir.clone());
+
+    let mut i = 0;
+    for f in s {
         let st = f.to_string();
-        let mut threads = vec![];
         let synth = synth.clone();
-        let outs = outs.clone();
-        threads.push(std::thread::spawn(move || {
-            let ou = synth
-                .synthesize_lazy(f.to_string(), None)
-                .unwrap()
-                .filter(|f| f.is_ok())
-                .flat_map(|f| f.unwrap())
-                .collect::<Vec<_>>();
-            outs.lock().push((st, ou.len(), ou))
-        }));
-
-        for f in threads.into_iter() {
-            f.join().unwrap();
+        let file = bonzi_dir.clone().join(format!("{}.ogg", i));
+        if !std::fs::exists(file.clone())? {
+            synth
+                .synthesize_to_file(&file, f.to_string(), None)
+                .unwrap();
         }
-    });
-
-    let outs = outs.lock().iter().map(|f| f.clone()).collect::<Vec<_>>();
-
-    *TTS.lock() = Some(outs);
-
-    Ok(())
-}
-
-fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>> {
-    audio_set_status("generating TTS");
-    let mut time = SystemTime::now();
-    loop {
-        if time.elapsed()?.as_millis() >= 250 {
-            if let Some(tts) = TTS.lock().clone() {
-                return Ok(tts
-                    .iter()
-                    .map(|f| {
-                        let chunk = Chunk::from_raw_buffer(f.2.clone().into()).unwrap();
-
-                        (f.0.clone(), f.1, Sound::from_chunk(chunk).unwrap())
-                    })
-                    .collect::<Vec<_>>());
-            };
-            time = SystemTime::now();
-        }
+        let chunk = Chunk::from_file(file)?;
+        outs.push((
+            st,
+            (unsafe { *chunk.raw }).alen as usize,
+            Sound::from_chunk(chunk)?,
+        ));
+        i += 1;
     }
+
+    Ok(outs)
 }
 
 pub struct Sound {

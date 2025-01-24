@@ -50,7 +50,7 @@ impl State<'_> {
                 .movable(false)
                 .resizable(false)
                 .title_bar(false)
-                .focused(true)
+                .focused(!d.is_key_down(KeyboardKey::KEY_LEFT_ALT))
                 .build(|| {
                     ui.set_window_font_scale(config().ui_scale());
 

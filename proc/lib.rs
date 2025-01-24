@@ -40,7 +40,8 @@ pub fn monster_derive(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 timer_until_office: SystemTime,
                 time_in_room: SystemTime,
                 move_timer: u8,
-                move_after_timer: bool
+                move_after_timer: bool,
+                stinger_played: bool
             ) {
                 fields.named.push(f);
             }
@@ -130,6 +131,13 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
             self.timer_until_office = val;
         }
 
+        fn stinger_played(&self) -> bool {
+            self.stinger_played
+        }
+
+        fn set_stinger_played(&mut self, val: bool) {
+            self.stinger_played = val;
+        }
         fn time_in_room(&mut self) -> SystemTime {
             self.time_in_room
         }
@@ -387,6 +395,9 @@ pub fn audio_generate(_item: TokenStream) -> TokenStream {
         for asset in std::fs::read_dir("./audio")? {
             let asset = asset?;
             let path = asset.file_name().into_string().unwrap();
+            if !path.ends_with(".ogg") {
+                continue;
+            }
             let name = path
                 .split("/")
                 .last()
@@ -421,10 +432,7 @@ pub fn audio_generate(_item: TokenStream) -> TokenStream {
         }}
             impl Audio {{
                 pub fn new() -> Result<Self, Box<dyn std::error::Error>> {{
-                    std::thread::spawn(|| {{
-                        tts_generate().unwrap();
-                    }});
-                    audio_init(8192)?;
+                    audio_init(44100)?;
                     {}
 
                     let tts = tts_fetch()?;
@@ -442,7 +450,6 @@ pub fn audio_generate(_item: TokenStream) -> TokenStream {
                 }}
 
                  pub fn set_volume(&mut self, volume: i32)  {{
-                    println!(\"volume set: {{}}\",volume);
                     {}
                 }}
             }}

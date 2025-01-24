@@ -1,7 +1,6 @@
 use std::time::{Duration, SystemTime};
 
 use super::{Screen, State};
-use crate::audio::audio_init;
 use crate::config::config;
 use crate::{
     enums::Room,
@@ -487,7 +486,7 @@ impl<'a> State<'a> {
                 .resizable(false)
                 .movable(false)
                 .title_bar(false)
-                .focused(true)
+                .focused(!d.is_key_down(KeyboardKey::KEY_LEFT_ALT))
                 .bg_alpha(0.0)
                 .position([0.0, 0.0], ::imgui::Condition::Always)
                 .size(

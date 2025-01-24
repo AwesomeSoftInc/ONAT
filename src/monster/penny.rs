@@ -30,6 +30,7 @@ impl Penny {
             move_timer: 0,
             time_in_room: SystemTime::now(),
             move_after_timer: true,
+            stinger_played: false,
         }
     }
 }

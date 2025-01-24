@@ -32,6 +32,7 @@ impl Wilber {
             time_in_room: SystemTime::now(),
             time_since_appeared: None,
             move_after_timer: true,
+            stinger_played: false,
         }
     }
     pub fn rage(&self) -> f32 {
