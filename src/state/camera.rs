@@ -5,7 +5,7 @@ use std::time::SystemTime;
 use super::{Screen, State};
 use crate::config::config;
 use crate::{enums::Room, monster::Monster, state::CAMERA_TIME, texture_rect};
-use crate::{style_pop, style_push};
+use crate::{style_pop, style_push, DEBUG};
 
 use ::imgui::{Condition, StyleColor};
 use parking_lot::Mutex;
@@ -232,7 +232,7 @@ impl<'a> State<'a> {
                 .movable(false)
                 .title_bar(false)
                 .bg_alpha(0.0)
-                .focused(false)
+                .focused(!DEBUG)
                 .position([0.0, 0.0], ::imgui::Condition::Always)
                 .size(
                     [

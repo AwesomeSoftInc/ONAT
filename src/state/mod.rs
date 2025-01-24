@@ -475,7 +475,7 @@ impl<'a> State<'a> {
 
         for mons in inoffice {
             if mons.active() {
-                let duration: &Duration = &mons.timer_until_office().elapsed()?;
+                let duration: &Duration = &mons.timer_until_office().elapsed().unwrap();
 
                 let is_tux = mons.id() == MonsterName::Tux || mons.id() == MonsterName::GoldenTux;
                 let is_gopher = mons.id() == MonsterName::GoGopher;
@@ -498,7 +498,6 @@ impl<'a> State<'a> {
                             if duration.as_nanos() <= var_name {
                                 self.open_left_door_back_up = true;
                             }
-                            //mons.set_entered_from_left(false);
                             mons.goto_room_after_office();
                             do_flickering = false;
                         }
@@ -510,7 +509,6 @@ impl<'a> State<'a> {
                             if duration.as_nanos() <= var_name {
                                 self.open_right_door_back_up = true;
                             }
-                            //mons.set_entered_from_right(false);
                             mons.goto_room_after_office();
                             do_flickering = false;
                         }
@@ -524,7 +522,7 @@ impl<'a> State<'a> {
                     if do_flickering {
                         if !mons.stinger_played() {
                             if !self.audio.stinger.is_playing() {
-                                self.audio.stinger.play()?;
+                                self.audio.stinger.play().unwrap();
                             }
                             mons.set_stinger_played(true);
                         }

@@ -1,6 +1,8 @@
 use std::{collections::HashMap, fs::File, io::Read, path::PathBuf, sync::Arc};
 
 use parking_lot::Mutex;
+
+#[cfg(not(target_os = "windows"))]
 use piper_rs::synth::PiperSpeechSynthesizer;
 use proc::audio_generate;
 use rand::{thread_rng, Rng};
@@ -46,9 +48,7 @@ fn file_get_value(file: &mut File, val: &str) -> Result<String, Box<dyn std::err
 
 fn os_name() -> Result<String, Box<dyn std::error::Error>> {
     #[cfg(target_os = "windows")]
-    {
-        Ok("Windows".to_string())
-    }
+    return Ok("Windows".to_string());
     #[cfg(target_os = "linux")]
     {
         if let Ok(mut file) = File::open("/etc/os-release") {
@@ -56,13 +56,15 @@ fn os_name() -> Result<String, Box<dyn std::error::Error>> {
         } else if let Ok(mut file) = File::open("/etc/lsb-release") {
             return Ok(file_get_value(&mut file, "distrib_id=")?);
         } else {
-            return Ok("some shitfuck version of Linux that nobody's ever heard of".to_string());
+            return Ok("some shitfuck version of Linux\nthat nobody's ever heard of".to_string());
         }
     }
 }
 
 fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>> {
+    #[cfg(not(target_os = "windows"))]
     let model = piper_rs::from_config_path(&PathBuf::new().join("tts").join("bonzi.json"))?;
+    #[cfg(not(target_os = "windows"))]
     if let Some(speakers) = model.get_speakers()? {
         if let Some(first_key) = speakers.keys().collect::<Vec<_>>().first() {
             if let Some(err) = model.set_speaker(**first_key) {
@@ -71,11 +73,12 @@ fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>
         }
     };
 
+    #[cfg(not(target_os = "windows"))]
     let synth = Arc::new(PiperSpeechSynthesizer::new(model)?);
 
     let crime = format!("For the crime of using {},", os_name()?);
 
-    let sentences = vec!["Well!".to_string(),"Hello there!".to_string(),"I don't believe we've been properly introduced.".to_string(),"I am Bonzi.".to_string(),"Tux wants you to play a little game!".to_string(),crime,"we have locked you in this office.".to_string(),"Tux's followers will be coming shortly to deal with you.".to_string(),"When they come in, they will corrupt your PC\nuntil they are able to attack.".to_string(),"You have doors you can shut on them,\nbut they will open on their own and be jammed for a bit".to_string(),"that is, unless you are wise with shutting them,".to_string(),"as if they run into it, they will unjam it".to_string(),"before walking back to their post.".to_string(),"You have 6 hours to fend them off.".to_string(),"A word of advice?".to_string(),"Keep track of them on the cameras to shut\nthe doors before they can start corrupting anything.".to_string(),"Have fun!".to_string()];
+    let sentences: Vec<String> = vec!["Well!".to_string(),"Hello there!".to_string(),"I don't believe we've been properly introduced.".to_string(),"I am Bonzi.".to_string(),"Tux wants you to play a little game!".to_string(),crime,"we have locked you in this office.".to_string(),"Tux's followers will be coming shortly to deal with you.".to_string(),"When they come in, they will corrupt your PC\nuntil they are able to attack.".to_string(),"You have doors you can shut on them,\nbut they will open on their own and be jammed for a bit".to_string(),"that is, unless you are wise with shutting them,".to_string(),"as if they run into it, they will unjam it".to_string(),"before walking back to their post.".to_string(),"You have 6 hours to fend them off.".to_string(),"A word of advice?".to_string(),"Keep track of them on the cameras to shut\nthe doors before they can start corrupting anything.".to_string(),"Have fun!".to_string()];
 
     let s = Box::leak(Box::new(sentences.clone()));
     let mut outs = Vec::new();
@@ -86,8 +89,11 @@ fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>
     let mut i = 0;
     for f in s {
         let st = f.to_string();
+
+        #[cfg(not(target_os = "windows"))]
         let synth = synth.clone();
         let file = bonzi_dir.clone().join(format!("{}.ogg", i));
+        #[cfg(not(target_os = "windows"))]
         if !std::fs::exists(file.clone())? {
             audio_set_status(format!("Generating TTS #{}", i).as_str());
             synth

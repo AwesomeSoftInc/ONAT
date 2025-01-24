@@ -25,8 +25,9 @@ libc = "0.2.167"
 dirs = "6.0.0"
 toml = "0.8.19"
 serde = { version = "1.0.217", features = ["derive"] }
+
+[target.'cfg(unix)'.dependencies]
 piper-rs = "0.1.9"
-lazy_static = "1.5.0"
 
 [features]
 default = []

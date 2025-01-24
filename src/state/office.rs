@@ -9,7 +9,7 @@ use crate::{
     texture_rect,
     textures::Textures,
 };
-use crate::{style_pop, style_push};
+use crate::{style_pop, style_push, DEBUG};
 
 use parking_lot::{Mutex, MutexGuard};
 use raylib::prelude::*;
@@ -486,7 +486,7 @@ impl<'a> State<'a> {
                 .resizable(false)
                 .movable(false)
                 .title_bar(false)
-                .focused(!d.is_key_down(KeyboardKey::KEY_LEFT_ALT))
+                .focused(!DEBUG)
                 .bg_alpha(0.0)
                 .position([0.0, 0.0], ::imgui::Condition::Always)
                 .size(
@@ -563,6 +563,10 @@ impl<'a> State<'a> {
                                 self.open_left_door_back_up = true;
                                 self.gang.tux.checked_camera = None;
                                 self.gang.tux.moved_to_hallway_at = SystemTime::now();
+
+                                if self.gang.penny.progress_to_hallway() >= 2 {
+                                    self.gang.penny.goto_room_after_office();
+                                }
                             }
                             self.audio
                                 .door
@@ -583,6 +587,10 @@ impl<'a> State<'a> {
                                 self.open_right_door_back_up = true;
                                 self.gang.tux.checked_camera = None;
                                 self.gang.tux.moved_to_hallway_at = SystemTime::now();
+
+                                if self.gang.beastie.progress_to_hallway() >= 2 {
+                                    self.gang.beastie.goto_room_after_office();
+                                }
                             }
                             self.audio
                                 .door

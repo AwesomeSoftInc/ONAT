@@ -3,9 +3,8 @@ use monster::Monster;
 use parking_lot::Mutex;
 use raylib::prelude::*;
 
-use state::{Screen, State};
+use state::State;
 use std::{
-    alloc::System,
     error::Error,
     process::exit,
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -23,6 +22,12 @@ mod state;
 mod textures;
 
 use config::{config, config_mut};
+
+#[cfg(debug_assertions)]
+pub const DEBUG: bool = true;
+
+#[cfg(not(debug_assertions))]
+pub const DEBUG: bool = false;
 
 unsafe extern "C" fn handler(signum: libc::c_int) {
     let bt = std::backtrace::Backtrace::force_capture();

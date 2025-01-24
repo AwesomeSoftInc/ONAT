@@ -84,7 +84,7 @@ pub trait Monster {
             self.next();
         };
     }
-    fn progress_to_hallway(&mut self) -> i8;
+    fn progress_to_hallway(&self) -> i8;
 
     fn get_texture<'a>(&'a self, _textures: &'a mut Textures) -> Option<MutexGuard<Texture2D>> {
         None
@@ -416,5 +416,17 @@ impl Gang {
         // self.tux.ai_level += 3;       // Tux's AI level does not increase naturally, it bumps at 5AM
         // self.nolok.ai_level += 3;     // Nolok is cut.
         // self.golden_tux.ai_level += 3;
+    }
+
+    pub fn monsters(&mut self) -> Vec<&mut dyn Monster> {
+        vec![
+            &mut self.penny,
+            &mut self.beastie,
+            &mut self.wilber,
+            &mut self.gogopher,
+            &mut self.tux,
+            &mut self.nolok,
+            &mut self.golden_tux,
+        ]
     }
 }

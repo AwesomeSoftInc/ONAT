@@ -6,7 +6,7 @@ use std::{
 use crate::{
     audio::audio_init,
     config::{config, config_mut},
-    init_audio, style_pop, style_push, texture_rect,
+    init_audio, style_pop, style_push, texture_rect, DEBUG,
 };
 
 use super::{Screen, State};
@@ -110,7 +110,7 @@ impl<'a> State<'a> {
                 .movable(false)
                 .resizable(false)
                 .title_bar(false)
-                .focused(!d.is_key_down(KeyboardKey::KEY_LEFT_ALT))
+                .focused(!DEBUG)
                 .bg_alpha(alpha)
                 .build(|| {
                     ui.set_window_font_scale(config().ui_scale());

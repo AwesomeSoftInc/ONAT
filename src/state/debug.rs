@@ -7,6 +7,7 @@ use crate::{
     config::config,
     enums::Room,
     monster::{Monster, MonsterName},
+    DEBUG,
 };
 
 use super::{Screen, State};
@@ -23,10 +24,23 @@ impl State<'_> {
                     [config().width() as f32 / 4.0, 0.0],
                     ::imgui::Condition::FirstUseEver,
                 )
-                .focused(true)
+                .focused(!DEBUG)
                 .build(|| {
                     ui.set_window_font_scale(config().ui_scale());
                     let mut se = s.lock();
+                    if ui.button("Tux button") {
+                        se.gang.tux.next();
+                        let room = se.gang.tux.room();
+                        println!("Tux in {:?}", room.clone());
+                        if room == Room::Room3 {
+                            se.gang.penny.set_room(Room::Room3);
+                            se.gang.penny.set_progress_to_hallway(2);
+                        }
+                        if room == Room::Room5 {
+                            se.gang.beastie.set_room(Room::Room5);
+                            se.gang.beastie.set_progress_to_hallway(2);
+                        }
+                    }
                     ui.menu("Monsters", || {
                         ui.menu("Penny", || {
                             ui.set_window_font_scale(config().ui_scale());

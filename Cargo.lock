@@ -808,7 +808,6 @@ dependencies = [
  "getrandom",
  "imgui",
  "imgui-sys",
- "lazy_static",
  "libc",
  "num",
  "num-derive",

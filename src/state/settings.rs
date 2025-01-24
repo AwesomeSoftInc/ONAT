@@ -1,6 +1,9 @@
 use std::sync::atomic::AtomicBool;
 
-use crate::config::{config, config_mut};
+use crate::{
+    config::{config, config_mut},
+    DEBUG,
+};
 
 use super::{Screen, State};
 use ::imgui::Condition;
@@ -50,7 +53,7 @@ impl State<'_> {
                 .movable(false)
                 .resizable(false)
                 .title_bar(false)
-                .focused(!d.is_key_down(KeyboardKey::KEY_LEFT_ALT))
+                .focused(!DEBUG)
                 .build(|| {
                     ui.set_window_font_scale(config().ui_scale());
 

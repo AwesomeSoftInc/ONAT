@@ -78,6 +78,7 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
             self.ai_level
         }
         fn set_room(&mut self, room: Room) {
+            #[cfg(debug_assertions)]{println!("{:?} room set to {:?}",self.id(), room);}
             self.room = room;
         }
         // fn set_next_room(&mut self, room: Room) {
@@ -104,7 +105,7 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
         fn set_entered_from_right(&mut self, res: bool)  {
             self.entered_from_right = res;
         }
-        fn progress_to_hallway(&mut self) -> i8 {
+        fn progress_to_hallway(&self) -> i8 {
             self.progress_to_hallway
         }
         fn set_progress_to_hallway(&mut self, yeah: i8)  {
