@@ -341,7 +341,7 @@ impl<'a> State<'a> {
                 if let Some(snd) = self.audio.tts.get_mut(self.bonzi_idx) {
                     if elapsed >= self.bonzi_wait_for {
                         snd.2.play()?;
-                        self.bonzi_wait_for = snd.1 as f32 / 132300.0;
+                        self.bonzi_wait_for = snd.1 as f32 / 176400.0;
                         self.bonzi_play_timer = SystemTime::now();
                         self.bonzi_idx += 1;
                         self.bonzi_line = snd.0.clone();

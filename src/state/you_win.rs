@@ -1,6 +1,6 @@
 use raylib::prelude::*;
 
-use crate::{audio::audio_init, config::config};
+use crate::config::config;
 
 use super::{Screen, State};
 

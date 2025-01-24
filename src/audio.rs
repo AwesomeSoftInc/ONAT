@@ -1,7 +1,4 @@
-use std::{
-    cell::RefCell, collections::HashMap, fmt::format, fs::File, io::Read, path::PathBuf, sync::Arc,
-    time::SystemTime,
-};
+use std::{collections::HashMap, fs::File, io::Read, path::PathBuf, sync::Arc};
 
 use parking_lot::Mutex;
 use piper_rs::synth::PiperSpeechSynthesizer;
@@ -64,8 +61,6 @@ fn os_name() -> Result<String, Box<dyn std::error::Error>> {
     }
 }
 
-static TTS: Mutex<Option<Vec<(String, usize, Vec<f32>)>>> = Mutex::new(None);
-
 fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>> {
     let model = piper_rs::from_config_path(&PathBuf::new().join("tts").join("bonzi.json"))?;
     if let Some(speakers) = model.get_speakers()? {
@@ -94,6 +89,7 @@ fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>
         let synth = synth.clone();
         let file = bonzi_dir.clone().join(format!("{}.ogg", i));
         if !std::fs::exists(file.clone())? {
+            audio_set_status(format!("Generating TTS #{}", i).as_str());
             synth
                 .synthesize_to_file(&file, f.to_string(), None)
                 .unwrap();
