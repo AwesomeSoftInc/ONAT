@@ -23,6 +23,7 @@ impl State<'_> {
                     [config().width() as f32 / 4.0, 0.0],
                     ::imgui::Condition::FirstUseEver,
                 )
+                .focused(true)
                 .build(|| {
                     ui.set_window_font_scale(config().ui_scale());
                     let mut se = s.lock();

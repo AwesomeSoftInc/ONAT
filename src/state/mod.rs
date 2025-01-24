@@ -738,7 +738,7 @@ impl<'a> State<'a> {
      Sets up audio based on the bg_offset_x, state, etc.
     */
     pub fn audio_step(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if self.screen.is_passive() {
+        if self.screen.is_passive() || config().on_tutorial() {
             return Ok(());
         }
         let panner = self.bg_offset_x / 3.0;
@@ -761,9 +761,7 @@ impl<'a> State<'a> {
 
         self.audio.halt_not_playing();
 
-        if !config().on_tutorial() {
-            self.audio.play_ambience()?;
-        }
+        self.audio.play_ambience()?;
 
         Ok(())
     }

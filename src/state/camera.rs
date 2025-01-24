@@ -220,6 +220,7 @@ impl<'a> State<'a> {
                 .movable(false)
                 .resizable(false)
                 .title_bar(false)
+                .focused(true)
                 .size([400.0, 600.0], Condition::Always)
                 .draw_background(false)
                 .build(|| {

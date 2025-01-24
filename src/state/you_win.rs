@@ -40,7 +40,6 @@ impl<'a> State<'a> {
                 20
             }
         } {
-            audio_init(44100)?;
             self.screen = Screen::Credits;
             self.going_to_office_from_title = false;
         }

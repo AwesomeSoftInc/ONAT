@@ -110,6 +110,7 @@ impl<'a> State<'a> {
                 .movable(false)
                 .resizable(false)
                 .title_bar(false)
+                .focused(true)
                 .bg_alpha(alpha)
                 .build(|| {
                     ui.set_window_font_scale(config().ui_scale());
@@ -166,7 +167,6 @@ impl<'a> State<'a> {
             let elapsed = self.title_clicked.elapsed()?.as_secs_f32();
             if (elapsed >= 5.0 && elapsed <= 5.5) || self.title_fade_skip {
                 self.audio.halt_title(self.has_won);
-                audio_init(8192);
             }
             if elapsed >= 6.0 {
                 self.audio.brownian_noise.play_loop()?;

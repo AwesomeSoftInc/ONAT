@@ -50,6 +50,7 @@ impl State<'_> {
                 .movable(false)
                 .resizable(false)
                 .title_bar(false)
+                .focused(true)
                 .build(|| {
                     ui.set_window_font_scale(config().ui_scale());
 

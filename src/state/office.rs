@@ -342,7 +342,6 @@ impl<'a> State<'a> {
                             Color::WHITE,
                         );
                     } else {
-                        audio_init(44100)?;
                         if self.jumpscarer != MonsterName::GoldenTux {
                             self.screen = Screen::GameOver;
                         } else {
@@ -488,6 +487,7 @@ impl<'a> State<'a> {
                 .resizable(false)
                 .movable(false)
                 .title_bar(false)
+                .focused(true)
                 .bg_alpha(0.0)
                 .position([0.0, 0.0], ::imgui::Condition::Always)
                 .size(

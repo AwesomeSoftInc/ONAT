@@ -402,15 +402,8 @@ pub fn audio_generate(_item: TokenStream) -> TokenStream {
             // )
             // .as_str();
 
-            if path.contains("fuck_you_tux") || path.contains("revenant_party") {
-                impl_lets += format!("audio_init(44100);\n").as_str();
-            }
             impl_lets +=
                 format!("let {} = Sound::from_file(\"./audio/{}\")?;\n", name, path).as_str();
-
-            if path.contains("fuck_you_tux") || path.contains("revenant_party") {
-                impl_lets += format!("audio_init(8192);\n").as_str();
-            }
 
             impl_rets += format!("{},\n", name).as_str();
 
@@ -436,8 +429,6 @@ pub fn audio_generate(_item: TokenStream) -> TokenStream {
 
                     let tts = tts_fetch()?;
 
-
-                    audio_init(44100)?;
 
                     Ok(Self {{
                     ambient_playing: false,
