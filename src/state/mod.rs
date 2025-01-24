@@ -352,6 +352,7 @@ impl<'a> State<'a> {
                 {
                     // Consider us finished.
                     config_mut().set_on_tutorial(false);
+                    self.ingame_time = UNIX_EPOCH;
                 }
             }
         }
