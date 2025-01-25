@@ -628,7 +628,7 @@ impl<'a> State<'a> {
         if config().on_tutorial() {
             let bonzi_secs = self.bonzi_timer.elapsed().unwrap().as_secs_f32() - 5.0;
             if bonzi_secs >= 3.0 {
-                let bonzi_frame = ((bonzi_secs - 3.0) * 12.5) as i32;
+                let bonzi_frame = (((bonzi_secs - 3.0) * 12.5) as i32).clamp(0, 25);
                 let bonzi = match bonzi_frame {
                     0 => &*self.textures.bonzi.enter1(),
                     1 => &*self.textures.bonzi.enter2(),
@@ -663,8 +663,8 @@ impl<'a> State<'a> {
                     bonzi,
                     texture_rect!(bonzi),
                     Rectangle::new(
-                        0.0,
-                        0.0,
+                        120.0,
+                        (bonzi_frame * 8) as f32,
                         bonzi.width as f32 * 2.0,
                         bonzi.height as f32 * 2.0,
                     ),

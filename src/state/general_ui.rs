@@ -119,16 +119,17 @@ impl<'a> State<'a> {
             .bonzi_line
             .split(" ")
             .map(|f| {
-                i += 1;
-
-                if i % space_every == 0 {
-                    f.to_string().replace(" ", "") + "\n"
+                let ret = if i % space_every == 0 {
+                    f.to_string() + "\n"
                 } else {
-                    f.to_string().replace(" ", "") + "\n"
-                }
+                    f.to_string() + " "
+                };
+
+                i += 1;
+                ret
             })
             .collect::<Vec<_>>()
-            .join(" ");
+            .join("");
         draw_list.add_text(
             [config().real_margin() + 50.0, 50.0],
             ImColor32::WHITE,
