@@ -1,4 +1,7 @@
-use std::time::SystemTime;
+use std::{
+    sync::atomic::{AtomicBool, Ordering},
+    time::SystemTime,
+};
 
 use parking_lot::Mutex;
 use raylib::prelude::*;
@@ -17,6 +20,7 @@ impl State<'_> {
         &mut self,
         d: &mut RaylibDrawHandle,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let mut goto_mike = AtomicBool::new(false);
         let s = Mutex::new(self);
         d.start_imgui(|ui| {
             ui.window("Debug")
@@ -28,19 +32,7 @@ impl State<'_> {
                 .build(|| {
                     ui.set_window_font_scale(config().ui_scale());
                     let mut se = s.lock();
-                    if ui.button("Tux button") {
-                        se.gang.tux.next();
-                        let room = se.gang.tux.room();
-                        println!("Tux in {:?}", room.clone());
-                        if room == Room::Room3 {
-                            se.gang.penny.set_room(Room::Room3);
-                            se.gang.penny.set_progress_to_hallway(2);
-                        }
-                        if room == Room::Room5 {
-                            se.gang.beastie.set_room(Room::Room5);
-                            se.gang.beastie.set_progress_to_hallway(2);
-                        }
-                    }
+
                     ui.menu("Monsters", || {
                         ui.menu("Penny", || {
                             ui.set_window_font_scale(config().ui_scale());
@@ -168,8 +160,26 @@ impl State<'_> {
                         });
                     });
 
-                    if ui.menu_item("Win Button") {
+                    if ui.button("Mike Pong") {
+                        goto_mike.store(true, Ordering::Relaxed);
+                    }
+
+                    if ui.button("Win Button") {
                         se.force_win = true;
+                    }
+
+                    if ui.button("Tux button") {
+                        se.gang.tux.next();
+                        let room = se.gang.tux.room();
+                        println!("Tux in {:?}", room.clone());
+                        if room == Room::Room3 {
+                            se.gang.penny.set_room(Room::Room3);
+                            se.gang.penny.set_progress_to_hallway(2);
+                        }
+                        if room == Room::Room5 {
+                            se.gang.beastie.set_room(Room::Room5);
+                            se.gang.beastie.set_progress_to_hallway(2);
+                        }
                     }
 
                     ui.slider("Battery", 0.0, 100.0, &mut se.camera_timer);
@@ -186,6 +196,9 @@ impl State<'_> {
                     };
                 });
         });
+        if *goto_mike.get_mut() {
+            s.lock().goto_mikepong(d);
+        }
         Ok(())
     }
 

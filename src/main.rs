@@ -3,7 +3,7 @@ use monster::Monster;
 use parking_lot::Mutex;
 use raylib::prelude::*;
 
-use state::State;
+use state::{Screen, State};
 use std::{
     error::Error,
     process::exit,
@@ -180,6 +180,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             if !state.screen.is_passive() {
                 state.step(&mut rl, &thread, mx, my)?;
                 state.audio_play_step()?;
+            } else if state.screen == Screen::MikePong {
+                state.mike_step();
             }
         }
 

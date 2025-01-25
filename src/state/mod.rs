@@ -3,23 +3,22 @@ mod credits;
 mod debug;
 mod game_over;
 mod general_ui;
+mod mikepong;
 mod office;
 mod settings;
 mod title_screen;
 mod you_win;
 
 use ::core::f32;
-use std::alloc::System;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use mikepong::MikeDirection;
 use rand::{thread_rng, Rng};
 use raylib::prelude::*;
-use sdl2::mixer::AUDIO_F32;
 
 pub const CAMERA_TIME: f32 = 0.1;
 pub const DOOR_ANIM_SPEED: f32 = 100.0;
 
-use crate::audio::audio_init;
 use crate::config::{config, config_mut};
 use crate::{
     audio::Audio,
@@ -38,15 +37,17 @@ pub enum Screen {
     GameOver,
     YouWin,
     Settings,
+    MikePong,
 }
 
 impl Screen {
     pub fn is_passive(&self) -> bool {
-        return *self == Screen::TitleScreen
-            || *self == Screen::YouWin
-            || *self == Screen::GameOver
-            || *self == Screen::Credits
-            || *self == Screen::Settings;
+        return self == &Screen::TitleScreen
+            || self == &Screen::YouWin
+            || self == &Screen::GameOver
+            || self == &Screen::Credits
+            || self == &Screen::Settings
+            || self == &Screen::MikePong;
     }
 }
 
@@ -148,7 +149,14 @@ pub struct State<'a> {
     pub bonzi_idx: usize,
     pub bonzi_line: String,
 
-    pub gogopher_stinger_played: bool,
+    pub mikepong_pos: f32,
+    pub mikeopppong_pos: f32,
+    pub mikeopppong_speed: f32,
+    pub mikeball_pos: Vector2,
+    pub mike_dir: MikeDirection,
+    pub mike_score: i128,
+    pub mike_hits: i128,
+    pub mikeball_angle: f32,
 }
 
 impl<'a> State<'a> {
@@ -303,8 +311,19 @@ impl<'a> State<'a> {
             bonzi_wait_for: 1.0,
             bonzi_idx: 0,
             bonzi_line: String::new(),
-            gogopher_stinger_played: false,
+            mikepong_pos: config().height() as f32 / 2.0,
+            mikeopppong_pos: config().height() as f32 / 2.0,
+            mikeopppong_speed: 5.0,
+            mikeball_pos: Vector2::new(
+                config().width() as f32 / 2.0,
+                config().height() as f32 / 2.0,
+            ),
+            mike_dir: MikeDirection::Left,
+            mike_score: 0,
+            mike_hits: 0,
+            mikeball_angle: 0.0,
         };
+
         Ok(state)
     }
 
@@ -574,6 +593,7 @@ impl<'a> State<'a> {
             Screen::CameraRebooting => self.camera_rebooting_draw(&mut d, &thread)?,
             Screen::Camera => self.camera_draw(&mut d, &thread)?,
             Screen::Settings => {}
+            Screen::MikePong => self.mikepong_draw(&mut d, &thread)?,
         }
 
         let rot = {
@@ -713,6 +733,7 @@ impl<'a> State<'a> {
                 Screen::Camera => {
                     self.arrow_click(d)?;
                     self.camera_ui_draw(&mut d, &thread)?;
+                    self.camera_clickable(d, mx, my)?;
                 }
                 Screen::Credits | Screen::GameOver => {}
                 Screen::YouWin => {}
@@ -725,6 +746,7 @@ impl<'a> State<'a> {
                     self.office_ui_draw(&mut d, &thread)?;
                 }
                 Screen::Settings => self.settings_draw(&mut d, &thread)?,
+                Screen::MikePong => self.mikepong_input(&mut d, &thread)?,
             }
         }
         Ok(())

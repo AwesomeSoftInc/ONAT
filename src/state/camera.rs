@@ -360,4 +360,19 @@ impl<'a> State<'a> {
         }
         Ok(())
     }
+
+    pub fn camera_clickable(
+        &mut self,
+        d: &mut RaylibHandle,
+        mx: i32,
+        my: i32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if mx >= 525 && mx <= 640 && my >= 80 && my <= 320 {
+            self.mouse_pointer = true;
+            if d.is_mouse_button_down(MouseButton::MOUSE_BUTTON_LEFT) {
+                self.goto_mikepong(d);
+            }
+        }
+        Ok(())
+    }
 }
