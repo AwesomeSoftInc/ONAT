@@ -37,6 +37,8 @@ beastie_always_move = []
 auto_link = true
 assets = ["audio", "tts"]
 
+[target.'cfg(unix)']
+rustflags = ["-C", "target-feature=+crt-static"]
 
 [profile.release]
 strip = true

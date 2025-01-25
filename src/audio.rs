@@ -94,14 +94,14 @@ fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>
     let mut outs = Vec::new();
 
     let mut bonzi_dir = PathBuf::new();
-    #[cfg(target_os = "appimage")]
+    #[cfg(target_os = "linux")]
     {
         bonzi_dir = dirs::config_dir()
             .unwrap()
             .join(".onat")
             .join("bonzi_audio");
     }
-    #[cfg(not(target_os = "appimage"))]
+    #[cfg(not(target_os = "linux"))]
     {
         bonzi_dir = bonzi_dir.join("audio").join("bonzi");
     }

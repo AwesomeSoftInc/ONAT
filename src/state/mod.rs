@@ -730,7 +730,7 @@ impl<'a> State<'a> {
         } else {
             match self.screen {
                 Screen::TitleScreen => {
-                    // self.title_screen_menu(&mut d)?;
+                    self.title_screen_menu(&mut d)?;
                 }
                 Screen::Camera => {
                     self.arrow_click(d)?;
