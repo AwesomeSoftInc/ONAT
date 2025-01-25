@@ -18,7 +18,7 @@ getrandom = { version = "0.2.11", features = ["js"] }
 dialog = "0.3.0"
 error-window = "1.0.0"
 flate2 = "1.0.28"
-sdl2 = { version = "0.37.0", features = ["mixer"] }
+sdl2 = { version = "0.37.0", features = ["mixer", "bundled"] }
 imgui = { version = "0.12.0", features = ["tables-api"] }
 libc = "0.2.167"
 dirs = "6.0.0"
@@ -35,6 +35,8 @@ beastie_always_move = []
 
 [package.metadata.appimage]
 auto_link = true
+assets = ["audio", "tts"]
+
 
 [profile.release]
 strip = true

@@ -16,7 +16,7 @@ pub fn audio_load_status() -> String {
     CUR_AUDIO_LOAD.lock().clone()
 }
 
-fn audio_set_status(val: &str) {
+pub fn audio_set_status(val: &str) {
     *CUR_AUDIO_LOAD.lock() = String::from(val)
 }
 
@@ -63,7 +63,17 @@ fn os_name() -> Result<String, Box<dyn std::error::Error>> {
 
 fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>> {
     #[cfg(not(target_os = "windows"))]
-    let model = piper_rs::from_config_path(&PathBuf::new().join("tts").join("bonzi.json"))?;
+    let model = {
+        let mut path = PathBuf::new();
+        #[cfg(target_os = "linux")]
+        {
+            path = path.join(std::env::var("APPDIR").unwrap());
+        }
+
+        path = path.join("tts").join("bonzi.json");
+        piper_rs::from_config_path(&path)?
+    };
+
     #[cfg(not(target_os = "windows"))]
     if let Some(speakers) = model.get_speakers()? {
         if let Some(first_key) = speakers.keys().collect::<Vec<_>>().first() {
@@ -83,8 +93,20 @@ fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>
     let s = Box::leak(Box::new(sentences.clone()));
     let mut outs = Vec::new();
 
-    let bonzi_dir = PathBuf::new().join("audio").join("bonzi");
-    let _ = std::fs::create_dir(bonzi_dir.clone());
+    let mut bonzi_dir = PathBuf::new();
+    #[cfg(target_os = "linux")]
+    {
+        bonzi_dir = dirs::config_dir()
+            .unwrap()
+            .join(".onat")
+            .join("bonzi_audio");
+    }
+    #[cfg(not(target_os = "linux"))]
+    {
+        bonzi_dir = bonzi_dir.join("audio").join("bonzi");
+    }
+
+    std::fs::create_dir_all(bonzi_dir.clone())?;
 
     let mut i = 0;
     for f in s {
@@ -96,9 +118,7 @@ fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>
         #[cfg(not(target_os = "windows"))]
         if !std::fs::exists(file.clone())? {
             audio_set_status(format!("Generating TTS #{}", i).as_str());
-            synth
-                .synthesize_to_file(&file, f.to_string(), None)
-                .unwrap();
+            synth.synthesize_to_file(&file, f.to_string(), None)?;
         }
         let chunk = Chunk::from_file(file)?;
         outs.push((
@@ -124,9 +144,9 @@ impl Sound {
             channels: HashMap::new(),
         })
     }
-    pub fn from_file(path: &str) -> Result<Self, Box<dyn std::error::Error>> {
-        audio_set_status(format!("Loading {}", path).as_str());
-        let chunk = Chunk::from_file(path)?;
+    pub fn from_file(p: PathBuf) -> Result<Self, Box<dyn std::error::Error>> {
+        audio_set_status(format!("Loading {:?}", p).as_str());
+        let chunk = Chunk::from_file(p)?;
 
         Ok(Self {
             chunk,

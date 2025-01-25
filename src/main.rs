@@ -1,4 +1,4 @@
-use audio::audio_load_status;
+use audio::{audio_load_status, audio_set_status};
 use monster::Monster;
 use parking_lot::Mutex;
 use raylib::prelude::*;
@@ -42,10 +42,11 @@ unsafe extern "C" fn handler(signum: libc::c_int) {
 }
 
 static mut AUDIO: Mutex<Option<Audio>> = Mutex::new(None);
-fn init_audio() {
-    let mut aud = Audio::new().unwrap();
+fn init_audio() -> Result<(), Box<dyn std::error::Error>> {
+    let mut aud = Audio::new()?;
     aud.set_volume(config().volume() as i32);
     unsafe { *AUDIO.lock() = Some(aud) };
+    Ok(())
 }
 
 #[error_window::main]
@@ -73,7 +74,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("loading audio...");
 
     std::thread::spawn(|| {
-        init_audio();
+        if let Err(err) = init_audio() {
+            audio_set_status(err.to_string().as_str());
+        };
     });
 
     let mut time = SystemTime::now();

@@ -414,8 +414,11 @@ pub fn audio_generate(_item: TokenStream) -> TokenStream {
             // )
             // .as_str();
 
-            impl_lets +=
-                format!("let {} = Sound::from_file(\"./audio/{}\")?;\n", name, path).as_str();
+            impl_lets += format!(
+                "let {} = Sound::from_file(path.join(\"{}\"))?;\n",
+                name, path
+            )
+            .as_str();
 
             impl_rets += format!("{},\n", name).as_str();
 
@@ -434,6 +437,14 @@ pub fn audio_generate(_item: TokenStream) -> TokenStream {
             impl Audio {{
                 pub fn new() -> Result<Self, Box<dyn std::error::Error>> {{
                     audio_init(44100)?;
+
+                    let mut path = PathBuf::new();
+                    #[cfg(target_os = \"linux\")]
+                    {{
+                        path = path.join(std::env::var(\"APPDIR\").unwrap());
+                    }}
+                    path = path.join(\"audio\");
+
                     {}
 
                     let tts = tts_fetch()?;
