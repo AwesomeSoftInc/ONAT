@@ -710,6 +710,7 @@ impl<'a> State<'a> {
             Color::WHITE.alpha(win_alpha),
         );
 
+        #[cfg(debug_assertions)]
         d.draw_fps(10, 10);
         Ok(())
     }
