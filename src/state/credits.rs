@@ -1,6 +1,9 @@
+use std::sync::atomic::AtomicBool;
+
+use ::imgui::{Condition, ImColor32};
 use raylib::prelude::*;
 
-use crate::config::config;
+use crate::{config::config, style_pop, style_push, DEBUG};
 
 use super::{Screen, State};
 
@@ -9,57 +12,62 @@ impl<'a> State<'a> {
         &mut self,
         d: &mut RaylibDrawHandle,
         thread: &RaylibThread,
-        mx: i32,
-        my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        let mut d = d.begin_texture_mode(&thread, &mut self.framebuffer);
-
         self.audio.play_title(self.has_won)?;
 
-        d.clear_background(Color::BLACK);
+        let credits = vec![
+            ("Programming", "Gavin \"ioi_xd\" Parker"),
+            ("Director/Art", "BigTuxFan223*"),
+            ("Music", "Nichael Brimbleton"),
+            ("Art/Animator", "Giovanna \"mochi\" Poggi"),
+            ("Wisdom", "The Eye"),
+        ];
+        let mut to_title = AtomicBool::new(false);
+        d.start_imgui(|ui| {
+            ui.window("Credits")
+                .position(
+                    [
+                        config().real_margin() + 10.0,
+                        (config().real_height() as f32 / 2.0),
+                    ],
+                    Condition::Always,
+                )
+                .size([0.0, 0.0], Condition::Always)
+                .movable(false)
+                .resizable(false)
+                .title_bar(false)
+                .focused(!DEBUG)
+                .build(|| {
+                    ui.set_window_font_scale(config().ui_scale());
 
-        d.draw_text_ex(
-            &self.font,
-            "Programming\nDirector/Art/Play Testing\nMusic\nArt/Animator\nWisdom
-            ",
-            Vector2::new(0.0 + 48.0, 48.0),
-            30.0,
-            6.0,
-            Color::WHITE,
-        );
-        d.draw_text_ex(
-            &self.font,
-            "Gavin \"ioi_xd\" Parker\nBigTuxFan223*\nNichael Brimbleton\nGiovanna \"mochi\" Poggi\nThe Eye
-            ",
-            Vector2::new(config().width_raw() as f32 / 2.0, 48.0),
-            30.0,
-            6.0,
-            Color::WHITE,
-        );
+                    if let Some(table) = ui.begin_table("Credits", 2) {
+                        ui.table_next_row();
+                        for credit in &credits {
+                            ui.table_next_column();
+                            ui.text(credit.0);
+                            ui.table_next_column();
+                            ui.text(credit.1);
+                        }
+                        table.end();
+                    };
 
-        d.draw_text_ex(
-            &self.font,
-            "*Uses Windows",
-            Vector2::new(0.0 + 5.0, config().height() as f32 - 48.0),
-            32.0,
-            6.0,
-            Color::new(255, 255, 255, 255),
-        );
-        let cx = config().width() - d.measure_text("Back to Title Screen", 48);
-        let cy = config().height() - 48;
-        d.draw_text_ex(
-            &self.font,
-            "Back to Title Screen",
-            Vector2::new(cx as f32, cy as f32),
-            32.0,
-            6.0,
-            Color::WHITE,
-        );
-        if d.is_mouse_button_pressed(MouseButton::MOUSE_BUTTON_LEFT) {
-            if mx >= cx && my >= cy {
-                self.screen = Screen::TitleScreen;
-            }
+                    if ui.button("Back To Title") {
+                        to_title.store(true, std::sync::atomic::Ordering::Relaxed);
+                    }
+
+                    let styles = style_push!(ui);
+                    for _ in 0..15 {
+                        ui.separator();
+                    }
+                    style_pop!(styles);
+
+                    ui.text("*Uses Windows");
+                });
+        });
+        if *to_title.get_mut() {
+            self.screen = Screen::TitleScreen;
         }
+
         Ok(())
     }
 }

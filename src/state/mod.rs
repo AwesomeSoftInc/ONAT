@@ -585,7 +585,7 @@ impl<'a> State<'a> {
 
         match self.screen {
             Screen::TitleScreen => self.title_screen_draw(&mut d, &thread)?,
-            Screen::Credits => self.credits_draw(&mut d, &thread, mx, my)?,
+            Screen::Credits => {}
             Screen::GameOver => self.gameover_draw(&mut d, &thread)?,
             Screen::YouWin => self.win_draw(&mut d, &thread)?,
             Screen::Office => {
@@ -736,7 +736,8 @@ impl<'a> State<'a> {
                     self.camera_ui_draw(&mut d, &thread)?;
                     self.camera_clickable(d, mx, my)?;
                 }
-                Screen::Credits | Screen::GameOver => {}
+                Screen::Credits => self.credits_draw(&mut d, thread)?,
+                Screen::GameOver => {}
                 Screen::YouWin => {}
                 Screen::CameraRebooting => {
                     self.arrow_click(d)?;

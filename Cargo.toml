@@ -19,8 +19,7 @@ dialog = "0.3.0"
 error-window = "1.0.0"
 flate2 = "1.0.28"
 sdl2 = { version = "0.37.0", features = ["mixer"] }
-imgui = "0.12.0"
-imgui-sys = "0.12.0"
+imgui = { version = "0.12.0", features = ["tables-api"] }
 libc = "0.2.167"
 dirs = "6.0.0"
 toml = "0.8.19"
