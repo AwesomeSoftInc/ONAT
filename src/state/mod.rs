@@ -20,6 +20,7 @@ pub const CAMERA_TIME: f32 = 0.1;
 pub const DOOR_ANIM_SPEED: f32 = 100.0;
 
 use crate::config::{config, config_mut};
+use crate::DEBUG;
 use crate::{
     audio::Audio,
     enums::Room,
@@ -360,7 +361,7 @@ impl<'a> State<'a> {
                 if let Some(snd) = self.audio.tts.get_mut(self.bonzi_idx) {
                     if elapsed >= self.bonzi_wait_for {
                         snd.2.play()?;
-                        self.bonzi_wait_for = snd.1 as f32 / 176400.0;
+                        self.bonzi_wait_for = snd.1 as f32 / 200000.0;
                         self.bonzi_play_timer = SystemTime::now();
                         self.bonzi_idx += 1;
                         self.bonzi_line = snd.0.clone();
@@ -723,7 +724,7 @@ impl<'a> State<'a> {
         mx: i32,
         my: i32,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        if d.is_key_down(KeyboardKey::KEY_LEFT_ALT) {
+        if DEBUG && d.is_key_down(KeyboardKey::KEY_LEFT_ALT) {
             self.debug_draw(&mut d)?;
         } else {
             match self.screen {

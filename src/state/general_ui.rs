@@ -113,10 +113,26 @@ impl<'a> State<'a> {
         &self,
         draw_list: DrawListMut<'_>,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let space_every = (config().ui_scale() as i32) * 3;
+        let mut i = 1;
+        let lines = self
+            .bonzi_line
+            .split(" ")
+            .map(|f| {
+                i += 1;
+
+                if i % space_every == 0 {
+                    f.to_string().replace(" ", "") + "\n"
+                } else {
+                    f.to_string().replace(" ", "") + "\n"
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(" ");
         draw_list.add_text(
             [config().real_margin() + 50.0, 50.0],
             ImColor32::WHITE,
-            self.bonzi_line.as_str(),
+            lines.as_str(),
         );
 
         Ok(())
