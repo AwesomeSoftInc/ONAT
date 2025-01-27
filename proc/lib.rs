@@ -2,14 +2,11 @@ extern crate proc_macro;
 
 use std::collections::HashMap;
 use std::fs::{DirEntry, ReadDir};
-use std::io::Read;
-use std::os::unix::fs::MetadataExt;
 
-use flate2::bufread::GzEncoder;
-use flate2::Compression;
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse::Parser;
+use syn::token::Impl;
 use syn::{parse_macro_input, ItemStruct};
 
 macro_rules! field_parse {
@@ -17,7 +14,7 @@ macro_rules! field_parse {
         vec![
             $(
                 syn::Field::parse_named.parse2(quote! {
-                    $name: $t
+                    pub(crate) $name: $t
                 }).map_err(|e| {let e2: anyhow::Error = e.clone().into(); e2.context(format!("\"{}\" at {}:{}:{}", e, file!(), line!(), column!()))})?
             ),*
         ]
@@ -43,7 +40,8 @@ pub fn monster_derive(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 timer_until_office: SystemTime,
                 time_in_room: SystemTime,
                 move_timer: u8,
-                move_after_timer: bool
+                move_after_timer: bool,
+                stinger_played: bool
             ) {
                 fields.named.push(f);
             }
@@ -73,18 +71,19 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
         fn room(&self) -> Room {
             self.room.clone()
         }
-        fn next_room(&self) -> Room {
-            self.next_room.clone()
-        }
+        //fn next_room(&self) -> Room {
+            // self.next_room.clone()
+        // }
         fn ai_level(&self) -> u8 {
             self.ai_level
         }
         fn set_room(&mut self, room: Room) {
+            #[cfg(debug_assertions)]{println!("{:?} room set to {:?}",self.id(), room);}
             self.room = room;
         }
-        fn set_next_room(&mut self, room: Room) {
-            self.next_room = room;
-        }
+        // fn set_next_room(&mut self, room: Room) {
+            // self.next_room = room;
+        // }
         fn active(&self) -> bool {
             self.active
         }
@@ -106,7 +105,7 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
         fn set_entered_from_right(&mut self, res: bool)  {
             self.entered_from_right = res;
         }
-        fn progress_to_hallway(&mut self) -> i8 {
+        fn progress_to_hallway(&self) -> i8 {
             self.progress_to_hallway
         }
         fn set_progress_to_hallway(&mut self, yeah: i8)  {
@@ -133,6 +132,13 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
             self.timer_until_office = val;
         }
 
+        fn stinger_played(&self) -> bool {
+            self.stinger_played
+        }
+
+        fn set_stinger_played(&mut self, val: bool) {
+            self.stinger_played = val;
+        }
         fn time_in_room(&mut self) -> SystemTime {
             self.time_in_room
         }
@@ -140,9 +146,9 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
             self.time_in_room = SystemTime::now();
         }
 
-        fn move_after_timer(&mut self) -> bool {
-            self.move_after_timer
-        }
+        // fn move_after_timer(&mut self) -> bool {
+            // self.move_after_timer
+        // }
 
         fn set_move_after_timer(&mut self, val: bool) {
             self.move_after_timer = val;
@@ -152,11 +158,13 @@ pub fn monster_function_macro(_item: TokenStream) -> TokenStream {
 }
 
 #[proc_macro]
-pub fn asset_fill(item: TokenStream) -> TokenStream {
+pub fn asset_fill(_item: TokenStream) -> TokenStream {
     let mut structs: HashMap<String, Vec<String>> = HashMap::new();
     let mut define_structs: HashMap<String, Vec<String>> = HashMap::new();
     let mut impl_structs: HashMap<String, Vec<String>> = HashMap::new();
     let mut fields = vec![];
+    let mut functions: HashMap<String, Vec<String>> = HashMap::new();
+    let mut texfilter_set: HashMap<String, Vec<String>> = HashMap::new();
     let mut impl_fields = vec![];
     let mut define = vec![];
 
@@ -165,6 +173,8 @@ pub fn asset_fill(item: TokenStream) -> TokenStream {
         yeah(
             assets,
             &mut fields,
+            &mut functions,
+            &mut texfilter_set,
             &mut impl_fields,
             &mut define,
             &mut structs,
@@ -181,71 +191,61 @@ pub fn asset_fill(item: TokenStream) -> TokenStream {
         }
         .into();
     } else {
-        let fuck = fields.join(",");
-        let mut you = format!("pub struct Textures {{{}}}\n", fuck);
+        let mut you = format!(
+            "pub struct Textures {{
+        {}}}\n",
+            fields.join(",")
+        );
         let fuck1 = impl_fields.join("\n");
         let you1 = define.join(",\n");
-        you += &format!("impl Textures {{
-                pub fn new(rl: &mut RaylibHandle, thread: &RaylibThread) -> Result<Self, Box<dyn Error>> {{
+        you += &format!(
+            "impl Textures {{
+                pub fn new() -> Result<Self, Box<dyn Error>> {{
                     {}
                     Ok(Self {{
                         {}
                     }})
                 }}
-            }}", fuck1,you1);
+            }}",
+            fuck1, you1
+        );
         for (k, v) in structs {
+            if let None = impl_structs.get(&k) {
+                continue;
+            }
             let fuck = v.join(",");
             you += &format!("pub struct {} {{{}}}\n", k, fuck);
 
-            let fuck1 = impl_structs.get(&k).unwrap().join("\n");
-            let you1 = define_structs.get(&k).unwrap().join(",\n");
-            you += &format!("impl {} {{
-                pub fn new(rl: &mut RaylibHandle, thread: &RaylibThread) -> Result<Self, Box<dyn Error>> {{
+            let thisimpl = impl_structs.get(&k).unwrap().join("\n");
+            let thisdefine = define_structs.get(&k).unwrap().join(",\n");
+            let thisfuncs = functions.get(&k).unwrap().join("\n");
+            let thisfilter = texfilter_set.get(&k).unwrap().join("\n");
+            you += &format!(
+                "impl {} {{
+                pub fn new() -> Result<Self, Box<dyn Error>> {{
                     {}
                     Ok(Self {{
                         {}
                     }})
                 }}
-            }}", k,fuck1,you1);
+                {}
+
+                pub fn set_texture_filter(&self, rl: &mut RaylibHandle, thread: &RaylibThread, filter: TextureFilter) {{
+                    {}
+                }}
+            }}",
+                k, thisimpl, thisdefine, thisfuncs,thisfilter
+            );
         }
         return you.parse().unwrap();
     }
 }
 
-fn compress(path: String) -> Result<String, anyhow::Error> {
-    let mut buffer = std::fs::read(&path)?;
-
-    #[cfg(feature = "release")]
-    {
-        println!("compressing file of {}kb", buffer.len() / 1000);
-        let b = buffer.clone();
-        let f = b.as_slice();
-        let mut gz = GzEncoder::new(f, Compression::best());
-
-        buffer = Vec::new();
-        gz.read_to_end(&mut buffer)?;
-    }
-
-    let mut cursor = 0;
-    let mut join = "".to_owned();
-    loop {
-        match buffer.get(cursor) {
-            Some(a) => {
-                join += &a.to_string();
-                join += ",";
-                cursor += 1;
-            }
-            None => {
-                break;
-            }
-        }
-    }
-    Ok(join)
-}
-
 fn yeah(
     assets: ReadDir,
     fields: &mut Vec<String>,
+    functions: &mut HashMap<String, Vec<String>>,
+    texfilter_set: &mut HashMap<String, Vec<String>>,
     impl_fields: &mut Vec<String>,
     define: &mut Vec<String>,
     structs: &mut HashMap<String, Vec<String>>,
@@ -273,15 +273,22 @@ fn yeah(
                 if let None = structs.get(&tex) {
                     structs.insert(tex.clone(), Vec::new());
                 }
-                if let None = define_structs.get(&tex) {
-                    define_structs.insert(tex.clone(), Vec::new());
-                }
                 if let None = impl_structs.get(&tex) {
                     impl_structs.insert(tex.clone(), Vec::new());
                 }
+                if let None = define_structs.get(&tex) {
+                    define_structs.insert(tex.clone(), Vec::new());
+                }
+                if let None = texfilter_set.get(&tex) {
+                    texfilter_set.insert(tex.clone(), Vec::new());
+                }
+                if let None = functions.get(&tex) {
+                    functions.insert(tex.clone(), Vec::new());
+                }
                 let a = structs.get_mut(&tex).unwrap();
                 let b = define_structs.get_mut(&tex).unwrap();
-                let c = impl_structs.get_mut(&tex).unwrap();
+                let c = texfilter_set.get_mut(&tex).unwrap();
+                let d = functions.get_mut(&tex).unwrap();
 
                 let subdir = std::fs::read_dir(asset.path().to_str().unwrap().to_string())?;
                 for dir in subdir {
@@ -292,27 +299,60 @@ fn yeah(
                             .replace(".png", "")
                             .replace("\"", "")
                             .replace(" ", "_");
-                        a.push(format!("pub {}: Texture2D ", n.clone()));
-                        b.push(n.clone());
-                        c.push(format!(
-                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec(), {size})?)?;",
-                            n = n,
-                            size=dir.metadata()?.size(),
-                            b = format!("../assets/{name}/{n}.png",name=name,n=n)
+                        a.push(format!("_{}: Mutex<Texture2D> ", n.clone()));
+                        a.push(format!("_set_{}: Mutex<bool> ", n.clone()));
+                        b.push(format!(
+                            "_{}: Mutex::new(unsafe {{std::mem::zeroed()}})",
+                            n.clone()
                         ));
-                        c.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
+                        b.push(format!("_set_{}: Mutex::new(false)", n.clone()));
+
+                        if !n.starts_with("jumpscare") {
+                            c.push(format!(
+                                "if *self._set_{n}.lock() {{
+                                    self._{n}.lock().set_texture_filter(&thread, filter);
+                                }};\n",
+                                n = n,
+                            ));
+                        }
+
+                        d.push(format!(
+                            "pub fn {n}(&self) -> MutexGuard<Texture2D> {{
+                                let set_{n} = *self._set_{n}.lock();
+                                if !set_{n} {{
+                                    let {n} = unsafe {{
+                                        let n = ffi::LoadTextureFromImage(*Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec()).unwrap());
+                                        {filter}
+                                        Texture2D::from_raw(n)
+                                    }};
+                                    *self._{n}.lock() = {n};
+                                    *self._set_{n}.lock() = true;
+                                }};
+                                return self._{n}.lock();
+                            }}",
+                            n = n,
+                            b = format!("../assets/{name}/{n}.png", n=n),
+                            filter = if !n.starts_with("jumpscare") {
+                                "ffi::SetTextureFilter(n, TextureFilter::TEXTURE_FILTER_BILINEAR as i32);"
+                            } else {
+                                ""
+                            }
+                        ));
                     }
                 }
+
                 define.push(name.clone());
                 impl_fields.push(format!(
-                    "let {n} = {t}::new(rl, &thread)?;",
+                    "let {n} = {t}::new()?;",
                     n = name,
-                    t = tex
+                    t = tex.replace("", "")
                 ));
 
                 yeah(
                     std::fs::read_dir(asset.path().to_str().unwrap().to_string())?,
                     fields,
+                    functions,
+                    texfilter_set,
                     impl_fields,
                     define,
                     structs,
@@ -325,15 +365,13 @@ fn yeah(
                     if name.ends_with(".png") {
                         let n: String =
                             name.replace(".png", "").replace("\"", "").replace(" ", "_");
-                        fields.push(format!("pub {}: Texture2D", n));
-                        define.push(n.clone());
-                        impl_fields.push(format!(
-                            "let {n} = rl.load_texture_from_image(&thread,&Image::load_image_from_mem(\".png\", &include_bytes!(\"{b}\").to_vec(), {size})?)?;",
-                            n = n,
-                            size=ass.metadata()?.size(),
-                            b = format!("../assets/{n}.png",n=n)
+                        fields.push(format!("_{}: Mutex<Texture2D>", n));
+                        fields.push(format!("_set_{}: Mutex<bool>", n));
+                        define.push(format!(
+                            "_{}: Mutex::new(unsafe {{std::mem::zeroed()}})",
+                            n.clone()
                         ));
-                        impl_fields.push(format!("{n}.set_texture_filter(&thread, TextureFilter::TEXTURE_FILTER_BILINEAR);",n=n));
+                        define.push(format!("_set_{}: Mutex::new(false)", n.clone()));
                     }
                 }
             }
@@ -342,4 +380,97 @@ fn yeah(
         func(&asset)?;
     }
     Ok(())
+}
+
+#[proc_macro]
+pub fn audio_generate(_item: TokenStream) -> TokenStream {
+    || -> Result<TokenStream, Box<dyn std::error::Error>> {
+        let mut fin = String::new();
+
+        let mut struc_defs = String::new();
+        let mut impl_lets = String::new();
+        let mut impl_rets = String::new();
+        let mut impl_is_playing = String::new();
+        let mut impl_volume = String::new();
+
+        for asset in std::fs::read_dir("./audio")? {
+            let asset = asset?;
+            let path = asset.file_name().into_string().unwrap();
+            if !path.ends_with(".ogg") {
+                continue;
+            }
+            let name = path
+                .split("/")
+                .last()
+                .unwrap()
+                .to_string()
+                .replace(".ogg", "");
+
+            struc_defs += format!("pub {}: Sound,\n", name).as_str();
+
+            // impl_lets += format!(
+            //     "let {} = Sound::from_bytes(Box::new(*include_bytes!(\"../audio/{}\")))?;\n",
+            //     name, path
+            // )
+            // .as_str();
+
+            impl_lets += format!(
+                "let {} = Sound::from_file(path.join(\"{}\"))?;\n",
+                name, path
+            )
+            .as_str();
+
+            impl_rets += format!("{},\n", name).as_str();
+
+            impl_is_playing +=
+                format!("self.{name}.halt_if_not_playing();\n", name = name).as_str();
+
+            impl_volume += format!("self.{name}.set_volume(volume);\n", name = name).as_str();
+        }
+
+        fin += format!(
+            "pub struct Audio {{
+            ambient_playing: bool,
+            pub tts: Vec<(String,usize,Sound)>,
+            {}
+        }}
+            impl Audio {{
+                pub fn new() -> Result<Self, Box<dyn std::error::Error>> {{
+                    audio_init(44100)?;
+
+                    let mut path = PathBuf::new();
+                    #[cfg(target_os = \"linux\")]
+                    {{
+                        path = path.join(std::env::var(\"APPDIR\").unwrap_or(\".\".to_string()));
+                    }}
+                    path = path.join(\"audio\");
+
+                    {}
+
+                    let tts = tts_fetch()?;
+
+
+                    Ok(Self {{
+                    ambient_playing: false,
+                    tts,
+        {}
+                    }})
+                }}
+
+                pub fn halt_not_playing(&mut self)  {{
+                    {}
+                }}
+
+                 pub fn set_volume(&mut self, volume: i32)  {{
+                    {}
+                }}
+            }}
+        ",
+            struc_defs, impl_lets, impl_rets, impl_is_playing, impl_volume
+        )
+        .as_str();
+
+        Ok(fin.parse()?)
+    }()
+    .unwrap()
 }

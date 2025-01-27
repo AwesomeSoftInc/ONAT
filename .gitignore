@@ -1,10 +1,11 @@
 /target
 *.zip
-*.exe
-what
+/*.exe
+/what
 /raylib
 /include
 /lib
 /libs
 /proc
 /icon.png
+imgui.ini

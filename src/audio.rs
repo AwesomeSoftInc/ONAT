@@ -1,453 +1,391 @@
-use std::time::SystemTime;
+use std::{collections::HashMap, fs::File, io::Read, path::PathBuf, sync::Arc};
 
-use rand::{rngs::ThreadRng, thread_rng, Rng};
-use sdl2::{
-    audio::AudioSpecDesired,
-    mixer::{AudioFormat, Channel, Chunk, InitFlag, Music, Sdl2MixerContext, AUDIO_F32},
-    sys::SDL_AudioFormat,
-    AudioSubsystem, Sdl,
-};
+use parking_lot::Mutex;
 
-use crate::state::State;
+#[cfg(not(target_os = "windows"))]
+use piper_rs::synth::PiperSpeechSynthesizer;
+use proc::audio_generate;
+use rand::{thread_rng, Rng};
+use sdl2::mixer::{Channel, Chunk, AUDIO_F32};
 
-macro_rules! play {
-    ($($val:tt).*,$($chunk:tt).*) => {
-        play!($($val).*,$($chunk).*,0)
+use crate::config::config;
+
+static CUR_AUDIO_LOAD: Mutex<String> = Mutex::new(String::new());
+
+pub fn audio_load_status() -> String {
+    CUR_AUDIO_LOAD.lock().clone()
+}
+
+pub fn audio_set_status(val: &str) {
+    *CUR_AUDIO_LOAD.lock() = String::from(val)
+}
+
+pub fn audio_init(frequency: i32) -> Result<(), Box<dyn std::error::Error>> {
+    sdl2::mixer::close_audio();
+    sdl2::mixer::open_audio(frequency, AUDIO_F32, 2, 1024)?;
+    sdl2::mixer::allocate_channels(1024);
+    Ok(())
+}
+
+fn file_get_value(file: &mut File, val: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let mut buf = String::new();
+    file.read_to_string(&mut buf)?;
+
+    // get all the lines starting with the key
+    let name_lines = buf
+        .lines()
+        .filter(|f| f.to_lowercase().replace(" ", "").starts_with(val))
+        .map(|f| f.to_string())
+        .collect::<Vec<_>>();
+
+    // Get the first one we found and seperate each end of the equals side.
+    let parts = name_lines.first().unwrap().split("=").collect::<Vec<_>>();
+
+    let name = parts.last().unwrap().replace("\"", "");
+
+    Ok(name)
+}
+
+fn os_name() -> Result<String, Box<dyn std::error::Error>> {
+    #[cfg(target_os = "windows")]
+    return Ok("Windows".to_string());
+    #[cfg(target_os = "linux")]
+    {
+        if let Ok(mut file) = File::open("/etc/os-release") {
+            return Ok(file_get_value(&mut file, "name=")?);
+        } else if let Ok(mut file) = File::open("/etc/lsb-release") {
+            return Ok(file_get_value(&mut file, "distrib_id=")?);
+        } else {
+            return Ok("some shitfuck version of Linux\nthat nobody's ever heard of".to_string());
+        }
+    }
+}
+
+fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>> {
+    #[cfg(not(target_os = "windows"))]
+    let model = {
+        let mut path = PathBuf::new();
+        #[cfg(target_os = "linux")]
+        {
+            path = path.join(std::env::var("APPDIR").unwrap_or(".".to_string()));
+        }
+
+        path = path.join("tts").join("bonzi.json");
+        piper_rs::from_config_path(&path)?
     };
-    ($($val:tt).*,$($chunk:tt).*, $num:literal) => {
-        if let None = $($val).*  {
-            $($val).* = Some(sdl2::mixer::Channel::all().play(&$($chunk).*, $num)?)
+
+    #[cfg(not(target_os = "windows"))]
+    if let Some(speakers) = model.get_speakers()? {
+        if let Some(first_key) = speakers.keys().collect::<Vec<_>>().first() {
+            if let Some(err) = model.set_speaker(**first_key) {
+                return Err(Box::new(err));
+            };
         }
     };
+
+    #[cfg(not(target_os = "windows"))]
+    let synth = Arc::new(PiperSpeechSynthesizer::new(model)?);
+
+    let crime = format!("For the crime of using {},", os_name()?);
+
+    let sentences: Vec<String> = vec!["Well!".to_string(),"Hello there!".to_string(),"I don't believe we've been properly introduced.".to_string(),"I am Bonzi.".to_string(),"Tux wants you to play a little game!".to_string(),crime,"we have locked you in this office.".to_string(),"Tux's followers will be coming shortly to deal with you.".to_string(),"When they come in, they will corrupt your PC until they are able to attack.".to_string(),"You have doors you can shut on them, but they will open on their own and be jammed for a bit".to_string(),"that is, unless you are wise with shutting them,".to_string(),"as if they run into it, they will unjam it".to_string(),"before walking back to their post.".to_string(),"You have 6 hours to fend them off.".to_string(),"A word of advice?".to_string(),"Keep track of them on the cameras to shut the doors before they can start corrupting anything.".to_string(),"Have fun!".to_string()];
+
+    let s = Box::leak(Box::new(sentences.clone()));
+    let mut outs = Vec::new();
+
+    let mut bonzi_dir = PathBuf::new();
+    #[cfg(target_os = "appimage")]
+    {
+        bonzi_dir = dirs::config_dir()
+            .unwrap()
+            .join(".onat")
+            .join("bonzi_audio");
+    }
+    #[cfg(not(target_os = "appimage"))]
+    {
+        bonzi_dir = bonzi_dir.join("audio").join("bonzi");
+    }
+
+    std::fs::create_dir_all(bonzi_dir.clone())?;
+
+    let mut i = 0;
+    for f in s {
+        let st = f.to_string();
+
+        #[cfg(not(target_os = "windows"))]
+        let synth = synth.clone();
+        let file = bonzi_dir.clone().join(format!("{}.ogg", i));
+        #[cfg(not(target_os = "windows"))]
+        if !std::fs::exists(file.clone())? {
+            audio_set_status(format!("Generating TTS #{}", i).as_str());
+            synth.synthesize_to_file(&file, f.to_string(), None)?;
+        }
+        let chunk = Chunk::from_file(file)?;
+        outs.push((
+            st,
+            (unsafe { *chunk.raw }).alen as usize,
+            Sound::from_chunk(chunk)?,
+        ));
+        i += 1;
+    }
+
+    Ok(outs)
 }
 
-pub struct Audio {
-    door: Chunk,
-    fuck_you_tux: Chunk,
-    thud: Chunk,
-    noise: Chunk,
-    wilber_appear: Chunk,
-    tux_appear: Chunk,
-    ambience_ominous: Vec<Chunk>,
-    ambience_sinister: Vec<Chunk>,
-    tainted_notes: Vec<Chunk>,
-    plush: Chunk,
-
-    thread_rng: ThreadRng,
-
-    regular_jumpscare: Chunk,
-    tux_jumpscare: Chunk,
-
-    brownian_noise: Chunk,
-    bells: Chunk,
-
-    stinger: Chunk,
-    jammed: Chunk,
-
-    camera_flip: Chunk,
-
-    wilburs: Vec<Chunk>,
-    gopher_appear: Chunk,
-
-    open_source_closed_casket: Chunk,
-
-    revenant_party: Chunk,
-    ambience_unused: Chunk,
-    brownian_channel: Option<Channel>,
-    title_channel: Option<Channel>,
-    left_channel_door: Option<Channel>,
-    right_channel_door: Option<Channel>,
-    left_channel_thud: Option<Channel>,
-    right_channel_thud: Option<Channel>,
-    noise_channel: Option<Channel>,
-    monster_appear_channel: Option<Channel>,
-    ambient_channel: Option<Channel>,
-    open_source_channel: Option<Channel>,
-    plush_channel: Option<Channel>,
-    jumpscare_channel: Option<Channel>,
-    tainted_channels: Vec<Option<Channel>>,
-    bells_channel: Option<Channel>,
-    stinger_channel: Option<Channel>,
-    jammed_channel: Option<Channel>,
-
-    wilber_channel: Option<Channel>,
+pub struct Sound {
+    chunk: Chunk,
+    channels: HashMap<usize, Channel>,
 }
+
+impl Sound {
+    fn from_chunk(chunk: Chunk) -> Result<Self, Box<dyn std::error::Error>> {
+        Ok(Self {
+            chunk,
+            channels: HashMap::new(),
+        })
+    }
+    pub fn from_file(p: PathBuf) -> Result<Self, Box<dyn std::error::Error>> {
+        audio_set_status(format!("Loading {:?}", p).as_str());
+        let chunk = Chunk::from_file(p)?;
+
+        Ok(Self {
+            chunk,
+            channels: HashMap::new(),
+        })
+    }
+
+    pub fn play(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        self.channels.insert(
+            self.channels.len(),
+            sdl2::mixer::Channel::all().play(&self.chunk, 0)?,
+        );
+        Ok(())
+    }
+
+    pub fn play_reserved(
+        &mut self,
+        idx: usize,
+        left: u8,
+        right: u8,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        if let None = self.channels.get(&idx) {
+            if let Some(ch) = self
+                .channels
+                .insert(idx, sdl2::mixer::Channel::all().play(&self.chunk, 0)?)
+            {
+                ch.set_panning(left, right)?;
+            };
+        }
+        Ok(())
+    }
+
+    pub fn play_loop_reserved(&mut self, idx: usize) -> Result<(), Box<dyn std::error::Error>> {
+        if let None = self.channels.get(&idx) {
+            self.channels
+                .insert(idx, sdl2::mixer::Channel::all().play(&self.chunk, -1)?);
+        }
+        Ok(())
+    }
+
+    pub fn play_panned(&mut self, left: u8, right: u8) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(ch) = self.channels.insert(
+            self.channels.len(),
+            sdl2::mixer::Channel::all().play(&self.chunk, 0)?,
+        ) {
+            ch.set_panning(left, right)?;
+        }
+        Ok(())
+    }
+
+    pub fn play_loop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        self.channels.insert(
+            self.channels.len(),
+            sdl2::mixer::Channel::all().play(&self.chunk, -1)?,
+        );
+        Ok(())
+    }
+
+    pub fn halt(&mut self) {
+        let mut to_remove = vec![];
+        for channel in self.channels.clone() {
+            channel.1.halt();
+            to_remove.push(channel.0);
+        }
+        for idx in to_remove {
+            self.channels.remove(&idx);
+        }
+    }
+
+    pub fn halt_if_not_playing(&mut self) {
+        let mut to_remove = vec![];
+        for channel in self.channels.clone() {
+            if !channel.1.is_playing() {
+                channel.1.halt();
+                to_remove.push(channel.0);
+            }
+        }
+        for idx in to_remove {
+            self.channels.remove(&idx);
+        }
+    }
+
+    pub fn is_playing(&mut self) -> bool {
+        let mut playing = false;
+        for ch in &mut self.channels {
+            if ch.1.is_playing() {
+                playing = true;
+                break;
+            }
+        }
+        return playing;
+    }
+
+    pub fn volume(&mut self) -> i32 {
+        for ch in &mut self.channels {
+            return ch.1.get_volume();
+        }
+        return 0;
+    }
+    pub fn set_volume(&mut self, volume: i32) -> () {
+        for ch in &mut self.channels {
+            ch.1.set_volume(volume);
+        }
+    }
+}
+
+audio_generate!();
+
+// Helper functions for certain audio.
 impl Audio {
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
-        sdl2::mixer::open_audio(44000, AUDIO_F32, 2, 256)?;
-        sdl2::mixer::allocate_channels(8);
-
-        let door = sdl2::mixer::Chunk::from_file("./audio/door.mp3")?;
-        let fuck_you_tux = sdl2::mixer::Chunk::from_file("./audio/fuck_you_tux.mp3")?;
-        let thud = sdl2::mixer::Chunk::from_file("./audio/thud.mp3")?;
-        let noise = sdl2::mixer::Chunk::from_file("./audio/noise.mp3")?;
-        let wilber_appear = sdl2::mixer::Chunk::from_file("./audio/wilber_appear.mp3")?;
-        let tux_appear = sdl2::mixer::Chunk::from_file("./audio/tux_appears.mp3")?;
-        let gopher_appear = sdl2::mixer::Chunk::from_file("./audio/gopher.mp3")?;
-        let open_source_closed_casket =
-            sdl2::mixer::Chunk::from_file("./audio/open_source_closed_casket.mp3")?;
-        let plush = sdl2::mixer::Chunk::from_file("./audio/plush.mp3")?;
-
-        let regular_jumpscare = sdl2::mixer::Chunk::from_file("./audio/regular_jumpscare.mp3")?;
-        let tux_jumpscare = sdl2::mixer::Chunk::from_file("./audio/tux_jumpscare.mp3")?;
-        let revenant_party = sdl2::mixer::Chunk::from_file("./audio/revenant_party.mp3")?;
-        let brownian_noise = sdl2::mixer::Chunk::from_file("./audio/brownian_noise.mp3")?;
-        let ambience_ominous = vec![
-            sdl2::mixer::Chunk::from_file("./audio/ominous_ambient_1.mp3")?,
-            sdl2::mixer::Chunk::from_file("./audio/ominous_ambient_3.mp3")?,
-        ];
-        let ambience_unused = sdl2::mixer::Chunk::from_file("./audio/ominous_ambient_2.mp3")?;
-
-        let ambience_sinister = vec![
-            sdl2::mixer::Chunk::from_file("./audio/sinister_ambient_1.mp3")?,
-            sdl2::mixer::Chunk::from_file("./audio/sinister_ambient_2.mp3")?,
-            sdl2::mixer::Chunk::from_file("./audio/sinister_ambient_3.mp3")?,
-        ];
-
-        let bells = sdl2::mixer::Chunk::from_file("./audio/bells.mp3")?;
-
-        let stinger = sdl2::mixer::Chunk::from_file("./audio/stinger.mp3")?;
-        let jammed = sdl2::mixer::Chunk::from_file("./audio/jammed.mp3")?;
-        let camera_flip = sdl2::mixer::Chunk::from_file("./audio/camera_flip.mp3")?;
-
-        let wilburs = vec![
-            sdl2::mixer::Chunk::from_file("./audio/wilbur1.mp3")?,
-            sdl2::mixer::Chunk::from_file("./audio/wilbur3.mp3")?,
-            sdl2::mixer::Chunk::from_file("./audio/wilbur2.mp3")?,
-        ];
-
-        let mut tainted_notes = Vec::new();
-        let mut tainted_channels = Vec::new();
-        for i in 1..37 {
-            tainted_notes.push(sdl2::mixer::Chunk::from_file(format!(
-                "./audio/tainted/note{}.mp3",
-                i
-            ))?);
-            tainted_channels.push(None);
-        }
-        let audio = Self {
-            door,
-            fuck_you_tux,
-            thud,
-            noise,
-            wilber_appear,
-            tux_appear,
-            ambience_ominous,
-            ambience_sinister,
-            thread_rng: thread_rng(),
-            title_channel: None,
-            left_channel_door: None,
-            right_channel_door: None,
-
-            left_channel_thud: None,
-            right_channel_thud: None,
-            noise_channel: None,
-            monster_appear_channel: None,
-            ambient_channel: None,
-            plush,
-            plush_channel: None,
-            regular_jumpscare,
-            tux_jumpscare,
-            jumpscare_channel: None,
-            brownian_noise,
-            brownian_channel: None,
-            tainted_notes,
-            tainted_channels,
-            bells,
-            bells_channel: None,
-            revenant_party,
-            stinger,
-            stinger_channel: None,
-            jammed_channel: None,
-            jammed,
-            gopher_appear,
-            open_source_closed_casket,
-            camera_flip,
-            wilburs,
-            wilber_channel: None,
-            ambience_unused,
-            open_source_channel: None,
+    pub fn play_wilbur(&mut self, stage: u8) -> Result<(), Box<dyn std::error::Error>> {
+        let snd = match stage {
+            0 => &mut self.wilbur1,
+            1 => &mut self.wilbur2,
+            _ => &mut self.wilbur3,
         };
-        Ok(audio)
+        if !snd.is_playing() {
+            snd.play()?
+        }
+
+        Ok(())
+    }
+
+    pub fn play_title(&mut self, has_won: bool) -> Result<(), Box<dyn std::error::Error>> {
+        if has_won {
+            if !self.revenant_party.is_playing() && !config().night_2() {
+                self.revenant_party.play_loop()?;
+            }
+        } else {
+            if !self.fuck_you_tux.is_playing() {
+                self.fuck_you_tux.play_loop()?;
+            }
+        };
+        Ok(())
+    }
+
+    pub fn title_volume(
+        &mut self,
+        has_won: bool,
+        volume: f32,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let snd = if has_won {
+            &mut self.revenant_party
+        } else {
+            &mut self.fuck_you_tux
+        };
+        snd.set_volume((volume * config().volume() as f32) as i32);
+        Ok(())
+    }
+
+    pub fn halt_title(&mut self, has_won: bool) {
+        if has_won {
+            self.revenant_party.halt();
+        } else {
+            self.fuck_you_tux.halt();
+        }
+    }
+
+    pub fn play_tainted(&mut self, note: usize) -> Result<(), Box<dyn std::error::Error>> {
+        if let Some(snd) = match note {
+            0 => Some(&mut self.note1),
+            1 => Some(&mut self.note2),
+            2 => Some(&mut self.note3),
+            3 => Some(&mut self.note4),
+            4 => Some(&mut self.note5),
+            5 => Some(&mut self.note6),
+            6 => Some(&mut self.note7),
+            7 => Some(&mut self.note8),
+            8 => Some(&mut self.note9),
+            9 => Some(&mut self.note10),
+            10 => Some(&mut self.note11),
+            11 => Some(&mut self.note12),
+            12 => Some(&mut self.note13),
+            13 => Some(&mut self.note14),
+            14 => Some(&mut self.note15),
+            15 => Some(&mut self.note16),
+            16 => Some(&mut self.note17),
+            17 => Some(&mut self.note18),
+            18 => Some(&mut self.note19),
+            19 => Some(&mut self.note20),
+            20 => Some(&mut self.note21),
+            21 => Some(&mut self.note22),
+            22 => Some(&mut self.note23),
+            23 => Some(&mut self.note24),
+            24 => Some(&mut self.note25),
+            25 => Some(&mut self.note26),
+            26 => Some(&mut self.note27),
+            27 => Some(&mut self.note28),
+            28 => Some(&mut self.note29),
+            29 => Some(&mut self.note30),
+            30 => Some(&mut self.note31),
+            31 => Some(&mut self.note32),
+            32 => Some(&mut self.note33),
+            33 => Some(&mut self.note34),
+            34 => Some(&mut self.note35),
+            35 => Some(&mut self.note36),
+            36 => Some(&mut self.note37),
+            _ => None,
+        } {
+            if !snd.is_playing() {
+                snd.play()?;
+            }
+        }
+
+        Ok(())
     }
 
     pub fn play_ambience(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if let None = self.ambient_channel {
-            if let None = self.open_source_channel {
-                let chance_to_play = self.thread_rng.gen_range(1..1000);
-                if chance_to_play <= 1 {
-                    let chance = self.thread_rng.gen_range(1..2000);
-                    let vec;
-                    if chance <= 1 {
-                        vec = &self.ambience_ominous;
-                    } else {
-                        vec = &self.ambience_sinister;
-                    }
-                    let chance = self.thread_rng.gen_range(1..vec.len());
-                    let snd = vec.get(chance - 1).unwrap();
-                    if false {
-                        self.play_ambience_unused_channel()?;
-                    } else {
-                        play!(self.ambient_channel, snd);
-                    }
-                }
-            }
-        };
-        Ok(())
-    }
-
-    pub fn play_tainted(&mut self, mut note: usize) -> Result<(), Box<dyn std::error::Error>> {
-        if note >= 36 {
-            note = 0;
-        }
-        let snd = &self.tainted_notes.get(note).unwrap();
-        if let None = self.tainted_channels[note] {
-            let pl = sdl2::mixer::Channel::all().play(&snd, 0);
-            match pl {
-                Ok(a) => self.tainted_channels[note] = Some(a),
-                Err(_er) => {}
-            }
-        };
-        Ok(())
-    }
-    pub fn play_open_source_closed_casket(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        play!(self.open_source_channel, self.open_source_closed_casket);
-        Ok(())
-    }
-    pub fn play_wilber_channel(&mut self, nth: usize) -> Result<(), Box<dyn std::error::Error>> {
-        let wil = self.wilburs.get(nth).unwrap();
-        play!(self.wilber_channel, wil);
-        Ok(())
-    }
-    pub fn play_ambience_unused_channel(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        play!(self.ambient_channel, self.ambience_unused);
-        Ok(())
-    }
-    pub fn play_camera_flip(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        sdl2::mixer::Channel::all().play(&self.camera_flip, 0)?;
-        Ok(())
-    }
-    pub fn play_jammed(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        play!(self.jammed_channel, self.jammed);
-        Ok(())
-    }
-    pub fn play_stinger(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        play!(self.stinger_channel, self.stinger);
-        Ok(())
-    }
-    pub fn play_brownian_noise(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        play!(self.brownian_channel, self.brownian_noise);
-        Ok(())
-    }
-
-    pub fn play_regular_jumpscare(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        play!(self.jumpscare_channel, self.regular_jumpscare);
-        Ok(())
-    }
-
-    pub fn play_tux_jumpscare(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        play!(self.jumpscare_channel, self.tux_jumpscare);
-        Ok(())
-    }
-    pub fn play_plush(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        play!(self.plush_channel, self.plush);
-        Ok(())
-    }
-    pub fn play_wilber(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        play!(self.monster_appear_channel, self.wilber_appear);
-        Ok(())
-    }
-    pub fn play_tux(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        play!(self.monster_appear_channel, self.tux_appear);
-
-        Ok(())
-    }
-    pub fn play_gopher(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        play!(self.monster_appear_channel, self.gopher_appear);
-
-        Ok(())
-    }
-    pub fn play_noise(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        play!(self.noise_channel, self.noise);
-
-        Ok(())
-    }
-    pub fn play_title(&mut self, won: bool) -> Result<(), Box<dyn std::error::Error>> {
-        if won {
-            play!(self.title_channel, self.revenant_party, -1);
-        } else {
-            play!(self.title_channel, self.fuck_you_tux, -1);
-        }
-        Ok(())
-    }
-    pub fn play_door_left(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        self.left_halt();
-        play!(self.left_channel_door, self.door);
-        Ok(())
-    }
-    pub fn play_door_right(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        self.right_halt();
-        play!(self.right_channel_door, self.door);
-        Ok(())
-    }
-    pub fn play_thud_left(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        self.left_halt();
-        play!(self.left_channel_thud, self.thud);
-        Ok(())
-    }
-    pub fn play_thud_right(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        self.right_halt();
-        play!(self.right_channel_thud, self.thud);
-        Ok(())
-    }
-    pub fn play_bells(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        play!(self.bells_channel, self.bells);
-        Ok(())
-    }
-    pub fn step(&mut self, state: &State) -> Result<(), Box<dyn std::error::Error>> {
-        let var_name = state.bg_offset_x / 3.0;
-        let mut left = 191.0 - var_name;
-        if left <= 64.0 {
-            left = 64.0;
-        }
-        if left >= 191.0 {
-            left = 191.0;
-        }
-        let mut right = var_name;
-        if right <= 64.0 {
-            right = 64.0;
-        }
-        if right >= 191.0 {
-            right = 191.0;
-        }
-        let left = left as u8;
-        let right = right as u8;
-        if let Some(ch) = self.left_channel_door {
-            ch.set_panning(left, 0)?;
-            if !ch.is_playing() {
-                self.left_channel_door = None;
-            }
-        }
-        if let Some(ch) = self.right_channel_door {
-            ch.set_panning(0, right)?;
-            if !ch.is_playing() {
-                self.right_channel_door = None;
-            }
-        }
-        if let Some(ch) = self.left_channel_thud {
-            ch.set_panning(left, 0)?;
-            if !ch.is_playing() {
-                self.left_channel_thud = None;
-            }
-        }
-        if let Some(ch) = self.right_channel_thud {
-            ch.set_panning(0, right)?;
-            if !ch.is_playing() {
-                self.right_channel_thud = None;
-            }
-        }
-        if let Some(ch) = self.noise_channel {
-            ch.set_volume(100);
-            if !ch.is_playing() {
-                self.noise_channel = None;
-            }
-        }
-        if let Some(ch) = self.monster_appear_channel {
-            if !ch.is_playing() {
-                self.monster_appear_channel = None;
-            }
-        }
-        if let Some(ch) = self.bells_channel {
-            if !ch.is_playing() {
-                self.bells_channel = None;
-            }
-        }
-        if let Some(ch) = self.ambient_channel {
-            if !ch.is_playing() {
-                self.ambient_channel = None;
-            }
-        }
-        if let Some(ch) = self.open_source_channel {
-            if !ch.is_playing() {
-                self.open_source_channel = None;
-            }
-        }
-        if let Some(ch) = self.jammed_channel {
-            if !ch.is_playing() {
-                self.jammed_channel = None;
-            }
-        }
-        if let Some(ch) = self.stinger_channel {
-            if !ch.is_playing() {
-                self.stinger_channel = None;
-            }
-        }
-        if let Some(ch) = self.plush_channel {
-            if !ch.is_playing() {
-                self.plush_channel = None;
-            }
-        }
-        if let Some(ch) = self.jumpscare_channel {
-            if !ch.is_playing() {
-                self.jumpscare_channel = None;
-            }
-        }
-        if let Some(ch) = self.wilber_channel {
-            if !ch.is_playing() {
-                self.wilber_channel = None;
-            }
-        }
-        if let Some(ch) = self.title_channel {
-            let mut volume = {
-                if state.going_to_office_from_title {
-                    (100.0 - (state.title_clicked.elapsed()?.as_millis() as f32 / (4000.0 / 100.0)))
-                        as i32
+        let ambient_playing = self.ominous_ambient_1.is_playing()
+            && self.ominous_ambient_3.is_playing()
+            && self.sinister_ambient_1.is_playing()
+            && self.sinister_ambient_2.is_playing()
+            && self.sinister_ambient_3.is_playing();
+        if !ambient_playing {
+            let chance_to_play = thread_rng().gen_range(1..1000);
+            if chance_to_play <= 1 {
+                let chance = thread_rng().gen_range(1..2000);
+                let mut vec;
+                if chance <= 1 {
+                    // ambience_ominous
+                    vec = vec![&mut self.ominous_ambient_1, &mut self.ominous_ambient_3]
                 } else {
-                    100
+                    // ambience_sinister
+                    vec = vec![
+                        &mut self.sinister_ambient_1,
+                        &mut self.sinister_ambient_2,
+                        &mut self.sinister_ambient_3,
+                    ];
                 }
-            };
-            if volume >= 100 {
-                volume = 100;
-            }
-            ch.set_volume(volume);
-            if !ch.is_playing() {
-                ch.set_volume(100);
-                self.title_channel = None;
+                let chance = thread_rng().gen_range(1..vec.len());
+                let snd = vec.get_mut(chance - 1).unwrap();
+                snd.play()?;
             }
         }
 
         Ok(())
-    }
-
-    pub fn left_halt(&mut self) {
-        if let Some(ch) = self.left_channel_door {
-            ch.halt();
-        }
-    }
-    pub fn right_halt(&mut self) {
-        if let Some(ch) = self.right_channel_door {
-            ch.halt();
-        }
-    }
-
-    pub fn center_halt(&mut self) {
-        if let Some(ch) = self.title_channel {
-            ch.halt();
-        }
-    }
-    pub fn noise_halt(&mut self) {
-        if let Some(ch) = self.noise_channel {
-            ch.halt();
-        }
-    }
-    pub fn brownian_halt(&mut self) {
-        if let Some(ch) = self.brownian_channel {
-            ch.halt();
-        }
-    }
-    pub fn halt(&mut self) {
-        self.left_halt();
-        self.center_halt();
-        self.right_halt();
     }
 }
+
+/*
+
+*/

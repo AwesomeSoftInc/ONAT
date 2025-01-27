@@ -3,17 +3,6 @@ use num_traits::FromPrimitive;
 
 use rand::{thread_rng, Rng};
 
-#[derive(PartialEq, Debug)]
-pub enum Screen {
-    TitleScreen,
-    Credits,
-    Office,
-    CameraRebooting,
-    Camera,
-    GameOver,
-    YouWin,
-}
-
 extern crate num_derive;
 #[derive(FromPrimitive, ToPrimitive, PartialEq, Clone, Debug)]
 pub enum Room {
@@ -40,19 +29,6 @@ impl Room {
         match Room::from_u64(ran as u64) {
             Some(a) => a,
             None => Room::None, // should never happen
-        }
-    }
-
-    pub fn prev(&self) -> RoomOption {
-        match self {
-            Room::Room1 => RoomOption::None,
-            Room::Room2 => RoomOption::None,
-            Room::Room3 => RoomOption::Multiple(vec![Room::Room1, Room::Room2]),
-            Room::Room5 => RoomOption::Multiple(vec![Room::Room1, Room::Room2]),
-            Room::Room4 => RoomOption::None,
-            Room::Room6 => RoomOption::None,
-            Room::None => RoomOption::None,
-            Room::Office => RoomOption::Room(Room::Office),
         }
     }
 

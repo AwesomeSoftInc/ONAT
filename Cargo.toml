@@ -1,11 +1,12 @@
 [package]
 name = "onat"
 version = "0.1.0"
-edition = "2021"
+edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+raylib = { path = "./raylib-rs/raylib", features = ["imgui", "opengl_33"] }
 num = "0.4.1"
 num-derive = "0.4.1"
 num-traits = "0.2.17"
@@ -13,20 +14,29 @@ rand = "0.8.5"
 proc = { path = "./proc" }
 once_cell = "1.18.0"
 parking_lot = "0.12.1"
-raylib = "3.7.0"
 getrandom = { version = "0.2.11", features = ["js"] }
 dialog = "0.3.0"
 error-window = "1.0.0"
 flate2 = "1.0.28"
-sdl2 = { version = "0.36.0", features = ["mixer", "bundled"] }
+sdl2 = { version = "0.37.0", features = ["mixer", "bundled"] }
+imgui = { version = "0.12.0", features = ["tables-api"] }
+libc = "0.2.167"
+dirs = "6.0.0"
+toml = "0.8.19"
+serde = { version = "1.0.217", features = ["derive"] }
 
+[target.'cfg(unix)'.dependencies]
+piper-rs = "0.1.9"
 
 [features]
 default = []
 no_camera_timer = []
 beastie_always_move = []
+
 [package.metadata.appimage]
 auto_link = true
+assets = ["audio", "tts"]
+
 
 [profile.release]
 strip = true
