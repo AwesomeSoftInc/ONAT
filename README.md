@@ -1,4 +1,4 @@
-Source code for One Night at Tux's (as it was known before it was renamed right before release).
+Source code for A Moderately Uncomfortable Night With Tux (otherwise known by its codename ONAT, One Night at Tux).
 
 To compile this for your native OS you need to run `cargo build --release`. `cargo appimage` can be used to distribute the AppImage. 
 
