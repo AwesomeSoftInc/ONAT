@@ -3,10 +3,8 @@ name = "onat"
 version = "0.1.0"
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-raylib = { path = "./raylib-rs/raylib", features = ["imgui", "opengl_33"] }
+raylib = { path = "./raylib-rs/raylib", features = ["imgui", "opengl_20"] }
 num = "0.4.1"
 num-derive = "0.4.1"
 num-traits = "0.2.17"
@@ -33,16 +31,12 @@ default = []
 no_camera_timer = []
 beastie_always_move = []
 
-[package.metadata.appimage]
-auto_link = true
-assets = ["audio", "tts"]
-
-[target.'cfg(unix)']
-rustflags = ["-C", "target-feature=+crt-static"]
-
 [profile.release]
 strip = true
 lto = true
 
 [profile.release.package.proc]
 features = ["release"]
+
+[build-dependencies]
+cmake = "0.1.57"

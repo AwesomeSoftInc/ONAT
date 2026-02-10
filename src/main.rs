@@ -1,3 +1,5 @@
+#![allow(semicolon_in_expressions_from_macros)]
+
 use audio::{audio_load_status, audio_set_status};
 use monster::Monster;
 use parking_lot::Mutex;
