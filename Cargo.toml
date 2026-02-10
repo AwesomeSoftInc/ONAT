@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies]
-raylib = { path = "./raylib-rs/raylib", features = ["imgui", "opengl_20"] }
+raylib = { path = "./raylib-rs/raylib", features = ["imgui", "opengl_21"] }
 num = "0.4.1"
 num-derive = "0.4.1"
 num-traits = "0.2.17"
