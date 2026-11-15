@@ -2,11 +2,11 @@ use std::{collections::HashMap, fs::File, io::Read, path::PathBuf, sync::Arc};
 
 use parking_lot::Mutex;
 
+use crate::openal_bridge::{self, Channel, Chunk, AUDIO_F32};
 #[cfg(not(target_os = "windows"))]
 use piper_rs::synth::PiperSpeechSynthesizer;
 use proc::audio_generate;
 use rand::{thread_rng, Rng};
-use sdl2::mixer::{Channel, Chunk, AUDIO_F32};
 
 use crate::config::config;
 
@@ -21,9 +21,9 @@ pub fn audio_set_status(val: &str) {
 }
 
 pub fn audio_init(frequency: i32) -> Result<(), Box<dyn std::error::Error>> {
-    sdl2::mixer::close_audio();
-    sdl2::mixer::open_audio(frequency, AUDIO_F32, 2, 1024)?;
-    sdl2::mixer::allocate_channels(1024);
+    openal_bridge::close_audio();
+    openal_bridge::open_audio(frequency, AUDIO_F32, 2, 1024)?;
+    openal_bridge::allocate_channels(1024);
     Ok(())
 }
 
@@ -121,11 +121,7 @@ fn tts_fetch() -> Result<Vec<(String, usize, Sound)>, Box<dyn std::error::Error>
             synth.synthesize_to_file(&file, f.to_string(), None)?;
         }
         let chunk = Chunk::from_file(file)?;
-        outs.push((
-            st,
-            (unsafe { *chunk.raw }).alen as usize,
-            Sound::from_chunk(chunk)?,
-        ));
+        outs.push((st, chunk.alen as usize, Sound::from_chunk(chunk)?));
         i += 1;
     }
 
@@ -157,7 +153,7 @@ impl Sound {
     pub fn play(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.channels.insert(
             self.channels.len(),
-            sdl2::mixer::Channel::all().play(&self.chunk, 0)?,
+            openal_bridge::Channel::all().play(&self.chunk, 0)?,
         );
         Ok(())
     }
@@ -171,7 +167,7 @@ impl Sound {
         if let None = self.channels.get(&idx) {
             if let Some(ch) = self
                 .channels
-                .insert(idx, sdl2::mixer::Channel::all().play(&self.chunk, 0)?)
+                .insert(idx, openal_bridge::Channel::all().play(&self.chunk, 0)?)
             {
                 ch.set_panning(left, right)?;
             };
@@ -182,7 +178,7 @@ impl Sound {
     pub fn play_loop_reserved(&mut self, idx: usize) -> Result<(), Box<dyn std::error::Error>> {
         if let None = self.channels.get(&idx) {
             self.channels
-                .insert(idx, sdl2::mixer::Channel::all().play(&self.chunk, -1)?);
+                .insert(idx, openal_bridge::Channel::all().play(&self.chunk, -1)?);
         }
         Ok(())
     }
@@ -190,7 +186,7 @@ impl Sound {
     pub fn play_panned(&mut self, left: u8, right: u8) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(ch) = self.channels.insert(
             self.channels.len(),
-            sdl2::mixer::Channel::all().play(&self.chunk, 0)?,
+            openal_bridge::Channel::all().play(&self.chunk, 0)?,
         ) {
             ch.set_panning(left, right)?;
         }
@@ -200,7 +196,7 @@ impl Sound {
     pub fn play_loop(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.channels.insert(
             self.channels.len(),
-            sdl2::mixer::Channel::all().play(&self.chunk, -1)?,
+            openal_bridge::Channel::all().play(&self.chunk, -1)?,
         );
         Ok(())
     }

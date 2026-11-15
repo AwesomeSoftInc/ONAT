@@ -43,7 +43,7 @@ impl Default for Writable {
     fn default() -> Self {
         Self {
             ui_scale: 2.0,
-            fullscreen: true,
+            fullscreen: false,
             night_2_unlocked: false,
             on_tutorial: true,
             texture_filter: WritableTextureFilter::Bilinear,
@@ -105,11 +105,17 @@ impl Config {
             ratio: 1.0,
         };
 
+        let dimensions_fn = if writable.fullscreen {
+            fullscreen_dimensions_fn
+        } else {
+            windowed_dimensions_fn
+        };
+
         Self {
             writable,
             emulated_dimensions,
             real_dimensions,
-            dimensions_fn: fullscreen_dimensions_fn,
+            dimensions_fn,
             night_2: false,
         }
     }

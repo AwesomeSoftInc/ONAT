@@ -20,6 +20,7 @@ mod config;
 mod enums;
 mod macros;
 mod monster;
+mod openal_bridge;
 mod state;
 mod textures;
 
@@ -61,6 +62,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (mut rl, thread) = raylib::init()
         .resizable()
+        .width(1024)
+        .height(768)
         .log_level(TraceLogLevel::LOG_WARNING)
         .title("ONAT")
         .build();
