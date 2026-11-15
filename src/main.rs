@@ -54,6 +54,11 @@ fn init_audio() -> Result<(), Box<dyn std::error::Error>> {
 
 #[error_window::main]
 fn main() -> Result<(), Box<dyn Error>> {
+    #![cfg(not(target_os = "windows"))]
+    unsafe {
+        let exe_dir = std::env::current_exe()?.parent().unwrap().to_path_buf();
+        std::env::set_var("PIPER_ESPEAKNG_DATA_DIRECTORY", &exe_dir);
+    }
     unsafe {
         let f = handler as *const fn(libc::c_int);
         libc::signal(libc::SIGSEGV, f as libc::size_t);
